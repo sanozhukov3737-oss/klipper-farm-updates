@@ -1,0 +1,97 @@
+name: Windows installer
+on:
+  workflow_dispatch:
+    inputs:
+      source_tag:
+        description: Source prerelease tag
+        required: true
+        default: source-r98
+      source_sha256:
+        description: SHA-256 of KF-R98-FULL.zip
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: windows-build
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      KF_SOURCE_TAG: ${{ inputs.source_tag }}
+      KF_SOURCE_SHA256: ${{ inputs.source_sha256 }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Download and verify pinned source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:KF_SOURCE_TAG -notmatch '^[A-Za-z0-9._-]{1,80}$') { throw 'Invalid source tag' }
+          if ($env:KF_SOURCE_SHA256 -notmatch '^[a-f0-9]{64}$') { throw 'Invalid source checksum' }
+          gh release download $env:KF_SOURCE_TAG --repo $env:GITHUB_REPOSITORY --pattern KF-R98-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Source download failed' }
+          $archive = Join-Path $PWD 'incoming/KF-R98-FULL.zip'
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:KF_SOURCE_SHA256) { throw 'Source checksum mismatch' }
+          Expand-Archive $archive -DestinationPath work
+          $project = (Get-ChildItem work -Directory).FullName
+          if (@($project).Count -ne 1) { throw 'Expected one source root' }
+          "KF_PROJECT=$project" >> $env:GITHUB_ENV
+      - name: Verify source and frontend
+        shell: pwsh
+        run: |
+          Set-Location $env:KF_PROJECT
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
+          node scripts/verification-lab-r9.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Verification failed' }
+      - name: Compile and test native Windows code and build NSIS
+        shell: pwsh
+        run: |
+          Set-Location $env:KF_PROJECT
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+      - name: Exercise desktop and updater helper
+        shell: pwsh
+        run: |
+          Set-Location $env:KF_PROJECT
+          $release = Join-Path $PWD '.klipper-build-cache/target/release'
+          node scripts/check-headless-telemetry-runtime.mjs --daemon "$release/klipper-farmd.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Headless telemetry failed' }
+          node scripts/check-desktop-startup-smoke.mjs "$release/klipper-farm-client.exe" "$release/klipper-farmd.exe" "$PWD/.klipper-build-cache/smoke"
+          if ($LASTEXITCODE -ne 0) { throw 'Desktop smoke failed' }
+          $tokens = $null
+          $errors = $null
+          [Management.Automation.Language.Parser]::ParseFile("$PWD/scripts/apply-online-update.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw 'Updater helper syntax failed' }
+      - name: Collect tested installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          $installer = @(Get-ChildItem "$env:KF_PROJECT/INSTALLER" -Filter '*.exe')
+          if ($installer.Count -ne 1) { throw 'Expected one tested installer' }
+          Copy-Item $installer[0].FullName out/Klipper-Farm-R98-setup.exe
+          $hash = (Get-FileHash out/Klipper-Farm-R98-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash *Klipper-Farm-R98-setup.exe" | Set-Content -Encoding utf8NoBOM out/SHA256SUMS.txt
+      - name: Retain evidence and installer
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R98-Windows
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            out/
+            work/**/.klipper-build-cache/logs/
+            work/**/.klipper-build-cache/target/v20-rust-tests-last.log
+            work/**/.klipper-build-cache/smoke/
