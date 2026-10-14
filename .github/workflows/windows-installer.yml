@@ -55,6 +55,27 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'npm ci failed' }
           node scripts/verification-lab-r9.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Verification failed' }
+      - name: Restore Windows PowerShell modules and apply reviewed compatibility fix
+        shell: pwsh
+        run: |
+          Set-Location $env:KF_PROJECT
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+          powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/verify-release-manifest.ps1 -ManifestPath MANIFEST-SHA256.txt -RootPath $PWD -Kind release
+          if ($LASTEXITCODE -ne 0) { throw 'Original source manifest failed' }
+          $builder = Join-Path $PWD 'scripts/build-and-install-windows.mjs'
+          $text = [IO.File]::ReadAllText($builder)
+          $needle = 'const verifyManifest='
+          if (-not $text.Contains($needle)) { throw 'Unexpected build script' }
+          $insert = "for(const name of Object.keys(buildEnv))if(name.toLowerCase()==='psmodulepath')delete buildEnv[name];"
+          [IO.File]::WriteAllText($builder, $text.Replace($needle, $insert + [char]10 + $needle), [Text.UTF8Encoding]::new($false))
+          $native = Join-Path $PWD 'src-tauri/src/online_updates.rs'
+          $text = [IO.File]::ReadAllText($native)
+          $needle = '        command.args(["-NoProfile", "-NonInteractive", "-Command", include_str!'
+          if (-not $text.Contains($needle)) { throw 'Unexpected updater launcher' }
+          $insert = '        command.env_remove("PSModulePath");'
+          [IO.File]::WriteAllText($native, $text.Replace($needle, $insert + [char]10 + $needle), [Text.UTF8Encoding]::new($false))
+          node scripts/generate-release-manifests.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Patched source manifest failed' }
       - name: Compile and test native Windows code and build NSIS
         shell: pwsh
         run: |
@@ -100,6 +121,7 @@ jobs:
           $start.UseShellExecute = $false
           $start.RedirectStandardInput = $true
           $start.CreateNoWindow = $true
+          $start.EnvironmentVariables.Remove("PSModulePath")
           $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
           $start.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($helperText))
           $helper = [Diagnostics.Process]::Start($start)
@@ -126,6 +148,7 @@ jobs:
         with:
           name: Klipper-Farm-R98-Windows
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 30
           path: |
             out/
