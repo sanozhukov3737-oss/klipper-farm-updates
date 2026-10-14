@@ -68,6 +68,11 @@ jobs:
           if (-not $text.Contains($needle)) { throw 'Unexpected build script' }
           $insert = "for(const name of Object.keys(buildEnv))if(name.toLowerCase()==='psmodulepath')delete buildEnv[name];"
           [IO.File]::WriteAllText($builder, $text.Replace($needle, $insert + [char]10 + $needle), [Text.UTF8Encoding]::new($false))
+          $text = [IO.File]::ReadAllText($builder)
+          $needle = "const tempRoot=path.join(cacheRoot,'temp');"
+          if (-not $text.Contains($needle)) { throw 'Unexpected temporary directory' }
+          $insert = "const tempRoot=process.platform==='win32'?path.join((await import('node:os')).default.tmpdir(),'kf-build',(await import('node:crypto')).createHash('sha256').update(root).digest('hex').slice(0,16)):path.join(cacheRoot,'temp');"
+          [IO.File]::WriteAllText($builder, $text.Replace($needle, $insert), [Text.UTF8Encoding]::new($false))
           $native = Join-Path $PWD 'src-tauri/src/online_updates.rs'
           $text = [IO.File]::ReadAllText($native)
           $needle = '        command.args(["-NoProfile", "-NonInteractive", "-Command", include_str!'
