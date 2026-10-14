@@ -74,6 +74,18 @@ jobs:
           if (-not $text.Contains($needle)) { throw 'Unexpected updater launcher' }
           $insert = '        command.env_remove("PSModulePath");'
           [IO.File]::WriteAllText($native, $text.Replace($needle, $insert + [char]10 + $needle), [Text.UTF8Encoding]::new($false))
+          $database = Join-Path $PWD 'src-tauri/src/database.rs'
+          $text = [IO.File]::ReadAllText($database)
+          $needle = 'let connection = Connection::open(path).map_err(|error| error.to_string())?;'
+          if (-not $text.Contains($needle)) { throw 'Unexpected database opener' }
+          $insert = 'let connection = Connection::open(path).map_err(|error| format!("SQLite open {}: {error:?}", path.display()))?;'
+          [IO.File]::WriteAllText($database, $text.Replace($needle, $insert), [Text.UTF8Encoding]::new($false))
+          $core = Join-Path $PWD 'src-tauri/src/transactional_core/mod.rs'
+          $text = [IO.File]::ReadAllText($core)
+          $needle = '            Journal::new(path)'
+          if (-not $text.Contains($needle)) { throw 'Unexpected journal opener' }
+          $insert = '            Journal::new(path).map_err(|error| format!("SQLite journal {}: {error}", path.display()))'
+          [IO.File]::WriteAllText($core, $text.Replace($needle, $insert), [Text.UTF8Encoding]::new($false))
           node scripts/generate-release-manifests.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Patched source manifest failed' }
       - name: Compile and test native Windows code and build NSIS
