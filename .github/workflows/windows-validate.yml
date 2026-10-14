@@ -1,0 +1,91 @@
+name: Validate R98 candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: windows-2022
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Download exact compiled R98 candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh run download 38595778002 --repo $env:GITHUB_REPOSITORY --name Klipper-Farm-R98-Candidate --dir candidate
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate download failed' }
+          Set-Location candidate
+          $provenance = Get-Content provenance.json -Raw | ConvertFrom-Json
+          if ($provenance.sourceSha256 -ne '57910db0d4137b0b6a4b64a85e5c6703c83fc21245f9617081dcddf33342cbe7' -or $provenance.workflowCommit -ne 'd1a54b9be2718c25eea321e2bb7f64fb57aab4aa') { throw 'Candidate provenance mismatch' }
+          $pins = @{
+            'Klipper-Farm-R98-setup.exe'='774f757c0b1e15b904222667e196a3fafc25be686dd97d72e6539621e576ab47';
+            'release/klipper-farm-client.exe'='f9f00827ac8b8de75d98ee4cc4c593125a2275fe4cf087c2be1f0f70d7f7f4cf';
+            'release/klipper-farmd.exe'='f5b6a1f63fd4c6410882b41dddd3fc204d32f8c7ffa34839ab611f97e6510b88';
+            'scripts/apply-online-update.ps1'='163c37e79d525674d6a7ceaae1b2c9ebe61a0bff5f379b93df5d96198fff0c65'
+          }
+          foreach ($pin in $pins.GetEnumerator()) {
+            if ((Get-FileHash $pin.Key -Algorithm SHA256).Hash.ToLowerInvariant() -ne $pin.Value) { throw "Candidate file changed: $($pin.Key)" }
+          }
+      - name: Diagnose physical same-version update without rebuilding
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location candidate
+          $setup = (Resolve-Path Klipper-Farm-R98-setup.exe).Path
+          $release = (Resolve-Path release).Path
+          $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm update test'
+          $first = Start-Process -FilePath $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($first.ExitCode -ne 0) { throw 'Initial install failed' }
+          $expected = @{}
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+            $installed = Join-Path $installDir $name
+            $expected[$name] = (Get-FileHash $installed -Algorithm SHA256).Hash
+            "PRISTINE $name length=$((Get-Item $installed).Length) hash=$($expected[$name])"
+            "RAW $name length=$((Get-Item (Join-Path $release $name)).Length) hash=$((Get-FileHash (Join-Path $release $name)).Hash)"
+          }
+          $desktop = Join-Path $installDir 'klipper-farm-client.exe'
+          $desktopText = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          foreach ($marker in @('V20.6-R9.8-IN-APP-UPDATES-2026-10-14','28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb','https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json')) {
+            if (-not $desktopText.Contains($marker)) { throw "Installed R98 marker missing: $marker" }
+          }
+          $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
+          if (-not $desktopText.Contains($helperText)) { throw 'Installed executable embeds a different update helper' }
+          Get-ItemProperty 'HKCU:/Software/Microsoft/Windows/CurrentVersion/Uninstall/Klipper Farm' | Select-Object InstallLocation,UninstallString,DisplayVersion,MainBinaryName | ConvertTo-Json
+          $dataDir = Join-Path $env:APPDATA 'app.klipper.farm'
+          New-Item -ItemType Directory -Force $dataDir | Out-Null
+          $marker = Join-Path $dataDir 'updater-config-preserve.txt'
+          [IO.File]::WriteAllText($marker, 'preserve')
+          [IO.File]::WriteAllText($desktop, 'old desktop')
+          [IO.File]::WriteAllText((Join-Path $installDir 'klipper-farmd.exe'), 'old daemon')
+          $dead = Start-Process -FilePath "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" -ArgumentList '-NoProfile -NonInteractive -Command exit 0' -Wait -PassThru
+          $payload = @{parentPid=$dead.Id; executable=$desktop; installer=$setup; sha256=(Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant(); sizeBytes=(Get-Item $setup).Length; ready=(Join-Path $env:RUNNER_TEMP 'updater-helper-ready')} | ConvertTo-Json -Compress
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardInput = $true
+          $start.CreateNoWindow = $true
+          $start.EnvironmentVariables.Remove('PSModulePath')
+          $start.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($helperText))
+          $helper = [Diagnostics.Process]::Start($start)
+          $helper.StandardInput.Write($payload)
+          $helper.StandardInput.Close()
+          if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Updater helper timeout' }
+          if ($helper.ExitCode -ne 0) { throw 'Updater helper failed' }
+          Get-Content install-result.txt -Raw
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+            $installed = Join-Path $installDir $name
+            $hash = (Get-FileHash $installed -Algorithm SHA256).Hash
+            "UPDATED $name length=$((Get-Item $installed).Length) hash=$hash pristineMatch=$($hash -eq $expected[$name]) rawMatch=$($hash -eq (Get-FileHash (Join-Path $release $name)).Hash)"
+            if ($hash -ne $expected[$name]) { throw "Update did not restore pristine installed payload: $name" }
+            if ($hash -ne (Get-FileHash (Join-Path $release $name)).Hash) { throw "Installed payload differs from raw compiler binary: $name" }
+          }
+          if ((Get-Content $marker -Raw) -ne 'preserve') { throw 'Existing settings were removed' }
+          New-Item -ItemType Directory -Force smoke | Out-Null
+          node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" "$PWD/smoke"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed desktop smoke failed' }
