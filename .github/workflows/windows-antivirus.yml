@@ -21,6 +21,12 @@ jobs:
           try {
             Import-Module Defender
             if ((Get-Service WinDefend).Status -ne 'Running') { Start-Service WinDefend }
+            $preferences = Get-MpPreference
+            foreach ($kind in @('ExclusionPath','ExclusionExtension','ExclusionProcess')) {
+              $values = @($preferences.$kind | Where-Object { $_ })
+              if ($values.Count) { $exclusionArgs = @{}; $exclusionArgs[$kind] = $values; Remove-MpPreference @exclusionArgs }
+            }
+            Set-MpPreference -DisableAutoExclusions $true
             Update-MpSignature
             $status = Get-MpComputerStatus
             $report.defender = $status | Select-Object AMServiceEnabled,AntivirusEnabled,AMRunningMode,AMEngineVersion,AntivirusSignatureVersion,AntivirusSignatureLastUpdated
