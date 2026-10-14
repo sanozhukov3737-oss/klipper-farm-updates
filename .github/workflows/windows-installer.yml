@@ -100,13 +100,39 @@ jobs:
           Set-Location $env:KF_PROJECT
           node scripts/build-and-install-windows.mjs --build-only
           if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+      - name: Preserve compiled candidate for independent Windows validation
+        shell: pwsh
+        run: |
+          Set-Location $env:KF_PROJECT
+          New-Item -ItemType Directory -Force "$env:GITHUB_WORKSPACE/candidate/release" | Out-Null
+          New-Item -ItemType Directory -Force "$env:GITHUB_WORKSPACE/candidate/scripts" | Out-Null
+          $release = Join-Path $PWD '.klipper-build-cache/target/release'
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) {
+            Copy-Item (Join-Path $release $name) "$env:GITHUB_WORKSPACE/candidate/release/$name"
+          }
+          $setup = @(Get-ChildItem INSTALLER -Filter '*.exe')
+          if ($setup.Count -ne 1) { throw 'Expected one candidate installer' }
+          Copy-Item $setup[0].FullName "$env:GITHUB_WORKSPACE/candidate/Klipper-Farm-R98-setup.exe"
+          foreach ($name in @('check-headless-telemetry-runtime.mjs','check-desktop-startup-smoke.mjs','hardware-emulator.mjs','apply-online-update.ps1')) {
+            Copy-Item "scripts/$name" "$env:GITHUB_WORKSPACE/candidate/scripts/$name"
+          }
+          @{sourceSha256=$env:KF_SOURCE_SHA256; workflowCommit=$env:GITHUB_SHA; buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim()} | ConvertTo-Json | Set-Content "$env:GITHUB_WORKSPACE/candidate/provenance.json" -Encoding utf8NoBOM
+      - name: Retain candidate without publishing a release
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R98-Candidate
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 30
       - name: Exercise desktop and updater helper
+        timeout-minutes: 4
         shell: pwsh
         run: |
           Set-Location $env:KF_PROJECT
           $release = Join-Path $PWD '.klipper-build-cache/target/release'
-          node scripts/check-headless-telemetry-runtime.mjs --daemon "$release/klipper-farmd.exe"
+          node scripts/check-headless-telemetry-runtime.mjs --daemon "$release/klipper-farmd.exe" --probe "$release/klipper-farm-ipc-probe.exe"
           if ($LASTEXITCODE -ne 0) { throw 'Headless telemetry failed' }
+          New-Item -ItemType Directory -Force "$PWD/.klipper-build-cache/smoke" | Out-Null
           node scripts/check-desktop-startup-smoke.mjs "$release/klipper-farm-client.exe" "$release/klipper-farmd.exe" "$PWD/.klipper-build-cache/smoke"
           if ($LASTEXITCODE -ne 0) { throw 'Desktop smoke failed' }
           $tokens = $null
