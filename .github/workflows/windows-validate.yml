@@ -32,7 +32,7 @@ jobs:
           foreach ($pin in $pins.GetEnumerator()) {
             if ((Get-FileHash $pin.Key -Algorithm SHA256).Hash.ToLowerInvariant() -ne $pin.Value) { throw "Candidate file changed: $($pin.Key)" }
           }
-      - name: Diagnose physical same-version update without rebuilding
+      - name: Verify physical same-version update against pinned packaged payload
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -42,10 +42,13 @@ jobs:
           $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm update test'
           $first = Start-Process -FilePath $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
           if ($first.ExitCode -ne 0) { throw 'Initial install failed' }
-          $expected = @{}
+          $expected = @{
+            'klipper-farm-client.exe'='8834B6C504F73F5ED44DC29C07851957609C2039419717C5B9DE59E8F7AD9473';
+            'klipper-farmd.exe'='47E79622221139CF49EDC6A9D911CF5394DAC0AEFE9929627ED26ECEDF43356A'
+          }
           foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
             $installed = Join-Path $installDir $name
-            $expected[$name] = (Get-FileHash $installed -Algorithm SHA256).Hash
+            if ((Get-FileHash $installed -Algorithm SHA256).Hash -ne $expected[$name]) { throw "Pristine installer payload changed: $name" }
             "PRISTINE $name length=$((Get-Item $installed).Length) hash=$($expected[$name])"
             "RAW $name length=$((Get-Item (Join-Path $release $name)).Length) hash=$((Get-FileHash (Join-Path $release $name)).Hash)"
           }
@@ -83,9 +86,34 @@ jobs:
             $hash = (Get-FileHash $installed -Algorithm SHA256).Hash
             "UPDATED $name length=$((Get-Item $installed).Length) hash=$hash pristineMatch=$($hash -eq $expected[$name]) rawMatch=$($hash -eq (Get-FileHash (Join-Path $release $name)).Hash)"
             if ($hash -ne $expected[$name]) { throw "Update did not restore pristine installed payload: $name" }
-            if ($hash -ne (Get-FileHash (Join-Path $release $name)).Hash) { throw "Installed payload differs from raw compiler binary: $name" }
           }
           if ((Get-Content $marker -Raw) -ne 'preserve') { throw 'Existing settings were removed' }
+          $restarted = @(Get-Process -Name klipper-farm-client -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $desktop })
+          if ($restarted.Count -eq 0) { throw 'Update helper did not relaunch installed desktop' }
+          foreach ($process in $restarted) {
+            $deadline = [DateTime]::UtcNow.AddSeconds(15)
+            while ($process.MainWindowHandle -eq 0 -and -not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $process.Refresh() }
+            if ($process.HasExited -or -not $process.CloseMainWindow()) { throw 'Relaunched desktop did not open its main window' }
+            if (-not $process.WaitForExit(20000)) { throw 'Relaunched desktop did not close cleanly' }
+          }
+          foreach ($process in @(Get-Process -Name klipper-farmd -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $installDir 'klipper-farmd.exe') })) {
+            if (-not $process.WaitForExit(10000)) { throw 'Installed sidecar survived desktop shutdown' }
+          }
+          node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$release/klipper-farm-ipc-probe.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed headless telemetry failed' }
           New-Item -ItemType Directory -Force smoke | Out-Null
           node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" "$PWD/smoke"
           if ($LASTEXITCODE -ne 0) { throw 'Installed desktop smoke failed' }
+      - name: Retain fully validated setup
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item candidate/Klipper-Farm-R98-setup.exe out/Klipper-Farm-R98-setup.exe
+          $hash = (Get-FileHash out/Klipper-Farm-R98-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash *Klipper-Farm-R98-setup.exe" | Set-Content out/SHA256SUMS.txt -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R98-Validated
+          path: out/
+          if-no-files-found: error
+          retention-days: 30

@@ -149,6 +149,8 @@ jobs:
           $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm update test'
           $first = Start-Process -FilePath $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
           if ($first.ExitCode -ne 0) { throw 'Initial install failed' }
+          $expected = @{}
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) { $expected[$name] = (Get-FileHash (Join-Path $installDir $name)).Hash }
           $exe = Join-Path $installDir 'klipper-farm-client.exe'
           $sidecar = Join-Path $installDir 'klipper-farmd.exe'
           if (-not (Test-Path $exe)) { throw 'Installed desktop missing' }
@@ -174,7 +176,7 @@ jobs:
           if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Updater helper timeout' }
           if ($helper.ExitCode -ne 0) { throw 'Updater helper failed' }
           foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
-            if ((Get-FileHash (Join-Path $installDir $name)).Hash -ne (Get-FileHash (Join-Path $release $name)).Hash) { throw "Update did not overwrite $name" }
+            if ((Get-FileHash (Join-Path $installDir $name)).Hash -ne $expected[$name]) { throw "Update did not overwrite $name" }
           }
           if ((Get-Content $marker -Raw) -ne 'preserve') { throw 'Existing settings were removed' }
       - name: Collect tested installer
