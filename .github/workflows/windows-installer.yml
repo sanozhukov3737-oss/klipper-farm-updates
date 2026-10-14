@@ -91,6 +91,7 @@ jobs:
           if (-not $text.Contains($needle)) { throw 'Unexpected journal opener' }
           $insert = '            Journal::new(path).map_err(|error| format!("SQLite journal {}: {error}", path.display()))'
           [IO.File]::WriteAllText($core, $text.Replace($needle, $insert), [Text.UTF8Encoding]::new($false))
+          Copy-Item "$env:GITHUB_WORKSPACE/.github/workflows/run-rust-tests.mjs" "$PWD/scripts/run-rust-tests.mjs"
           node scripts/generate-release-manifests.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Patched source manifest failed' }
       - name: Compile and test native Windows code and build NSIS
