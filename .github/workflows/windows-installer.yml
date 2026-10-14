@@ -74,6 +74,43 @@ jobs:
           $errors = $null
           [Management.Automation.Language.Parser]::ParseFile("$PWD/scripts/apply-online-update.ps1", [ref]$tokens, [ref]$errors) | Out-Null
           if ($errors.Count) { throw 'Updater helper syntax failed' }
+      - name: Exercise silent update over an existing installation
+        timeout-minutes: 3
+        shell: pwsh
+        run: |
+          Set-Location $env:KF_PROJECT
+          $release = Join-Path $PWD '.klipper-build-cache/target/release'
+          $setup = @(Get-ChildItem INSTALLER -Filter '*.exe')[0].FullName
+          $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm update test'
+          $first = Start-Process -FilePath $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($first.ExitCode -ne 0) { throw 'Initial install failed' }
+          $exe = Join-Path $installDir 'klipper-farm-client.exe'
+          $sidecar = Join-Path $installDir 'klipper-farmd.exe'
+          if (-not (Test-Path $exe)) { throw 'Installed desktop missing' }
+          $dataDir = Join-Path $env:APPDATA 'app.klipper.farm'
+          New-Item -ItemType Directory -Force $dataDir | Out-Null
+          $marker = Join-Path $dataDir 'updater-config-preserve.txt'
+          [IO.File]::WriteAllText($marker, 'preserve')
+          [IO.File]::WriteAllText($exe, 'old desktop')
+          [IO.File]::WriteAllText($sidecar, 'old daemon')
+          $dead = Start-Process -FilePath "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" -ArgumentList '-NoProfile -NonInteractive -Command exit 0' -Wait -PassThru
+          $payload = @{parentPid=$dead.Id; executable=$exe; installer=$setup; sha256=(Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant(); sizeBytes=(Get-Item $setup).Length; ready=(Join-Path $env:RUNNER_TEMP 'updater-helper-ready')} | ConvertTo-Json -Compress
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardInput = $true
+          $start.CreateNoWindow = $true
+          $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
+          $start.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($helperText))
+          $helper = [Diagnostics.Process]::Start($start)
+          $helper.StandardInput.Write($payload)
+          $helper.StandardInput.Close()
+          if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Updater helper timeout' }
+          if ($helper.ExitCode -ne 0) { throw 'Updater helper failed' }
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+            if ((Get-FileHash (Join-Path $installDir $name)).Hash -ne (Get-FileHash (Join-Path $release $name)).Hash) { throw "Update did not overwrite $name" }
+          }
+          if ((Get-Content $marker -Raw) -ne 'preserve') { throw 'Existing settings were removed' }
       - name: Collect tested installer
         shell: pwsh
         run: |
