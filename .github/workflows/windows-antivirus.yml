@@ -1,0 +1,67 @@
+name: Scan R98 with Microsoft Defender
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/windows-antivirus.yml']
+permissions:
+  contents: read
+jobs:
+  scan:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Scan exact published installer and payload
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force evidence | Out-Null
+          $report = [ordered]@{result='incomplete'}
+          try {
+            Import-Module Defender
+            if ((Get-Service WinDefend).Status -ne 'Running') { Start-Service WinDefend }
+            Update-MpSignature
+            $status = Get-MpComputerStatus
+            $report.defender = $status | Select-Object AMServiceEnabled,AntivirusEnabled,AMRunningMode,AMEngineVersion,AntivirusSignatureVersion,AntivirusSignatureLastUpdated
+            if (-not $status.AMServiceEnabled -or -not $status.AntivirusEnabled) { throw 'Defender unavailable' }
+            if ($status.AntivirusSignatureLastUpdated -lt (Get-Date).AddDays(-2)) { throw 'Stale definitions' }
+            $root = 'C:\KF-AV'
+            New-Item -ItemType Directory -Force $root | Out-Null
+            gh release download r98 --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R98-setup.exe --dir $root
+            if ($LASTEXITCODE -ne 0) { throw 'Download failed' }
+            $setup = Join-Path $root 'Klipper-Farm-R98-setup.exe'
+            $report.sha256 = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($report.sha256 -ne '774f757c0b1e15b904222667e196a3fafc25be686dd97d72e6539621e576ab47') { throw 'Checksum mismatch' }
+            $report.signature = (Get-AuthenticodeSignature $setup).Status.ToString()
+            $platform = Get-ChildItem "$env:ProgramData\Microsoft\Windows Defender\Platform" -Directory | Sort-Object Name -Descending | Select-Object -First 1
+            $mp = Join-Path $platform.FullName 'MpCmdRun.exe'
+            & $mp -CheckExclusion -Path $setup 2>&1 | Tee-Object evidence/exclusions.txt
+            if ($LASTEXITCODE -ne 1) { throw 'Excluded path or exclusion check error' }
+            & $mp -Scan -ScanType 3 -File $setup -DisableRemediation 2>&1 | Tee-Object evidence/installer-scan.txt
+            $report.installerScanExitCode = $LASTEXITCODE
+            if ($LASTEXITCODE -ne 0) { throw 'Installer scan detected a threat or failed' }
+            $payload = Join-Path $root 'payload'
+            & 'C:\Program Files\7-Zip\7z.exe' x $setup "-o$payload" -y | Out-File evidence/extraction.txt
+            if ($LASTEXITCODE -ne 0) { throw 'Extraction failed' }
+            if (@(Get-ChildItem $payload -Recurse -Filter '*.exe').Count -eq 0) { throw 'No executable payload' }
+            & $mp -Scan -ScanType 3 -File $payload -DisableRemediation 2>&1 | Tee-Object evidence/payload-scan.txt
+            $report.payloadScanExitCode = $LASTEXITCODE
+            if ($LASTEXITCODE -ne 0) { throw 'Payload scan detected a threat or failed' }
+            $report.result = 'no-threats-detected-by-this-defender-scan'
+          } catch {
+            $report.error = $_.Exception.Message
+            throw
+          } finally {
+            try { $report.threats = @(Get-MpThreat | Select-Object ThreatID,ThreatName,IsActive,Resources) } catch { $report.historyError = $_.Exception.Message }
+            $report | ConvertTo-Json -Depth 8 | Set-Content evidence/report.json -Encoding UTF8
+            Get-Content evidence/report.json
+          }
+      - name: Save evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: R98-Defender-evidence
+          path: evidence/
+          if-no-files-found: error
+          retention-days: 30
