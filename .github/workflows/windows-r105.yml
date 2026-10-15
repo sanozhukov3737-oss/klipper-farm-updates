@@ -34,10 +34,10 @@ jobs:
           Rename-Item work/Klipper-Farm-R104 app
           New-Item -ItemType Directory -Force work/baseline/src-tauri/src | Out-Null
           Copy-Item work/app/src-tauri/src/lib.rs,work/app/src-tauri/src/moonraker_protocol.rs work/baseline/src-tauri/src/
-          gh release download source-r105 --repo $env:GITHUB_REPOSITORY --pattern KF-R105-REVIEW2-OVERLAY.zip --dir incoming
+          gh release download source-r105 --repo $env:GITHUB_REPOSITORY --pattern KF-R105-REVIEW3-OVERLAY.zip --dir incoming
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed patch download failed' }
-          if ((Get-FileHash incoming/KF-R105-REVIEW2-OVERLAY.zip).Hash.ToLowerInvariant() -ne 'f32223a701bf912c311c034498c3135bd601d18b9d0aba10e0388a15fc5e537b') { throw 'Patch checksum mismatch' }
-          Expand-Archive incoming/KF-R105-REVIEW2-OVERLAY.zip overlay
+          if ((Get-FileHash incoming/KF-R105-REVIEW3-OVERLAY.zip).Hash.ToLowerInvariant() -ne '25e49a7d90d6eb854a1ca0658ae9f759064c28ebb18251c3fbd790ee2fc273a9') { throw 'Patch checksum mismatch' }
+          Expand-Archive incoming/KF-R105-REVIEW3-OVERLAY.zip overlay
           Get-ChildItem overlay/Klipper-Farm-R105 | Copy-Item -Destination work/app -Recurse -Force
           if ((Get-Content work/app/RELEASE-BUILD-ID.txt -Raw).Trim() -ne 'V20.6-R10.5-HTTP-RESPONSE-BOUNDARIES-2026-10-15') { throw 'Wrong reconstructed identity' }
       - name: Prove baseline failure and corrected HTTP boundaries
@@ -75,7 +75,7 @@ jobs:
           Set-Location work/app
           npm ci --prefix ui-tests --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { throw 'Locked browser test dependencies failed' }
-          $env:PLAYWRIGHT_MODULE_PATH = (Join-Path $PWD 'ui-tests/node_modules/playwright/index.mjs')
+          $env:PLAYWRIGHT_MODULE_PATH = 'file:///' + (Join-Path $PWD 'ui-tests/node_modules/playwright/index.mjs').Replace('','/')
           $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
           if (-not (Test-Path $env:CHROMIUM_EXECUTABLE)) { throw 'Preinstalled Edge not found' }
           $env:KF_FILE_WORKFLOW_ONLY = '1'
@@ -109,7 +109,7 @@ jobs:
           $js = [regex]::Match($html,'assets/index-[^" ]+\.js').Value
           $css = [regex]::Match($html,'assets/index-[^" ]+\.css').Value
           if (-not $js -or -not $css) { throw 'Missing checked frontend bundle identity' }
-          @{sourceSha256=$sourceHash;baselineSourceSha256='dbe4b8c7bcfc5810730d74c3650fc4354bccf8569639b1b8e6eed1c73daca7ad';overlaySha256='f32223a701bf912c311c034498c3135bd601d18b9d0aba10e0388a15fc5e537b';workflowCommit=$env:GITHUB_SHA;setupSha256=$hash;buildId='V20.6-R10.5-HTTP-RESPONSE-BOUNDARIES-2026-10-15';javascript=$js;stylesheet=$css} | ConvertTo-Json | Set-Content candidate/provenance.json -Encoding utf8NoBOM
+          @{sourceSha256=$sourceHash;baselineSourceSha256='dbe4b8c7bcfc5810730d74c3650fc4354bccf8569639b1b8e6eed1c73daca7ad';overlaySha256='25e49a7d90d6eb854a1ca0658ae9f759064c28ebb18251c3fbd790ee2fc273a9';workflowCommit=$env:GITHUB_SHA;setupSha256=$hash;buildId='V20.6-R10.5-HTTP-RESPONSE-BOUNDARIES-2026-10-15';javascript=$js;stylesheet=$css} | ConvertTo-Json | Set-Content candidate/provenance.json -Encoding utf8NoBOM
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Klipper-Farm-R105-Candidate
