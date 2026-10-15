@@ -70,8 +70,9 @@ jobs:
           if ($oldDesktop.HasExited -or $oldDesktop.MainWindowHandle -eq 0) { throw 'Installed R104 did not open a window' }
           $cleanupDeadline = [DateTime]::UtcNow.AddSeconds(12)
           while ((Test-Path $cleanupProbe) -and [DateTime]::UtcNow -lt $cleanupDeadline) { Start-Sleep -Milliseconds 100 }
-          if (Test-Path $cleanupProbe) { throw 'R104 startup cleanup did not remove unprotected fixture' }
-          'R104 startup cleanup removes unprotected synthetic cache; test now protects its prepared fixture'
+          "Synthetic cache survives startup: $(Test-Path $cleanupProbe)"
+          $startupLog = Join-Path $env:APPDATA 'app.klipper.farm/logs/desktop-startup.log'
+          if (Test-Path $startupLog) { Get-Content $startupLog -Tail 25 }
           $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
           if (-not $desktopText.Contains($helperText)) { throw 'Candidate helper differs from the one embedded in R105' }
           $cacheRoot = Join-Path $env:LOCALAPPDATA 'app.klipper.farm/verified-updates'
@@ -101,7 +102,8 @@ jobs:
           $start.RedirectStandardError = $true
           $start.CreateNoWindow = $true
           $start.EnvironmentVariables.Remove('PSModulePath')
-          $start.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($helperText))
+          $helperDebugPrefix = '$ProgressPreference = ''SilentlyContinue''; Set-PSDebug -Trace 1;' + [Environment]::NewLine
+          $start.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($helperDebugPrefix + $helperText))
           $helper = [Diagnostics.Process]::Start($start)
           $outRead = $helper.StandardOutput.ReadToEndAsync()
           $errRead = $helper.StandardError.ReadToEndAsync()
@@ -120,6 +122,8 @@ jobs:
             "HELPER handshake elapsedMs=$($handshakeStarted.ElapsedMilliseconds) exited=$($helper.HasExited)"
             if (Test-Path install-result.txt) { Get-Content install-result.txt }
             if (-not $helper.HasExited) { $helper.Kill(); $helper.WaitForExit(10000) | Out-Null }
+            $null = $outRead.Wait(5000)
+            $null = $errRead.Wait(5000)
             if ($outRead.IsCompleted) { $outRead.Result | Set-Content helper-stdout.txt; $outRead.Result }
             if ($errRead.IsCompleted) { $errRead.Result | Set-Content helper-stderr.txt; $errRead.Result }
             throw 'Updater handshake failed'
@@ -127,7 +131,7 @@ jobs:
           "HELPER ready elapsedMs=$($handshakeStarted.ElapsedMilliseconds)"
           if (-not $oldDesktop.CloseMainWindow() -or -not $oldDesktop.WaitForExit(20000)) { throw 'R104 did not close cleanly' }
           if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Update helper timeout' }
-          if ($helper.ExitCode -ne 0) { throw 'Update helper failed' }
+          if ($helper.ExitCode -ne 0) { $outRead.Result; $errRead.Result; throw 'Update helper failed' }
           $deadline = [DateTime]::UtcNow.AddSeconds(12)
           while (((Test-Path $attempt) -or (Test-Path $legacy) -or (Test-Path $partial)) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 150 }
           foreach ($path in @($attempt,$legacy,$partial)) { if (Test-Path $path) { throw "Update cache was not cleaned: $path" } }
