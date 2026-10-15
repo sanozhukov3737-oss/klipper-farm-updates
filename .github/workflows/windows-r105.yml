@@ -75,7 +75,7 @@ jobs:
           Set-Location work/app
           npm ci --prefix ui-tests --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { throw 'Locked browser test dependencies failed' }
-          $env:PLAYWRIGHT_MODULE_PATH = 'file:///' + (Join-Path $PWD 'ui-tests/node_modules/playwright/index.mjs').Replace('','/')
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
           $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
           if (-not (Test-Path $env:CHROMIUM_EXECUTABLE)) { throw 'Preinstalled Edge not found' }
           $env:KF_FILE_WORKFLOW_ONLY = '1'
