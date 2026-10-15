@@ -27,10 +27,10 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          gh release download source-r103 --repo $env:GITHUB_REPOSITORY --pattern KF-R103-FULL.zip --dir incoming
+          gh release download source-r103 --repo $env:GITHUB_REPOSITORY --pattern KF-R103-REVIEW2-FULL.zip --dir incoming
           if ($LASTEXITCODE -ne 0) { throw 'Source download failed' }
-          if ((Get-FileHash incoming/KF-R103-FULL.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'c3a2c2bb498763f82e72604c56e01dd565e47b34a9838633138186553a3f2a19') { throw 'Source checksum mismatch' }
-          Expand-Archive incoming/KF-R103-FULL.zip work
+          if ((Get-FileHash incoming/KF-R103-REVIEW2-FULL.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '0db7eb252d7bb609ab3f9e49d34d3368ad4f5de14d449d2b96ff017251632b40') { throw 'Source checksum mismatch' }
+          Expand-Archive incoming/KF-R103-REVIEW2-FULL.zip work
           Rename-Item work/Klipper-Farm-R103 app
           if ((Get-Content work/app/RELEASE-BUILD-ID.txt -Raw).Trim() -ne 'V20.6-R10.3-UPDATE-CACHE-CLEANUP-2026-10-15') { throw 'Wrong source identity' }
       - name: Build and run native Windows checks
@@ -53,7 +53,7 @@ jobs:
           Copy-Item $setup[0].FullName candidate/Klipper-Farm-R103-setup.exe
           $hash = (Get-FileHash candidate/Klipper-Farm-R103-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash *Klipper-Farm-R103-setup.exe" | Set-Content candidate/SHA256SUMS.txt -Encoding utf8NoBOM
-          @{sourceSha256='c3a2c2bb498763f82e72604c56e01dd565e47b34a9838633138186553a3f2a19';workflowCommit=$env:GITHUB_SHA;setupSha256=$hash;buildId='V20.6-R10.3-UPDATE-CACHE-CLEANUP-2026-10-15'} | ConvertTo-Json | Set-Content candidate/provenance.json -Encoding utf8NoBOM
+          @{sourceSha256='0db7eb252d7bb609ab3f9e49d34d3368ad4f5de14d449d2b96ff017251632b40';workflowCommit=$env:GITHUB_SHA;setupSha256=$hash;buildId='V20.6-R10.3-UPDATE-CACHE-CLEANUP-2026-10-15'} | ConvertTo-Json | Set-Content candidate/provenance.json -Encoding utf8NoBOM
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Klipper-Farm-R103-Candidate
