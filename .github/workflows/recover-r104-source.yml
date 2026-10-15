@@ -1,0 +1,41 @@
+name: Recover reviewed R104 source
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/recover-r104-source.yml']
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Fetch and verify exact published source
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release download source-r104 --repo "$GITHUB_REPOSITORY" --pattern KF-R104-REVIEW2-FULL.zip --dir incoming
+          echo 'dbe4b8c7bcfc5810730d74c3650fc4354bccf8569639b1b8e6eed1c73daca7ad  incoming/KF-R104-REVIEW2-FULL.zip' | sha256sum -c -
+          python3 - <<'PY'
+          import zipfile, pathlib
+          root=pathlib.Path("source")
+          with zipfile.ZipFile("incoming/KF-R104-REVIEW2-FULL.zip") as z:
+              for name in z.namelist():
+                  parts=pathlib.PurePosixPath(name).parts
+                  if len(parts)<2 or parts[0]!="Klipper-Farm-R104" or ".." in parts: raise ValueError(name)
+                  relative=pathlib.Path(*parts[1:])
+                  if relative.parts[0] in ["offline-tools"]: continue
+                  if name.endswith("/"): continue
+                  path=root/relative
+                  path.parent.mkdir(parents=True,exist_ok=True)
+                  path.write_bytes(z.read(name))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Recovered-R104-reviewed-source
+          path: source/
+          include-hidden-files: true
+          retention-days: 7
