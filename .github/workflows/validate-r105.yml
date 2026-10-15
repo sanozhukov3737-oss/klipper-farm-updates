@@ -30,6 +30,9 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+          & "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()'
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell startup probe failed' }
           Set-Location candidate
           $setup = (Resolve-Path Klipper-Farm-R105-setup.exe).Path
           $release = (Resolve-Path release).Path
@@ -103,7 +106,7 @@ jobs:
           $start.CreateNoWindow = $true
           $start.EnvironmentVariables.Remove('PSModulePath')
           $helperDebugPrefix = '$ProgressPreference = ''SilentlyContinue''; Set-PSDebug -Trace 1;' + [Environment]::NewLine
-          $start.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($helperDebugPrefix + $helperText))
+          foreach ($argument in @('-NoProfile','-NonInteractive','-Command',($helperDebugPrefix + $helperText))) { $start.ArgumentList.Add($argument) }
           $helper = [Diagnostics.Process]::Start($start)
           $outRead = $helper.StandardOutput.ReadToEndAsync()
           $errRead = $helper.StandardError.ReadToEndAsync()
@@ -117,15 +120,16 @@ jobs:
           $deadline = [DateTime]::UtcNow.AddSeconds(15)
           while (-not (& $actualHelperReady) -and -not $helper.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
           if (-not (& $actualHelperReady)) {
-            Get-ChildItem $cacheRoot -Recurse -Force | Select-Object FullName,Length
+            Write-Host ('HELPER process: ' + ($helper | Select-Object Id,MainWindowTitle,TotalProcessorTime,StartTime | ConvertTo-Json -Compress))
+            Get-ChildItem $cacheRoot -Recurse -Force | Select-Object FullName,Length | ConvertTo-Json -Compress | Write-Host
             if (Test-Path (Join-Path $cacheRoot 'last-error.txt')) { Get-Content (Join-Path $cacheRoot 'last-error.txt') }
-            "HELPER handshake elapsedMs=$($handshakeStarted.ElapsedMilliseconds) exited=$($helper.HasExited)"
+            Write-Host "HELPER handshake elapsedMs=$($handshakeStarted.ElapsedMilliseconds) exited=$($helper.HasExited)"
             if (Test-Path install-result.txt) { Get-Content install-result.txt }
             if (-not $helper.HasExited) { $helper.Kill(); $helper.WaitForExit(10000) | Out-Null }
             $null = $outRead.Wait(5000)
             $null = $errRead.Wait(5000)
-            if ($outRead.IsCompleted) { $outRead.Result | Set-Content helper-stdout.txt; $outRead.Result }
-            if ($errRead.IsCompleted) { $errRead.Result | Set-Content helper-stderr.txt; $errRead.Result }
+            if ($outRead.IsCompleted) { $outRead.Result | Set-Content helper-stdout.txt; Write-Host $outRead.Result }
+            if ($errRead.IsCompleted) { $errRead.Result | Set-Content helper-stderr.txt; Write-Host $errRead.Result }
             throw 'Updater handshake failed'
           }
           "HELPER ready elapsedMs=$($handshakeStarted.ElapsedMilliseconds)"
