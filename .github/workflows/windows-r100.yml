@@ -1,0 +1,171 @@
+name: Build and validate R100
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/windows-r100.yml']
+permissions:
+  contents: read
+concurrency:
+  group: windows-r100
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Download pinned reviewed R100 source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release download source-r100 --repo $env:GITHUB_REPOSITORY --pattern KF-R100-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Source download failed' }
+          if ((Get-FileHash incoming/KF-R100-FULL.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '13633b61a9fc624e23fc334b8bac96e9d499d1dc58a591bd31cb067cdb1fc6a6') { throw 'Source checksum mismatch' }
+          Expand-Archive incoming/KF-R100-FULL.zip work
+          Rename-Item work/Klipper-Farm-R100 app
+          if ((Get-Content work/app/RELEASE-BUILD-ID.txt -Raw).Trim() -ne 'V20.6-R10.0-LIGHT-NOTIFICATIONS-2026-10-15') { throw 'Wrong source identity' }
+      - name: Build and run native Windows checks
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+      - name: Collect candidate and validation tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force candidate/release,candidate/scripts | Out-Null
+          $project = Join-Path $PWD 'work/app'
+          $release = Join-Path $project '.klipper-build-cache/target/release'
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $name) candidate/release/ }
+          foreach ($name in @('apply-online-update.ps1','check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item (Join-Path $project "scripts/$name") candidate/scripts/ }
+          $setup = @(Get-ChildItem work/app/INSTALLER -Filter '*.exe')
+          if ($setup.Count -ne 1) { throw 'Expected one installer' }
+          Copy-Item $setup[0].FullName candidate/Klipper-Farm-R100-setup.exe
+          $hash = (Get-FileHash candidate/Klipper-Farm-R100-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash *Klipper-Farm-R100-setup.exe" | Set-Content candidate/SHA256SUMS.txt -Encoding utf8NoBOM
+          @{sourceSha256='13633b61a9fc624e23fc334b8bac96e9d499d1dc58a591bd31cb067cdb1fc6a6';workflowCommit=$env:GITHUB_SHA;setupSha256=$hash;buildId='V20.6-R10.0-LIGHT-NOTIFICATIONS-2026-10-15'} | ConvertTo-Json | Set-Content candidate/provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R100-Candidate
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain build logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R100-Build-logs
+          path: |
+            work/app/.klipper-build-cache/logs/
+            work/app/.klipper-build-cache/target/v20-rust-tests-last.log
+          include-hidden-files: true
+          if-no-files-found: warn
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R100-Candidate
+          path: candidate
+      - name: Verify upgrade from published R99 and installed runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location candidate
+          $setup = (Resolve-Path Klipper-Farm-R100-setup.exe).Path
+          $release = (Resolve-Path release).Path
+          $provenance = Get-Content provenance.json -Raw | ConvertFrom-Json
+          if ((Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $provenance.setupSha256) { throw 'Candidate hash mismatch' }
+          $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm upgrade test'
+          $installed = Start-Process $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($installed.ExitCode -ne 0) { throw 'Initial R100 install failed' }
+          $expected = @{}
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) { $expected[$name] = (Get-FileHash (Join-Path $installDir $name)).Hash }
+          $desktop = Join-Path $installDir 'klipper-farm-client.exe'
+          $desktopText = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          foreach ($marker in @('assets/index-Bt9otmpt.js','assets/index-CBaDAYnb.css','"installedSequence": 100','28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb')) {
+            if (-not $desktopText.Contains($marker)) { throw "Installed R100 resource or channel missing: $marker" }
+          }
+          gh release download r99 --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R99-setup.exe --dir old
+          if ($LASTEXITCODE -ne 0) { throw 'Published R99 download failed' }
+          $oldSetup = (Resolve-Path old/Klipper-Farm-R99-setup.exe).Path
+          if ((Get-FileHash $oldSetup -Algorithm SHA256).Hash.ToLowerInvariant() -ne '188fabfe82de7d6c94a4516a4f6af8213af8963550f8cd7bde2f936eea657e71') { throw 'R99 hash mismatch' }
+          $oldInstall = Start-Process $oldSetup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($oldInstall.ExitCode -ne 0) { throw 'R99 baseline install failed' }
+          $baseline = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          if ($baseline -notmatch '"installedSequence"\s*:\s*99') { throw 'R99 baseline is not physically installed' }
+          $dataDir = Join-Path $env:APPDATA 'app.klipper.farm'
+          New-Item -ItemType Directory -Force $dataDir | Out-Null
+          $marker = Join-Path $dataDir 'updater-r100-preserve.txt'
+          [IO.File]::WriteAllText($marker,'preserve-r99-data')
+          $oldDesktop = Start-Process $desktop -PassThru
+          $deadline = [DateTime]::UtcNow.AddSeconds(20)
+          while ($oldDesktop.MainWindowHandle -eq 0 -and -not $oldDesktop.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $oldDesktop.Refresh() }
+          if ($oldDesktop.HasExited -or $oldDesktop.MainWindowHandle -eq 0) { throw 'Installed R99 did not open a window' }
+          $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
+          if (-not $desktopText.Contains($helperText)) { throw 'Candidate helper differs from the one embedded in R100' }
+          $ready = Join-Path $env:RUNNER_TEMP 'updater-r100-ready'
+          $payload = @{parentPid=$oldDesktop.Id;executable=$desktop;installer=$setup;sha256=$provenance.setupSha256;sizeBytes=(Get-Item $setup).Length;ready=$ready} | ConvertTo-Json -Compress
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardInput = $true
+          $start.CreateNoWindow = $true
+          $start.EnvironmentVariables.Remove('PSModulePath')
+          $start.Arguments = '-NoProfile -NonInteractive -EncodedCommand ' + [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($helperText))
+          $helper = [Diagnostics.Process]::Start($start)
+          $helper.StandardInput.Write($payload)
+          $helper.StandardInput.Close()
+          $deadline = [DateTime]::UtcNow.AddSeconds(15)
+          while (-not (Test-Path $ready) -and -not $helper.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+          if (-not (Test-Path $ready)) { throw 'Updater handshake failed' }
+          if (-not $oldDesktop.CloseMainWindow() -or -not $oldDesktop.WaitForExit(20000)) { throw 'R99 did not close cleanly' }
+          if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Update helper timeout' }
+          if ($helper.ExitCode -ne 0) { throw 'Update helper failed' }
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+            $hash = (Get-FileHash (Join-Path $installDir $name)).Hash
+            "UPDATED $name hash=$hash matchesR100=$($hash -eq $expected[$name])"
+            if ($hash -ne $expected[$name]) { throw "Wrong installed R100 payload: $name" }
+          }
+          if ((Get-Content $marker -Raw) -ne 'preserve-r99-data') { throw 'App data was removed' }
+          $restarted = @(Get-Process -Name klipper-farm-client -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $desktop })
+          if ($restarted.Count -eq 0) { throw 'R100 was not relaunched' }
+          foreach ($process in $restarted) {
+            $deadline = [DateTime]::UtcNow.AddSeconds(20)
+            while ($process.MainWindowHandle -eq 0 -and -not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $process.Refresh() }
+            if ($process.HasExited -or -not $process.CloseMainWindow() -or -not $process.WaitForExit(20000)) { throw 'R100 window lifecycle failed' }
+          }
+          foreach ($process in @(Get-Process -Name klipper-farmd -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $installDir 'klipper-farmd.exe') })) { if (-not $process.WaitForExit(10000)) { throw 'Sidecar survived desktop shutdown' } }
+          node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$release/klipper-farm-ipc-probe.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry failed' }
+          New-Item -ItemType Directory -Force smoke | Out-Null
+          node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" "$PWD/smoke"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed desktop smoke failed' }
+          'R99 to R100 physical upgrade, data preservation, relaunch and telemetry passed'
+      - name: Retain validated installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item candidate/Klipper-Farm-R100-setup.exe,candidate/SHA256SUMS.txt,candidate/provenance.json out/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R100-Validated
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
