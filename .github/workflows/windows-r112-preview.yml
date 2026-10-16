@@ -1,0 +1,96 @@
+name: Preview R112 discovery appearance
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/windows-r112-preview.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: windows-r112-preview
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Restore verified R105 and apply checked R112 changes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release download source-r105 --repo $env:GITHUB_REPOSITORY --pattern KF-R105-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Source download failed' }
+          if ((Get-FileHash incoming/KF-R105-FULL.zip).Hash.ToLowerInvariant() -ne '57059e48167c56b2a2bfcebe321011ea77b4190941d785938cda9d9268c791d0') { throw 'Source checksum mismatch' }
+          Expand-Archive incoming/KF-R105-FULL.zip work
+          Rename-Item work/Klipper-Farm-R105 app
+          New-Item -ItemType Directory -Force baseline | Out-Null
+          Copy-Item work/app/src/lib/moonraker.ts baseline/moonraker-r105.ts
+          Copy-Item work/app/src-tauri/src/lib.rs baseline/lib-r105.rs
+          $blob = gh api "repos/$env:GITHUB_REPOSITORY/git/trees/$env:GITHUB_SHA" --jq '.tree[] | select(.path == "r112-patch.json") | .sha'
+          if ($LASTEXITCODE -ne 0 -or -not $blob) { throw 'Patch blob resolution failed' }
+          $encoded = gh api "repos/$env:GITHUB_REPOSITORY/git/blobs/$blob" --jq .content
+          if ($LASTEXITCODE -ne 0) { throw 'Patch download failed' }
+          [IO.File]::WriteAllBytes("$PWD/incoming/r112-patch.json",[Convert]::FromBase64String(($encoded -join '')))
+          $patch = Get-Content incoming/r112-patch.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          $root = [IO.Path]::GetFullPath("$PWD/work/app") + [IO.Path]::DirectorySeparatorChar
+          foreach ($item in $patch) {
+            $file = [IO.Path]::GetFullPath((Join-Path $root $item.path))
+            if (-not $file.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { throw 'Patch path escapes source' }
+            if ($item.beforeSha256) {
+              if ((Get-FileHash $file).Hash.ToLowerInvariant() -ne $item.beforeSha256) { throw "Baseline file differs: $($item.path)" }
+            } elseif (Test-Path $file) { throw "Unexpected existing patch file: $($item.path)" }
+            [IO.File]::WriteAllText($file,$item.content,[Text.UTF8Encoding]::new($false))
+          }
+      - name: Verify appearance-only scope against R111
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $encoded = gh api "repos/$env:GITHUB_REPOSITORY/contents/r111-patch.json?ref=dd7d06fa47b8a14f85a55959c43e5b5557e147a5" --jq .content
+          if ($LASTEXITCODE -ne 0) { throw 'R111 baseline patch download failed' }
+          $bytes = [Convert]::FromBase64String(($encoded -join ''))
+          [IO.File]::WriteAllBytes("$PWD/incoming/r111-baseline.json",$bytes)
+          if ((Get-FileHash incoming/r111-baseline.json).Hash.ToLowerInvariant() -ne '2b9192c99802f417775391d2b1b42fdc1ee43f085c982da7915fa6ff4e4dfd84') { throw 'R111 baseline hash mismatch' }
+          $baseline = [Text.Encoding]::UTF8.GetString($bytes) | ConvertFrom-Json
+          foreach ($item in $baseline) {
+            if ($item.path.StartsWith('src/') -or $item.path.StartsWith('src-tauri/')) {
+              if ((Get-Content (Join-Path work/app $item.path) -Raw -Encoding UTF8) -cne $item.content) { throw "Production behavior changed: $($item.path)" }
+            }
+          }
+          $candidatePatch = Get-Content incoming/r112-patch.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          foreach ($item in $candidatePatch) {
+            if (($item.path.StartsWith('src/') -or $item.path.StartsWith('src-tauri/')) -and $item.path -ne 'src/styles.css') {
+              $prior = @($baseline | Where-Object path -EQ $item.path)
+              if ($prior.Count -ne 1 -or $prior[0].content -cne $item.content) { throw "New non-style production edit: $($item.path)" }
+            }
+          }
+          'Appearance-only scope verified: all R111 printing, upload and discovery logic preserved'
+      - name: Install locked UI dependencies
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Frontend dependencies failed' }
+          npm ci --prefix ui-tests --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Browser dependencies failed' }
+      - name: Verify discovery dialog appearance
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'discovery-preview'
+          node ui-tests/discovery-layout.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Discovery appearance checks failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R112-Discovery-preview
+          path: discovery-preview/
+          if-no-files-found: error
+          retention-days: 30
