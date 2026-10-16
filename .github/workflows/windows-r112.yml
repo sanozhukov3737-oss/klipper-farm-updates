@@ -140,6 +140,7 @@ jobs:
           node ui-tests/discovery-layout.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Discovery appearance checks failed' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: Klipper-Farm-R112-Discovery-preview
           path: discovery-preview/
