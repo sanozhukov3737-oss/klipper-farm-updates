@@ -1,0 +1,464 @@
+name: Build and validate R115
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/windows-r115.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: windows-r115
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Restore verified R114 and apply checked R115 changes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release download r114 --repo $env:GITHUB_REPOSITORY --pattern KF-R114-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Source download failed' }
+          if ((Get-FileHash incoming/KF-R114-FULL.zip).Hash.ToLowerInvariant() -ne '76ddf635ceb4e4d00ee4ff5358879922ce627703fe44a94ef02be0ce7d524bf8') { throw 'Source checksum mismatch' }
+          Expand-Archive incoming/KF-R114-FULL.zip work
+          Rename-Item work/Klipper-Farm-R114 app
+          New-Item -ItemType Directory -Force baseline | Out-Null
+          Copy-Item work/app/src baseline/src -Recurse
+          Copy-Item work/app/src-tauri baseline/native -Recurse
+          $blob = gh api "repos/$env:GITHUB_REPOSITORY/git/trees/$env:GITHUB_SHA" --jq '.tree[] | select(.path == "r115-patch.json") | .sha'
+          if ($LASTEXITCODE -ne 0 -or -not $blob) { throw 'Patch blob resolution failed' }
+          $encoded = gh api "repos/$env:GITHUB_REPOSITORY/git/blobs/$blob" --jq .content
+          if ($LASTEXITCODE -ne 0) { throw 'Patch download failed' }
+          [IO.File]::WriteAllBytes("$PWD/incoming/r115-patch.json",[Convert]::FromBase64String(($encoded -join '')))
+          if ((Get-FileHash incoming/r115-patch.json).Hash.ToLowerInvariant() -ne 'a51f8fc75cba59889daa1a03872b7af87c455799a21ab302e477c3e1a4e83150') { throw 'Reviewed R115 patch checksum mismatch' }
+          $patch = Get-Content incoming/r115-patch.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          $root = [IO.Path]::GetFullPath("$PWD/work/app") + [IO.Path]::DirectorySeparatorChar
+          foreach ($item in $patch) {
+            $file = [IO.Path]::GetFullPath((Join-Path $root $item.path))
+            if (-not $file.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { throw 'Patch path escapes source' }
+            if ($item.beforeSha256) {
+              if ((Get-FileHash $file).Hash.ToLowerInvariant() -ne $item.beforeSha256) { throw "Baseline file differs: $($item.path)" }
+            } elseif (Test-Path $file) { throw "Unexpected existing patch file: $($item.path)" }
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($file)) | Out-Null
+            [IO.File]::WriteAllText($file,$item.content,[Text.UTF8Encoding]::new($false))
+          }
+      - name: Verify authorization and light-only scope against published baseline
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:KF_ACCESS_BASELINE = Join-Path $env:GITHUB_WORKSPACE 'baseline'
+          node scripts/check-access-light.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R115 authorization/light scope validation failed' }
+          node scripts/check-security.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R115 security invariants failed' }
+      - name: Compile actual Windows Hello desktop binding
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $mini = Join-Path $PWD '.klipper-build-cache/hello-binding-check'
+          New-Item -ItemType Directory -Force "$mini/src" | Out-Null
+          @'
+          [package]
+          name="kf-hello-binding-check"
+          version="0.1.0"
+          edition="2021"
+          [dependencies]
+          windows={version="=0.61.3",features=["Security_Credentials_UI","Win32_System_WinRT"]}
+          windows-future="=0.2.1"
+          '@ | Set-Content "$mini/Cargo.toml" -Encoding utf8NoBOM
+          '#[path="../../../src-tauri/src/windows_hello.rs"] mod windows_hello; fn main() {}' | Set-Content "$mini/src/main.rs" -Encoding utf8NoBOM
+          $env:CARGO_TARGET_DIR = Join-Path $PWD '.klipper-build-cache/target'
+          cargo check --offline --manifest-path "$mini/Cargo.toml"
+          if ($LASTEXITCODE -ne 0) { throw 'Actual desktop Windows Hello API binding failed to compile' }
+      - name: Verify HTTP boundary regression
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          node scripts/check-http-keepalive.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'HTTP boundary regression failed' }
+      - name: Rebuild frontend and freeze complete reviewed source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked frontend dependencies failed' }
+          node scripts/prepare-camera-detector.mjs --download
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned local camera model or ONNX runtime staging failed' }
+          node scripts/check-legacy-library-routing.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R94 native routing regression failed' }
+          node scripts/check-print-start-confirmation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Print start confirmation regression failed' }
+          node scripts/check-upload-actor-identity.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Upload identity regression failed' }
+          node scripts/check-moonraker-compat.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Compatibility regression failed' }
+          node scripts/check-printer-connection-bridge.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actor bridge regression failed' }
+          node scripts/check-maintenance.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Maintenance countdown and notification regression failed' }
+          node scripts/check-camera-guard.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Camera guard state and pause regression failed' }
+          node scripts/check-tv-dashboard.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'TV dashboard state regression failed' }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Frontend compilation failed' }
+          node scripts/lock-v20-6-dist.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Frontend provenance check failed' }
+          node scripts/generate-release-manifests.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Manifest generation failed' }
+          node scripts/check-release-portability.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Portable release checks failed' }
+          New-Item -ItemType Directory -Force (Join-Path $env:GITHUB_WORKSPACE 'checked-source') | Out-Null
+          $env:KF_ARCHIVE_ROOT = 'Klipper-Farm-R115'
+          $env:KF_SOURCE_ZIP = Join-Path $env:GITHUB_WORKSPACE 'checked-source/KF-R115-FULL.zip'
+          node scripts/build-reproducible-zip.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed source freeze failed' }
+      - name: Verify file workflow UI success and error states
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          npm ci --prefix ui-tests --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked browser test dependencies failed' }
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          if (-not (Test-Path $env:CHROMIUM_EXECUTABLE)) { throw 'Preinstalled Edge not found' }
+          $env:KF_FILE_WORKFLOW_ONLY = '1'
+          foreach ($case in @('normal-start','duplicate-click','changed-source','native-upload-failure','cancel-upload','start-unknown')) {
+            $env:KF_FILE_TEST = $case
+            node ui-tests/file-workflow.mjs
+            if ($LASTEXITCODE -ne 0) { throw "File workflow UI failed: $case" }
+          }
+      - name: Verify discovery dialog appearance
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'discovery-preview'
+          node ui-tests/discovery-layout.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Discovery appearance checks failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R115-Discovery-preview
+          path: discovery-preview/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify dispatcher reliability maintenance and queue appearance
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'panels-preview'
+          node ui-tests/panels-layout.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Panel appearance checks failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R115-Panels-preview
+          path: panels-preview/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify TV dashboard and camera controls
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'tv-camera-preview'
+          node ui-tests/tv-camera.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'TV and camera UI checks failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R115-TV-Camera-preview
+          path: tv-camera-preview/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify actual local camera inference under production CSP
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'camera-detector-proof'
+          node ui-tests/camera-detector.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual model worker inference under app CSP failed' }
+          node ui-tests/camera-guard-chain.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual captured frame to model to guarded pause chain failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R115-Camera-Detector-proof
+          path: camera-detector-proof/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify single-method login and actual printer light controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'access-light-preview'
+          node ui-tests/access-light.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Single-method login and light appearance failed' }
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'light-regression-preview'
+          node ui-tests/light-notifications-r100.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual preserved printer light commands failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R115-Access-Light-proof
+          path: |
+            access-light-preview/
+            light-regression-preview/
+          if-no-files-found: error
+      - name: Build and run native Windows checks
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+      - name: Verify actual R94 native library uploader
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:CARGO_TARGET_DIR = Join-Path $PWD '.klipper-build-cache/target'
+          $env:CARGO_HOME = Join-Path $PWD '.klipper-build-cache/cargo'
+          node scripts/check-legacy-library-upload-runtime.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual R94 native uploader regression failed' }
+      - name: Collect candidate and validation tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force candidate/release,candidate/scripts | Out-Null
+          $project = Join-Path $PWD 'work/app'
+          $release = Join-Path $project '.klipper-build-cache/target/release'
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $name) candidate/release/ }
+          foreach ($name in @('apply-online-update.ps1','check-desktop-startup-smoke.mjs','check-desktop-exit.ps1','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item (Join-Path $project "scripts/$name") candidate/scripts/ }
+          $setup = @(Get-ChildItem work/app/INSTALLER -Filter '*.exe')
+          if ($setup.Count -ne 1) { throw 'Expected one installer' }
+          Copy-Item $setup[0].FullName candidate/Klipper-Farm-R115-setup.exe
+          $hash = (Get-FileHash candidate/Klipper-Farm-R115-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash *Klipper-Farm-R115-setup.exe" | Set-Content candidate/SHA256SUMS.txt -Encoding utf8NoBOM
+          $sourceHash = (Get-FileHash checked-source/KF-R115-FULL.zip).Hash.ToLowerInvariant()
+          $html = Get-Content work/app/dist/index.html -Raw
+          $js = [regex]::Match($html,'assets/index-[^" ]+\.js').Value
+          $css = [regex]::Match($html,'assets/index-[^" ]+\.css').Value
+          if (-not $js -or -not $css) { throw 'Missing checked frontend bundle identity' }
+          $cameraWorkers = @(Get-ChildItem work/app/dist/assets -Filter 'cameraDetectorWorker-*.js')
+          if ($cameraWorkers.Count -ne 1) { throw 'Expected one local detector module worker' }
+          $cameraWorker = 'assets/' + $cameraWorkers[0].Name
+          $detector = Get-Content work/app/dist/camera-detector/MODEL.json -Raw | ConvertFrom-Json
+          if ($detector.sha256 -ne '0a6ebd8e30dbf6a450c50f9c0a5406f04ba7eb1c99fd5996e888c78bb383b9aa' -or $detector.size -ne 202223918 -or $detector.runtime -ne 'onnxruntime-web@1.23.2') { throw 'Packaged local detector provenance mismatch' }
+          if ((Get-Item candidate/Klipper-Farm-R115-setup.exe).Length -gt 512MB) { throw 'Candidate exceeds the supported update installer size' }
+          @{sourceSha256=$sourceHash;baselineSourceSha256='76ddf635ceb4e4d00ee4ff5358879922ce627703fe44a94ef02be0ce7d524bf8';patchSha256=(Get-FileHash incoming/r115-patch.json).Hash.ToLowerInvariant();workflowCommit=$env:GITHUB_SHA;setupSha256=$hash;buildId='V20.6-R11.5-ACCESS-LIGHT-2026-10-16';javascript=$js;stylesheet=$css;cameraModelSha256=$detector.sha256;cameraModelSizeBytes=$detector.size;cameraRuntime=$detector.runtime;cameraWorker=$cameraWorker} | ConvertTo-Json | Set-Content candidate/provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R115-Candidate
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R115-Reviewed-Source
+          path: checked-source/KF-R115-FULL.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain build logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R115-Build-logs
+          path: |
+            work/app/.klipper-build-cache/logs/
+            work/app/.klipper-build-cache/target/v20-rust-tests-last.log
+          include-hidden-files: true
+          if-no-files-found: warn
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R115-Candidate
+          path: candidate
+      - name: Verify upgrade from published R114 and installed runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+          & "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()'
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell startup probe failed' }
+          Set-Location candidate
+          $setup = (Resolve-Path Klipper-Farm-R115-setup.exe).Path
+          $release = (Resolve-Path release).Path
+          $provenance = Get-Content provenance.json -Raw | ConvertFrom-Json
+          if ($provenance.workflowCommit -ne $env:GITHUB_SHA -or $provenance.buildId -ne 'V20.6-R11.5-ACCESS-LIGHT-2026-10-16') { throw 'Wrong compiled candidate provenance' }
+          if ((Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $provenance.setupSha256) { throw 'Candidate hash mismatch' }
+          $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm upgrade test'
+          $installed = Start-Process $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($installed.ExitCode -ne 0) { throw 'Initial R115 install failed' }
+          $expected = @{}
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) { $expected[$name] = (Get-FileHash (Join-Path $installDir $name)).Hash }
+          $desktop = Join-Path $installDir 'klipper-farm-client.exe'
+          $desktopText = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          foreach ($marker in @($provenance.javascript,$provenance.stylesheet,$provenance.cameraWorker,'camera-detector/obico-failure-5a6b1be1fa.onnx','camera-detector/ort-wasm-simd-threaded.wasm','"installedSequence": 115','28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb')) {
+            if (-not $desktopText.Contains($marker)) { throw "Installed R115 resource or channel missing: $marker" }
+          }
+          node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$release/klipper-farm-ipc-probe.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry failed' }
+          gh release download r114 --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R114-setup.exe --dir old
+          if ($LASTEXITCODE -ne 0) { throw 'Published R114 download failed' }
+          $oldSetup = (Resolve-Path old/Klipper-Farm-R114-setup.exe).Path
+          if ((Get-FileHash $oldSetup -Algorithm SHA256).Hash.ToLowerInvariant() -ne '08eadc12edeb1055012768461dd1fa041d72556330f6b205cd45e466c5aa2dc8') { throw 'R114 hash mismatch' }
+          $oldInstall = Start-Process $oldSetup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($oldInstall.ExitCode -ne 0) { throw 'R114 baseline install failed' }
+          $baseline = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          if ($baseline -notmatch '"installedSequence"\s*:\s*114') { throw 'R114 baseline is not physically installed' }
+          $dataDir = Join-Path $env:APPDATA 'app.klipper.farm'
+          New-Item -ItemType Directory -Force $dataDir | Out-Null
+          $marker = Join-Path $dataDir 'updater-r114-preserve.txt'
+          [IO.File]::WriteAllText($marker,'preserve-r114-data')
+          $cacheRoot = Join-Path $env:LOCALAPPDATA 'app.klipper.farm/verified-updates'
+          $cleanupProbe = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Force $cleanupProbe | Out-Null
+          [IO.File]::WriteAllText((Join-Path $cleanupProbe 'installer.exe'),'unprotected-test-cache-fixture')
+          $oldDesktop = Start-Process $desktop -PassThru
+          $deadline = [DateTime]::UtcNow.AddSeconds(20)
+          while ($oldDesktop.MainWindowHandle -eq 0 -and -not $oldDesktop.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $oldDesktop.Refresh() }
+          if ($oldDesktop.HasExited -or $oldDesktop.MainWindowHandle -eq 0) { throw 'Installed R114 did not open a window' }
+          $cleanupDeadline = [DateTime]::UtcNow.AddSeconds(12)
+          while ((Test-Path $cleanupProbe) -and [DateTime]::UtcNow -lt $cleanupDeadline) { Start-Sleep -Milliseconds 100 }
+          "Synthetic cache survives startup: $(Test-Path $cleanupProbe)"
+          $startupLog = Join-Path $env:APPDATA 'app.klipper.farm/logs/desktop-startup.log'
+          if (Test-Path $startupLog) { Get-Content $startupLog -Tail 25 }
+          $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
+          if (-not $desktopText.Contains($helperText)) { throw 'Candidate helper differs from the one embedded in R115' }
+          $cacheRoot = Join-Path $env:LOCALAPPDATA 'app.klipper.farm/verified-updates'
+          $attempt = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          $legacy = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          $partial = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Force $attempt,$legacy,$partial | Out-Null
+          $cachedSetup = Join-Path $attempt 'installer.exe'
+          Copy-Item $setup $cachedSetup
+          [IO.File]::WriteAllText((Join-Path $attempt 'manifest.json'),'synthetic-signed-manifest-fixture')
+          foreach ($path in @($legacy,$partial)) { [IO.File]::WriteAllText((Join-Path $path 'installer.exe'),'abandoned-cache-fixture') }
+          [IO.File]::WriteAllText((Join-Path $legacy 'helper-ready'),'ready')
+          [IO.File]::WriteAllText((Join-Path $legacy 'install-result.txt'),'Installed successfully')
+          $keep = Join-Path (Split-Path -Parent $cacheRoot) 'keep-update-cache-test.txt'
+          [IO.File]::WriteAllText($keep,'preserve-unrelated-file')
+          $ready = Join-Path $attempt 'helper-ready'
+          # Production update_apply holds UpdateState's lease/prepared path.
+          # This external harness has no app state. Use the supported active-owner
+          # marker to preserve its fixture until the actual helper takes over.
+          [IO.File]::WriteAllText($ready,(@{helperPid=$PID} | ConvertTo-Json -Compress))
+          $payload = @{parentPid=$oldDesktop.Id;executable=$desktop;installer=$cachedSetup;sha256=$provenance.setupSha256;sizeBytes=(Get-Item $setup).Length;ready=$ready;cacheRoot=$cacheRoot} | ConvertTo-Json -Compress
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardInput = $true
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $start.CreateNoWindow = $true
+          $start.EnvironmentVariables.Remove('PSModulePath')
+          $helperDebugPrefix = '$ProgressPreference = ''SilentlyContinue''; Set-PSDebug -Trace 1;' + [Environment]::NewLine
+          foreach ($argument in @('-NoProfile','-NonInteractive','-Command',($helperDebugPrefix + $helperText))) { $start.ArgumentList.Add($argument) }
+          $helper = [Diagnostics.Process]::Start($start)
+          $outRead = $helper.StandardOutput.ReadToEndAsync()
+          $errRead = $helper.StandardError.ReadToEndAsync()
+          $handshakeStarted = [Diagnostics.Stopwatch]::StartNew()
+          $helper.StandardInput.Write($payload)
+          $helper.StandardInput.Close()
+          $actualHelperReady = {
+            if (-not (Test-Path $ready)) { return $false }
+            try { return (Get-Content $ready -Raw | ConvertFrom-Json).helperPid -eq $helper.Id } catch { return $false }
+          }
+          $deadline = [DateTime]::UtcNow.AddSeconds(15)
+          while (-not (& $actualHelperReady) -and -not $helper.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+          if (-not (& $actualHelperReady)) {
+            Write-Host ('HELPER process: ' + ($helper | Select-Object Id,MainWindowTitle,TotalProcessorTime,StartTime | ConvertTo-Json -Compress))
+            Get-ChildItem $cacheRoot -Recurse -Force | Select-Object FullName,Length | ConvertTo-Json -Compress | Write-Host
+            if (Test-Path (Join-Path $cacheRoot 'last-error.txt')) { Get-Content (Join-Path $cacheRoot 'last-error.txt') }
+            Write-Host "HELPER handshake elapsedMs=$($handshakeStarted.ElapsedMilliseconds) exited=$($helper.HasExited)"
+            if (Test-Path install-result.txt) { Get-Content install-result.txt }
+            if (-not $helper.HasExited) { $helper.Kill(); $helper.WaitForExit(10000) | Out-Null }
+            $null = $outRead.Wait(5000)
+            $null = $errRead.Wait(5000)
+            if ($outRead.IsCompleted) { $outRead.Result | Set-Content helper-stdout.txt; Write-Host $outRead.Result }
+            if ($errRead.IsCompleted) { $errRead.Result | Set-Content helper-stderr.txt; Write-Host $errRead.Result }
+            throw 'Updater handshake failed'
+          }
+          "HELPER ready elapsedMs=$($handshakeStarted.ElapsedMilliseconds)"
+          if (-not $oldDesktop.CloseMainWindow() -or -not $oldDesktop.WaitForExit(20000)) { throw 'R114 did not close cleanly' }
+          if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Update helper timeout' }
+          if ($helper.ExitCode -ne 0) { $outRead.Result; $errRead.Result; throw 'Update helper failed' }
+          $deadline = [DateTime]::UtcNow.AddSeconds(12)
+          while (((Test-Path $attempt) -or (Test-Path $legacy) -or (Test-Path $partial)) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 150 }
+          foreach ($path in @($attempt,$legacy,$partial)) { if (Test-Path $path) { throw "Update cache was not cleaned: $path" } }
+          if ((Get-Content -LiteralPath $keep -Raw) -ne 'preserve-unrelated-file') { throw 'Unrelated cache neighbor was changed' }
+          'Update cache runtime OK: active installer attempt, legacy completed update and partial download removed; unrelated file preserved'
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+            $hash = (Get-FileHash (Join-Path $installDir $name)).Hash
+            "UPDATED $name hash=$hash matchesR115=$($hash -eq $expected[$name])"
+            if ($hash -ne $expected[$name]) { throw "Wrong installed R115 payload: $name" }
+          }
+          if ((Get-Content $marker -Raw) -ne 'preserve-r114-data') { throw 'App data was removed' }
+          $restarted = @(Get-Process -Name klipper-farm-client -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $desktop })
+          if ($restarted.Count -eq 0) { throw 'R115 was not relaunched' }
+          foreach ($process in $restarted) {
+            $deadline = [DateTime]::UtcNow.AddSeconds(20)
+            while ($process.MainWindowHandle -eq 0 -and -not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $process.Refresh() }
+            if ($process.HasExited -or -not $process.CloseMainWindow() -or -not $process.WaitForExit(20000)) { throw 'R115 window lifecycle failed' }
+          }
+          foreach ($process in @(Get-Process -Name klipper-farmd -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $installDir 'klipper-farmd.exe') })) { if (-not $process.WaitForExit(10000)) { throw 'Sidecar survived desktop shutdown' } }
+          & scripts/check-desktop-exit.ps1 -Desktop $desktop
+          New-Item -ItemType Directory -Force smoke | Out-Null
+          node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" "$PWD/smoke"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed desktop smoke failed' }
+          'R114 to R115 physical upgrade, data preservation, relaunch and telemetry passed'
+      - name: Retain validated installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item candidate/Klipper-Farm-R115-setup.exe,candidate/SHA256SUMS.txt,candidate/provenance.json out/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R115-Validated
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain test diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R115-Upgrade-test-logs
+          path: |
+            candidate/install-result.txt
+            candidate/helper-stdout.txt
+            candidate/helper-stderr.txt
+            candidate/smoke/
+          if-no-files-found: warn
+
+
