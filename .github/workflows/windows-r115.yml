@@ -67,6 +67,9 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Set-Location work/app
+          tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path 'rv/windows-0.61.3/Cargo.toml')) { throw 'Offline Windows SDK extraction failed' }
+          [IO.File]::WriteAllText((Join-Path $PWD 'rv/.kf-v1144-complete'),"verified")
           $mini = Join-Path $PWD '.klipper-build-cache/hello-binding-check'
           New-Item -ItemType Directory -Force "$mini/src" | Out-Null
           @'
