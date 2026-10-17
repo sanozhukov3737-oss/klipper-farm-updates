@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 118,
+  "version": "1.14.5-r118",
+  "publishedAt": 1792250465000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r118/Klipper-Farm-R118-setup.exe",
+    "sha256": "005ef7b789f6c82b62460ec92120c89846f257114b28b7dc665764a83207f13b",
+    "sizeBytes": 203541303
+  },
+  "releaseNotes": "R118: большие списки файлов и очереди работают быстрее; медленный принтер не задерживает остальные очереди; улучшено фоновое наблюдение камер.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "111e02aaf21951219a4c9ace40b4608916a0e8d24da279998770ff681ef7dbce3be201feed9277fa3152eea8b8aed3649c6b53a9c04267783b2de6718bbc7307"
+}
