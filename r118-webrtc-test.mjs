@@ -7,7 +7,9 @@ import {pathToFileURL} from 'node:url';
 import ts from './typescript-runtime.mjs';
 
 // Physical browser acceptance for the production decoder sampler. This covers
-// an occluded/hidden document; the installed Windows minimize probe separately
+// a physically minimized receiver window; document visibility is diagnostic
+// because Edge can keep an active media receiver's document marked visible.
+// The installed Windows minimize probe separately
 // covers the native desktop and headless printer actors.
 const root=path.resolve(import.meta.dirname,'..');
 const mode=process.env.KF_CAMERA_BROWSER_MODE||'headless';
@@ -52,6 +54,20 @@ const diagnose=async(stage,saveImages=false)=>{
   if(saveImages)for(const [label,page] of [['receiver',receiver],['sender',sender]])if(page)try{await page.screenshot({path:path.join(diagnosticsDirectory,`${filename}-${label}.png`),timeout:3000})}catch(error){console.log(`R118 diagnostic screenshot ${label}: ${String(error).slice(0,400)}`)}
   return state;
 };
+const requireMinimizedReceiver=async stage=>{
+  const [{bounds:receiverBounds},{bounds:senderBounds},receiverFocus,senderVisibility]=await Promise.all([
+    browserCdp.send('Browser.getWindowBounds',{windowId:nativeWindows.receiver.windowId}),
+    browserCdp.send('Browser.getWindowBounds',{windowId:nativeWindows.sender.windowId}),
+    receiver.evaluate(()=>document.hasFocus()),
+    sender.evaluate(()=>({hidden:document.hidden,visibilityState:document.visibilityState})),
+  ]);
+  assert.notEqual(nativeWindows.receiver.windowId,nativeWindows.sender.windowId,`${stage}: sender and receiver must be distinct native windows`);
+  assert.equal(receiverBounds.windowState,'minimized',`${stage}: native receiver window must remain minimized`);
+  assert.equal(receiverFocus,false,`${stage}: minimized receiver must not have focus`);
+  assert.equal(senderBounds.windowState,'normal',`${stage}: sender window must remain normal`);
+  assert.equal(senderVisibility.hidden,false,`${stage}: sender must remain visible to generate live frames`);
+  console.log(`R118 physical window state ${JSON.stringify({stage,receiverBounds,senderBounds,receiverFocus,senderVisibility})}`);
+};
 try{
   browser=await chromium.launch({headless:mode!=='headed',...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{}),args:['--no-sandbox'],ignoreDefaultArgs:['--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding','--disable-background-timer-throttling']});
   // Separate incognito contexts force distinct native browser windows: the
@@ -78,8 +94,9 @@ try{
     video.requestVideoFrameCallback=()=>{throw new Error('Rendering callbacks are forbidden in this fixture')};
     window.pc=new RTCPeerConnection({iceServers:[]});pc.addTransceiver('video',{direction:'recvonly'});
     pc.ontrack=event=>{video.srcObject=event.streams[0]||new MediaStream([event.track]);void video.play().catch(error=>{window.playError=String(error)})};
-    window.captured=[];window.unavailable=[];
-    window.beginSampling=()=>{window.stopSampling=sampleCameraVideo({peer:pc,video,intervalMs:500,getJobToken:()=>`test-job`,capture:async(token,at,job)=>{
+    window.captured=[];window.unavailable=[];window.statsReads=0;
+    const monitoredPeer={getStats:()=>{statsReads++;return pc.getStats()}};
+    window.beginSampling=()=>{window.stopSampling=sampleCameraVideo({peer:monitoredPeer,video,intervalMs:500,getJobToken:()=>`test-job`,capture:async(token,at,job)=>{
       const canvas=document.createElement('canvas');canvas.width=32;canvas.height=32;const ctx=canvas.getContext('2d');ctx.drawImage(video,0,0,32,32);
       const bytes=ctx.getImageData(0,0,32,32).data;let hash=2166136261;for(const value of bytes)hash=Math.imul(hash^value,16777619);
       captured.push({token,at,job,hash,hidden:document.hidden});
@@ -106,30 +123,32 @@ try{
   await browserCdp.send('Browser.setWindowBounds',{windowId:nativeWindows.receiver.windowId,bounds:{windowState:'minimized'}});
   await sender.bringToFront();
   await diagnose('minimized');
-  // RAF polling would itself stop on the deliberately hidden document, leaving
+  // RAF polling can stop on a minimized document, leaving
   // the acceptance waiter stuck even when decoder frames arrive correctly.
-  await receiver.waitForFunction(()=>document.hidden&&video.readyState>=2,undefined,{timeout:15000,polling:250});
+  await receiver.waitForFunction(()=>!document.hasFocus()&&video.readyState>=2,undefined,{timeout:15000,polling:250});
+  await requireMinimizedReceiver('before-capture');
   await receiver.evaluate(()=>{captured.length=0});
-  await receiver.waitForFunction(()=>captured.filter(frame=>frame.hidden).length>=5,undefined,{timeout:20000,polling:250});
-  const observations=await receiver.evaluate(()=>({hidden:document.hidden,captured:captured.filter(frame=>frame.hidden),unavailable:[...unavailable]}));
-  assert(observations.hidden,'receiver must actually be a hidden browser document');
-  const {bounds:receiverBounds}=await browserCdp.send('Browser.getWindowBounds',{windowId:nativeWindows.receiver.windowId});
-  assert.equal(receiverBounds.windowState,'minimized','native receiver browser window must remain minimized while frames are captured');
+  await receiver.waitForFunction(()=>captured.length>=5,undefined,{timeout:20000,polling:250});
+  const observations=await receiver.evaluate(()=>({hidden:document.hidden,visibilityState:document.visibilityState,captured:[...captured],unavailable:[...unavailable]}));
+  await requireMinimizedReceiver('after-capture');
   assert(new Set(observations.captured.map(frame=>frame.token)).size>=5,'decoded frame identities must advance');
-  assert(new Set(observations.captured.map(frame=>frame.hash)).size>=3,'actual hidden video pixels must change');
+  assert(new Set(observations.captured.map(frame=>frame.hash)).size>=3,'actual physically minimized receiver pixels must change');
   assert(observations.captured.every(frame=>frame.job==='test-job'));
+  await requireMinimizedReceiver('before-sender-stop');
   await sender.evaluate(()=>{clearInterval(paintTimer);for(const track of stream.getTracks())track.stop()});
   // Drain buffered decoder frames before checking that a stalled stream is not
   // repeatedly analyzed. This delay is intentionally shorter than the job gate.
   await new Promise(resolve=>setTimeout(resolve,1800));
-  const before=await receiver.evaluate(()=>captured.length);
+  const before=await receiver.evaluate(()=>({captures:captured.length,reads:statsReads}));
   await new Promise(resolve=>setTimeout(resolve,1800));
-  const after=await receiver.evaluate(()=>captured.length);
-  assert.equal(after,before,'a frozen stream must not generate synthetic fresh-frame evidence');
+  const after=await receiver.evaluate(()=>({captures:captured.length,reads:statsReads}));
+  assert.equal(after.captures,before.captures,'a frozen stream must not generate synthetic fresh-frame evidence');
+  assert(after.reads>before.reads,'receiver sampler must remain active while rejecting a frozen stream');
+  await requireMinimizedReceiver('after-frozen-stream-check');
   await diagnose('passed',true);
   await receiver.evaluate(()=>{stopSampling();releaseMonitoring();pc.close()});
   await sender.evaluate(()=>pc.close());
-  console.log(`R118 browser camera PASS (${mode}): physically minimized hidden WebRTC receiver captured ${observations.captured.length} unique decoded frames with changing pixels; frozen stream produced no new evidence`);
+  console.log(`R118 browser camera PASS (${mode}): physically minimized WebRTC receiver captured ${observations.captured.length} unique decoded frames with changing pixels; document.hidden=${observations.hidden}, visibilityState=${observations.visibilityState}; frozen stream produced no new evidence while sampler kept running`);
 }catch(error){
   await diagnose('failed',true);
   throw error;
