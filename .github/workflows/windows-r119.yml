@@ -1,0 +1,652 @@
+name: Build and validate R119
+on:
+  workflow_dispatch:
+  push:
+    branches: [r119-printer-catalog]
+    paths: ['.github/workflows/windows-r119.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: windows-r119
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Restore verified published R118 and apply reviewed R119 changes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release download r118 --repo $env:GITHUB_REPOSITORY --pattern KF-R118-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Source download failed' }
+          if ((Get-Item incoming/KF-R118-FULL.zip).Length -ne 500195909) { throw 'Baseline source size mismatch' }
+          if ((Get-FileHash incoming/KF-R118-FULL.zip).Hash.ToLowerInvariant() -ne '12659233d2a1aff1401ce60a3eef2b8c99a61bb175576383d24b54a418db04f3') { throw 'Source checksum mismatch' }
+          Expand-Archive incoming/KF-R118-FULL.zip work
+          Rename-Item work/Klipper-Farm-R118 app
+          New-Item -ItemType Directory -Force baseline | Out-Null
+          Copy-Item work/app baseline/app -Recurse
+          $blob = gh api "repos/$env:GITHUB_REPOSITORY/git/trees/$env:GITHUB_SHA" --jq '.tree[] | select(.path == "r119-patch.json") | .sha'
+          if ($LASTEXITCODE -ne 0 -or -not $blob) { throw 'Patch blob resolution failed' }
+          $encoded = gh api "repos/$env:GITHUB_REPOSITORY/git/blobs/$blob" --jq .content
+          if ($LASTEXITCODE -ne 0) { throw 'Patch download failed' }
+          [IO.File]::WriteAllBytes("$PWD/incoming/r119-patch.json",[Convert]::FromBase64String(($encoded -join '')))
+          if ((Get-FileHash incoming/r119-patch.json).Hash.ToLowerInvariant() -ne '7cd1040b2c10cec2f404613fab2c488b710d91713dd9f1e0bdc831ce0bd388a7') { throw 'Reviewed R119 patch checksum mismatch' }
+          $patch = Get-Content incoming/r119-patch.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          $root = [IO.Path]::GetFullPath("$PWD/work/app") + [IO.Path]::DirectorySeparatorChar
+          $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+          foreach ($item in $patch) {
+            if (-not $item.path -or $item.path.Contains('\') -or [IO.Path]::IsPathRooted($item.path) -or $item.path.Contains(':') -or -not $seen.Add($item.path)) { throw 'Invalid or duplicate patch path' }
+            if ($item.afterSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Missing reviewed final file hash' }
+            $file = [IO.Path]::GetFullPath((Join-Path $root $item.path))
+            if (-not $file.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { throw 'Patch path escapes source' }
+            if ($item.beforeSha256) {
+              if ((Get-FileHash $file).Hash.ToLowerInvariant() -ne $item.beforeSha256) { throw "Baseline file differs: $($item.path)" }
+            } elseif (Test-Path $file) { throw "Unexpected existing patch file: $($item.path)" }
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($file)) | Out-Null
+            [IO.File]::WriteAllText($file,$item.content,[Text.UTF8Encoding]::new($false))
+            if ((Get-FileHash $file).Hash.ToLowerInvariant() -ne $item.afterSha256) { throw "Applied content differs: $($item.path)" }
+          }
+      - name: Restore locked frontend dependencies for AST scope and runtime checks
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked frontend dependencies failed' }
+      - name: Verify catalog-only scope against complete published R118 baseline
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:KF_R119_BASELINE = Join-Path $env:GITHUB_WORKSPACE 'baseline/app'
+          node scripts/check-r119-scope.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R119 intended scope validation failed' }
+          node scripts/check-creality-light.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Creality light invariants failed' }
+          node scripts/check-security.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R119 security invariants failed' }
+          node scripts/check-printer-catalog.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Printer catalog metadata, references or selection invariants failed' }
+      - name: Compile actual Windows Hello desktop binding
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path 'rv/windows-0.61.3/Cargo.toml')) { throw 'Offline Windows SDK extraction failed' }
+          [IO.File]::WriteAllText((Join-Path $PWD 'rv/.kf-v1144-complete'),"verified")
+          $mini = Join-Path $PWD '.klipper-build-cache/hello-binding-check'
+          New-Item -ItemType Directory -Force "$mini/src" | Out-Null
+          @'
+          [package]
+          name="kf-hello-binding-check"
+          version="0.1.0"
+          edition="2021"
+          [dependencies]
+          windows={version="=0.61.3",features=["Security_Credentials_UI","Win32_System_WinRT"]}
+          windows-future="=0.2.1"
+          '@ | Set-Content "$mini/Cargo.toml" -Encoding utf8NoBOM
+          '#[path="../../../src-tauri/src/windows_hello.rs"] mod windows_hello; fn main() {}' | Set-Content "$mini/src/main.rs" -Encoding utf8NoBOM
+          $env:CARGO_TARGET_DIR = Join-Path $PWD '.klipper-build-cache/target'
+          cargo check --offline --manifest-path "$mini/Cargo.toml"
+          if ($LASTEXITCODE -ne 0) { throw 'Actual desktop Windows Hello API binding failed to compile' }
+      - name: Verify HTTP boundary regression
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          node scripts/check-http-keepalive.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'HTTP boundary regression failed' }
+      - name: Rebuild frontend and freeze complete reviewed source
+        id: frontend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          node scripts/check-light-readback-r116.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'R119 light readback regression failed' }
+          node scripts/check-background-camera-r118.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Background camera decoded-frame sampling regression failed' }
+          node scripts/check-printer-open-r117.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'First detail open read-only preview regression failed' }
+          node scripts/prepare-camera-detector.mjs --download
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned local camera model or ONNX runtime staging failed' }
+          node scripts/check-legacy-library-routing.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'R94 native routing regression failed' }
+          node scripts/check-print-start-confirmation.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Print start confirmation regression failed' }
+          node scripts/check-upload-actor-identity.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Upload identity regression failed' }
+          node scripts/check-moonraker-compat.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Compatibility regression failed' }
+          node scripts/check-printer-connection-bridge.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actor bridge regression failed' }
+          node scripts/check-maintenance.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Maintenance countdown and notification regression failed' }
+          node scripts/check-camera-guard.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Camera guard state and pause regression failed' }
+          node scripts/check-tv-dashboard.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'TV dashboard state regression failed' }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Frontend compilation failed' }
+          node scripts/lock-v20-6-dist.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Frontend provenance check failed' }
+          node scripts/generate-release-manifests.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Manifest generation failed' }
+          node scripts/check-release-portability.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Portable release checks failed' }
+          New-Item -ItemType Directory -Force (Join-Path $env:GITHUB_WORKSPACE 'checked-source') | Out-Null
+          $env:KF_ARCHIVE_ROOT = 'Klipper-Farm-R119'
+          $env:KF_SOURCE_ZIP = Join-Path $env:GITHUB_WORKSPACE 'checked-source/KF-R119-FULL.zip'
+          node scripts/build-reproducible-zip.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed source freeze failed' }
+      - name: Install locked browser acceptance dependencies after reviewed source freeze
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          npm ci --prefix ui-tests --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked browser test dependencies failed' }
+      - name: Verify 500-model metadata catalog and existing manual profiles
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'printer-catalog-proof'
+          node ui-tests/printer-catalog.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual catalog selection and unchanged advanced profiles browser acceptance failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-Printer-Catalog-proof
+          path: printer-catalog-proof/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify responsive heavy panels and physically minimized camera monitoring
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'performance-background-proof'
+          node ui-tests/heavy-screens-r118.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Heavy screens responsiveness and bounded history regression failed' }
+          $env:PLAYWRIGHT_MODULE_PATH = Join-Path $PWD 'ui-tests/node_modules/playwright/index.mjs'
+          $env:KF_CAMERA_BROWSER_MODE = 'headed'
+          node scripts/check-background-camera-browser-r118.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Physically minimized WebRTC receiver or frozen-stream evidence regression failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-Performance-Background-proof
+          path: performance-background-proof/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify file workflow UI success and error states
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          if (-not (Test-Path $env:CHROMIUM_EXECUTABLE)) { throw 'Preinstalled Edge not found' }
+          $env:KF_FILE_WORKFLOW_ONLY = '1'
+          foreach ($case in @('normal-start','duplicate-click','changed-source','native-upload-failure','cancel-upload','start-unknown')) {
+            $env:KF_FILE_TEST = $case
+            node ui-tests/file-workflow.mjs
+            if ($LASTEXITCODE -ne 0) { throw "File workflow UI failed: $case" }
+          }
+      - name: Verify discovery dialog appearance
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'discovery-preview'
+          node ui-tests/discovery-layout.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Discovery appearance checks failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-Discovery-preview
+          path: discovery-preview/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify dispatcher reliability maintenance and queue appearance
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'panels-preview'
+          node ui-tests/panels-layout.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Panel appearance checks failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-Panels-preview
+          path: panels-preview/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify TV dashboard and camera controls
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'tv-camera-preview'
+          node ui-tests/tv-camera.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'TV and camera UI checks failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-TV-Camera-preview
+          path: tv-camera-preview/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify actual local camera inference under production CSP
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'camera-detector-proof'
+          node ui-tests/camera-detector.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual model worker inference under app CSP failed' }
+          node ui-tests/camera-guard-chain.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual captured frame to model to guarded pause chain failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-Camera-Detector-proof
+          path: camera-detector-proof/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Verify single-method login and actual printer light controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $failures = @()
+          foreach ($check in @(@{script='access-light.mjs';output='access-light-preview'},@{script='light-notifications-r100.mjs';output='light-regression-preview'},@{script='light-compact-r116.mjs';output='light-compact-preview'})) {
+            $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE $check.output
+            node (Join-Path 'ui-tests' $check.script)
+            if ($LASTEXITCODE -ne 0) { $failures += $check.script }
+          }
+          if ($failures.Count -gt 0) { throw ('Light acceptance checks failed: ' + ($failures -join ', ')) }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-Access-Light-proof
+          path: |
+            access-light-preview/
+            light-regression-preview/
+            light-compact-preview/
+          if-no-files-found: error
+      - name: Verify first printer detail opens before optional preview work
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = './node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'printer-open-proof'
+          node ui-tests/printer-open-r117.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'First printer detail open UI regression failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R119-Printer-Open-proof
+          path: printer-open-proof/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Build and run native Windows checks
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Windows build failed' }
+      - name: Verify actual R94 native library uploader
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          $env:CARGO_TARGET_DIR = Join-Path $PWD '.klipper-build-cache/target'
+          $env:CARGO_HOME = Join-Path $PWD '.klipper-build-cache/cargo'
+          node scripts/check-legacy-library-upload-runtime.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual R94 native uploader regression failed' }
+      - name: Collect candidate and validation tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force candidate/release,candidate/scripts | Out-Null
+          $project = Join-Path $PWD 'work/app'
+          $release = Join-Path $project '.klipper-build-cache/target/release'
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $name) candidate/release/ }
+          foreach ($name in @('apply-online-update.ps1','check-desktop-startup-smoke.mjs','check-desktop-exit.ps1','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs','check-startup-instance-r117.ps1')) { Copy-Item (Join-Path $project "scripts/$name") candidate/scripts/ }
+          $setup = @(Get-ChildItem work/app/INSTALLER -Filter '*.exe')
+          if ($setup.Count -ne 1) { throw 'Expected one installer' }
+          Copy-Item $setup[0].FullName candidate/Klipper-Farm-R119-setup.exe
+          $hash = (Get-FileHash candidate/Klipper-Farm-R119-setup.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash *Klipper-Farm-R119-setup.exe" | Set-Content candidate/SHA256SUMS.txt -Encoding utf8NoBOM
+          $sourceHash = (Get-FileHash checked-source/KF-R119-FULL.zip).Hash.ToLowerInvariant()
+          $html = Get-Content work/app/dist/index.html -Raw
+          $js = [regex]::Match($html,'assets/index-[^" ]+\.js').Value
+          $css = [regex]::Match($html,'assets/index-[^" ]+\.css').Value
+          if (-not $js -or -not $css) { throw 'Missing checked frontend bundle identity' }
+          $cameraWorkers = @(Get-ChildItem work/app/dist/assets -Filter 'cameraDetectorWorker-*.js')
+          if ($cameraWorkers.Count -ne 1) { throw 'Expected one local detector module worker' }
+          $cameraWorker = 'assets/' + $cameraWorkers[0].Name
+          $detector = Get-Content work/app/dist/camera-detector/MODEL.json -Raw | ConvertFrom-Json
+          if ($detector.sha256 -ne '0a6ebd8e30dbf6a450c50f9c0a5406f04ba7eb1c99fd5996e888c78bb383b9aa' -or $detector.size -ne 202223918 -or $detector.runtime -ne 'onnxruntime-web@1.23.2') { throw 'Packaged local detector provenance mismatch' }
+          if ((Get-Item candidate/Klipper-Farm-R119-setup.exe).Length -gt 512MB) { throw 'Candidate exceeds the supported update installer size' }
+          $catalog = Get-Content work/app/src/data/printerCatalog.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          if ($catalog.schemaVersion -ne 1 -or @($catalog.models).Count -lt 500) { throw 'Packaged printer catalog requires schema 1 and at least 500 models' }
+          $catalogHash = (Get-FileHash work/app/src/data/printerCatalog.json).Hash.ToLowerInvariant()
+          @{sourceSha256=$sourceHash;baselineSourceSha256='12659233d2a1aff1401ce60a3eef2b8c99a61bb175576383d24b54a418db04f3';baselineSetupSha256='005ef7b789f6c82b62460ec92120c89846f257114b28b7dc665764a83207f13b';baselineSequence=118;sequence=119;patchSha256=(Get-FileHash incoming/r119-patch.json).Hash.ToLowerInvariant();workflowCommit=$env:GITHUB_SHA;setupSha256=$hash;buildId='V20.6-R11.9-PRINTER-CATALOG-2026-10-17';javascript=$js;stylesheet=$css;cameraModelSha256=$detector.sha256;cameraModelSizeBytes=$detector.size;cameraRuntime=$detector.runtime;cameraWorker=$cameraWorker;printerCatalogSha256=$catalogHash;printerCatalogSchemaVersion=$catalog.schemaVersion;printerCatalogModelCount=@($catalog.models).Count} | ConvertTo-Json | Set-Content candidate/provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R119-Candidate
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R119-Reviewed-Source
+          path: checked-source/KF-R119-FULL.zip
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain build logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R119-Build-logs
+          path: |
+            work/app/.klipper-build-cache/logs/
+            work/app/.klipper-build-cache/target/v20-rust-tests-last.log
+          include-hidden-files: true
+          if-no-files-found: warn
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 18
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R119-Candidate
+          path: candidate
+      - name: Prepare verified actual-window validation harnesses
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # This new validation-only file corrects cached HWND selection. The
+          # original shipped script and every executable remain unchanged.
+          [IO.File]::WriteAllBytes("$PWD/candidate/scripts/check-desktop-exit-actual-window-r117.ps1",[Convert]::FromBase64String('cGFyYW0oW1BhcmFtZXRlcihNYW5kYXRvcnk9JHRydWUpXVtzdHJpbmddJERlc2t0b3AsW1BhcmFtZXRlcihNYW5kYXRvcnk9JHRydWUpXVtzdHJpbmddJE91dHB1dERpcmVjdG9yeSkKJEVycm9yQWN0aW9uUHJlZmVyZW5jZSA9ICdTdG9wJwokRGVza3RvcCA9IChSZXNvbHZlLVBhdGggLUxpdGVyYWxQYXRoICREZXNrdG9wKS5QYXRoCiRkYWVtb25QYXRoID0gSm9pbi1QYXRoIChTcGxpdC1QYXRoIC1QYXJlbnQgJERlc2t0b3ApICdrbGlwcGVyLWZhcm1kLmV4ZScKCiMgVmFsaWRhdGlvbi1vbmx5IGNvcnJlY3Rpb246IC5ORVQgY2FjaGVzIE1haW5XaW5kb3dIYW5kbGUuIEEgdHJhbnNpZW50IHN0YXJ0dXAKIyB3aW5kb3cgY2FuIHBvcHVsYXRlIHRoYXQgY2FjaGUgYmVmb3JlIHRoZSBhY3R1YWwgdmlzaWJsZSBUYXVyaSBtYWluIHdpbmRvdy4KIyBSZXF1aXJlIHRoZSByZWFsIFBJRC90aXRsZS92aXNpYmxlIHdpbmRvdyBhbmQgcmVmcmVzaCB0aGUgc2FtZSBQcm9jZXNzIGNhY2hlLgojIFRoaXMgcHJlY29uZGl0aW9uIGRvZXMgbm90IHdhaXQgZm9yIHBhZ2UgbG9hZCwgZGFlbW9uIHJlYWRpbmVzcyBvciBsb2dpbi4KJHNjcmlwdDp3aW5kb3dFdmlkZW5jZT1bQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0W29iamVjdF1dOjpuZXcoKQokc2NyaXB0OmNvbXBsZXRlZE1vZGVzPVtDb2xsZWN0aW9ucy5HZW5lcmljLkxpc3Rbc3RyaW5nXV06Om5ldygpCkFkZC1UeXBlIEAnCnVzaW5nIFN5c3RlbTsKdXNpbmcgU3lzdGVtLkNvbGxlY3Rpb25zLkdlbmVyaWM7CnVzaW5nIFN5c3RlbS5SdW50aW1lLkludGVyb3BTZXJ2aWNlczsKdXNpbmcgU3lzdGVtLlRleHQ7CnB1YmxpYyBzdGF0aWMgY2xhc3MgS0ZBY3R1YWxNYWluMTE3IHsKIHB1YmxpYyBkZWxlZ2F0ZSBib29sIENhbGxiYWNrKEludFB0ciBoLEludFB0ciBwKTsKIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiKV0gc3RhdGljIGV4dGVybiBib29sIEVudW1XaW5kb3dzKENhbGxiYWNrIGMsSW50UHRyIHApOwogW0RsbEltcG9ydCgidXNlcjMyLmRsbCIpXSBzdGF0aWMgZXh0ZXJuIHVpbnQgR2V0V2luZG93VGhyZWFkUHJvY2Vzc0lkKEludFB0ciBoLG91dCB1aW50IHApOwogW0RsbEltcG9ydCgidXNlcjMyLmRsbCIpXSBzdGF0aWMgZXh0ZXJuIGJvb2wgSXNXaW5kb3dWaXNpYmxlKEludFB0ciBoKTsKIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiKV0gc3RhdGljIGV4dGVybiBib29sIElzV2luZG93RW5hYmxlZChJbnRQdHIgaCk7CiBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIixDaGFyU2V0PUNoYXJTZXQuVW5pY29kZSldIHN0YXRpYyBleHRlcm4gaW50IEdldFdpbmRvd1RleHQoSW50UHRyIGgsU3RyaW5nQnVpbGRlciBzLGludCBuKTsKIHB1YmxpYyBzdGF0aWMgbG9uZ1tdIE1haW5XaW5kb3dzKGludCBwcm9jZXNzSWQpIHsKICB2YXIgcm93cz1uZXcgTGlzdDxsb25nPigpOwogIEVudW1XaW5kb3dzKChoLHApPT57dWludCBvd25lcjtHZXRXaW5kb3dUaHJlYWRQcm9jZXNzSWQoaCxvdXQgb3duZXIpOwogICBpZihvd25lcj09KHVpbnQpcHJvY2Vzc0lkICYmIElzV2luZG93VmlzaWJsZShoKSAmJiBJc1dpbmRvd0VuYWJsZWQoaCkpewogICAgdmFyIHRpdGxlPW5ldyBTdHJpbmdCdWlsZGVyKDIwNDgpO0dldFdpbmRvd1RleHQoaCx0aXRsZSx0aXRsZS5DYXBhY2l0eSk7CiAgICBpZih0aXRsZS5Ub1N0cmluZygpPT0iS2xpcHBlciBGYXJtIilyb3dzLkFkZChoLlRvSW50NjQoKSk7CiAgIH1yZXR1cm4gdHJ1ZTt9LEludFB0ci5aZXJvKTtyZXR1cm4gcm93cy5Ub0FycmF5KCk7CiB9Cn0KJ0AKZnVuY3Rpb24gQ29uZmlybS1BY3R1YWxXaW5kb3coJHByb2Nlc3MsW3N0cmluZ10kc3RhZ2UpIHsKICAgICRjYWNoZWRIYW5kbGU9JHByb2Nlc3MuTWFpbldpbmRvd0hhbmRsZS5Ub0ludDY0KCkKICAgICRjYWNoZWRUaXRsZT0kcHJvY2Vzcy5NYWluV2luZG93VGl0bGUKICAgICRwcm9jZXNzLlJlZnJlc2goKQogICAgaWYgKCRwcm9jZXNzLkhhc0V4aXRlZCkgeyB0aHJvdyAnRGVza3RvcCBleGl0ZWQgYmVmb3JlIGl0cyByZWFsIG1haW4gd2luZG93IHdhcyByZWFkeScgfQogICAgJGZyZXNoSGFuZGxlPSRwcm9jZXNzLk1haW5XaW5kb3dIYW5kbGUuVG9JbnQ2NCgpCiAgICAkZnJlc2hUaXRsZT0kcHJvY2Vzcy5NYWluV2luZG93VGl0bGUKICAgICRhY3R1YWw9QChbS0ZBY3R1YWxNYWluMTE3XTo6TWFpbldpbmRvd3MoJHByb2Nlc3MuSWQpKQogICAgJGNvbmZpcm1lZD0kYWN0dWFsLkNvdW50IC1lcSAxIC1hbmQgJGZyZXNoSGFuZGxlIC1uZSAwIC1hbmQgJGFjdHVhbFswXSAtZXEgJGZyZXNoSGFuZGxlIC1hbmQgJGZyZXNoVGl0bGUgLWVxICdLbGlwcGVyIEZhcm0nCiAgICAkc2NyaXB0OndpbmRvd0V2aWRlbmNlLkFkZChbb3JkZXJlZF1Ae21vZGU9JG1vZGU7c3RhZ2U9JHN0YWdlO3BpZD0kcHJvY2Vzcy5JZDt1dGM9W0RhdGVUaW1lXTo6VXRjTm93LlRvU3RyaW5nKCdvJyk7Y2FjaGVkSGFuZGxlPSgnMHgnKyRjYWNoZWRIYW5kbGUuVG9TdHJpbmcoJ3gnKSk7Y2FjaGVkVGl0bGU9JGNhY2hlZFRpdGxlO3JlZnJlc2hlZEhhbmRsZT0oJzB4JyskZnJlc2hIYW5kbGUuVG9TdHJpbmcoJ3gnKSk7cmVmcmVzaGVkVGl0bGU9JGZyZXNoVGl0bGU7YWN0dWFsVmlzaWJsZU1haW5IYW5kbGVzPUAoJGFjdHVhbHxGb3JFYWNoLU9iamVjdHsnMHgnKyRfLlRvU3RyaW5nKCd4Jyl9KTtjb25maXJtZWQ9JGNvbmZpcm1lZH0pCiAgICBpZigkY29uZmlybWVkKXtXcml0ZS1Ib3N0ICgiTUFJTl9XSU5ET1dfQ09ORklSTUVEIG1vZGU9JG1vZGUgc3RhZ2U9JHN0YWdlIHBpZD0kKCRwcm9jZXNzLklkKSBjYWNoZWQ9MHgkKCRjYWNoZWRIYW5kbGUuVG9TdHJpbmcoJ3gnKSkgcmVmcmVzaGVkPTB4JCgkZnJlc2hIYW5kbGUuVG9TdHJpbmcoJ3gnKSkgYWN0dWFsPTB4JCgkYWN0dWFsWzBdLlRvU3RyaW5nKCd4JykpIHRpdGxlPUtsaXBwZXIgRmFybSB2aXNpYmxlPXRydWUgZW5hYmxlZD10cnVlIil9CiAgICByZXR1cm4gJGNvbmZpcm1lZAp9CmZ1bmN0aW9uIENsb3NlLUFjdHVhbE1haW5XaW5kb3coJHByb2Nlc3MpIHsKICAgIGlmICgtbm90IChDb25maXJtLUFjdHVhbFdpbmRvdyAkcHJvY2VzcyAnaW1tZWRpYXRlbHktYmVmb3JlLWNsb3NlJykpIHsgdGhyb3cgJ1JlZnJlc2hlZCBQcm9jZXNzIGhhbmRsZSBkb2VzIG5vdCBpZGVudGlmeSB0aGUgYWN0dWFsIHZpc2libGUgS2xpcHBlciBGYXJtIG1haW4gd2luZG93JyB9CiAgICByZXR1cm4gJHByb2Nlc3MuQ2xvc2VNYWluV2luZG93KCkKfQpmdW5jdGlvbiBTaWRlY2FycyB7IEAoR2V0LVByb2Nlc3MgLU5hbWUga2xpcHBlci1mYXJtZCAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSB8IFdoZXJlLU9iamVjdCB7ICRfLlBhdGggLWVxICRkYWVtb25QYXRoIH0pIH0KZnVuY3Rpb24gV2FpdC1Ob1NpZGVjYXIgewogICAgJGRlYWRsaW5lID0gW0RhdGVUaW1lXTo6VXRjTm93LkFkZFNlY29uZHMoNykKICAgIHdoaWxlICgoU2lkZWNhcnMpLkNvdW50IC1ndCAwIC1hbmQgW0RhdGVUaW1lXTo6VXRjTm93IC1sdCAkZGVhZGxpbmUpIHsgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyA1MCB9CiAgICBpZiAoKFNpZGVjYXJzKS5Db3VudCAtZ3QgMCkgeyB0aHJvdyAnRGVza3RvcC1vd25lZCBkYWVtb24gc3Vydml2ZWQgYXBwbGljYXRpb24gZXhpdCcgfQp9CmZ1bmN0aW9uIFdhaXQtV2luZG93KCRwcm9jZXNzKSB7CiAgICAkZGVhZGxpbmUgPSBbRGF0ZVRpbWVdOjpVdGNOb3cuQWRkU2Vjb25kcygyNSkKICAgIHdoaWxlICgtbm90ICRwcm9jZXNzLkhhc0V4aXRlZCAtYW5kIFtEYXRlVGltZV06OlV0Y05vdyAtbHQgJGRlYWRsaW5lKSB7CiAgICAgICAgaWYgKENvbmZpcm0tQWN0dWFsV2luZG93ICRwcm9jZXNzICd3YWl0LWZvci12aXNpYmxlLW1haW4nKSB7IHJldHVybiB9CiAgICAgICAgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyA1MAogICAgfQogICAgdGhyb3cgJ0Rlc2t0b3AgZGlkIG5vdCBjcmVhdGUgaXRzIGFjdHVhbCB2aXNpYmxlIEtsaXBwZXIgRmFybSBtYWluIHdpbmRvdycKfQpmdW5jdGlvbiBXYWl0LVNpZGVjYXIoJHByb2Nlc3MpIHsKICAgICRkZWFkbGluZSA9IFtEYXRlVGltZV06OlV0Y05vdy5BZGRTZWNvbmRzKDI1KQogICAgd2hpbGUgKC1ub3QgJHByb2Nlc3MuSGFzRXhpdGVkIC1hbmQgKFNpZGVjYXJzKS5Db3VudCAtZXEgMCAtYW5kIFtEYXRlVGltZV06OlV0Y05vdyAtbHQgJGRlYWRsaW5lKSB7IFN0YXJ0LVNsZWVwIC1NaWxsaXNlY29uZHMgNTAgfQogICAgJGNoaWxkcmVuID0gU2lkZWNhcnMKICAgIGlmICgkY2hpbGRyZW4uQ291bnQgLW5lIDEpIHsgdGhyb3cgJ0V4cGVjdGVkIG9uZSBkZXNrdG9wLW93bmVkIGRhZW1vbicgfQogICAgcmV0dXJuICRjaGlsZHJlblswXQp9CnRyeSB7CldhaXQtTm9TaWRlY2FyCmZvcmVhY2ggKCRtb2RlIGluIEAoJ2Nsb3NlLWR1cmluZy1zdGFydHVwJywnbm9ybWFsLWNsb3NlJywnZm9yY2UtZGVza3RvcCcsJ3JlY292ZXJ5LWNsb3NlJykpIHsKICAgICRwcm9jZXNzID0gU3RhcnQtUHJvY2VzcyAkRGVza3RvcCAtUGFzc1RocnUKICAgIHRyeSB7CiAgICAgICAgV2FpdC1XaW5kb3cgJHByb2Nlc3MKICAgICAgICBpZiAoJG1vZGUgLWVxICdjbG9zZS1kdXJpbmctc3RhcnR1cCcpIHsKICAgICAgICAgICAgaWYgKC1ub3QgKENsb3NlLUFjdHVhbE1haW5XaW5kb3cgJHByb2Nlc3MpKSB7IHRocm93ICdTdGFydHVwIHdpbmRvdyByZWplY3RlZCBjbG9zZScgfQogICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICRjaGlsZCA9IFdhaXQtU2lkZWNhciAkcHJvY2VzcwogICAgICAgICAgICAjIExldCBzdGFydHVwIHB1Ymxpc2ggaXRzIGF1dGhlbnRpY2F0ZWQgZW5kcG9pbnQgYmVmb3JlIGV4ZXJjaXNpbmcKICAgICAgICAgICAgIyBub3JtYWwgY2xvc2UvY3Jhc2guIE5vIHByaW50ZXJzIG9yIHByb2R1Y3Rpb24gam9icyBhcmUgdXNlZC4KICAgICAgICAgICAgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyAxMDAwCiAgICAgICAgICAgIGlmICgkbW9kZSAtZXEgJ2ZvcmNlLWRlc2t0b3AnKSB7ICRwcm9jZXNzLktpbGwoKSB9CiAgICAgICAgICAgIGVsc2VpZiAoJG1vZGUgLWVxICdyZWNvdmVyeS1jbG9zZScpIHsKICAgICAgICAgICAgICAgICRjaGlsZC5LaWxsKCk7ICRjaGlsZC5XYWl0Rm9yRXhpdCg1MDAwKSB8IE91dC1OdWxsCiAgICAgICAgICAgICAgICAjIEEgV2ViVmlldyBzbmFwc2hvdCByZXF1ZXN0IG1heSB0cmlnZ2VyIHJlY292ZXJ5IGNvbmN1cnJlbnRseS4KICAgICAgICAgICAgICAgIGlmICgtbm90IChDbG9zZS1BY3R1YWxNYWluV2luZG93ICRwcm9jZXNzKSkgeyB0aHJvdyAnUmVjb3Zlcnkgd2luZG93IHJlamVjdGVkIGNsb3NlJyB9CiAgICAgICAgICAgIH0gZWxzZWlmICgtbm90IChDbG9zZS1BY3R1YWxNYWluV2luZG93ICRwcm9jZXNzKSkgeyB0aHJvdyAnV2luZG93IHJlamVjdGVkIGNsb3NlJyB9CiAgICAgICAgfQogICAgICAgIGlmICgtbm90ICRwcm9jZXNzLldhaXRGb3JFeGl0KDIwMDAwKSkgeyB0aHJvdyAiRGVza3RvcCBleGl0IHRpbWVkIG91dDogJG1vZGUiIH0KICAgICAgICBXYWl0LU5vU2lkZWNhcgogICAgICAgICMgQ2F0Y2ggYSBsYXRlIHN0YXJ0dXAvcmVjb3Zlcnkgd29ya2VyIHNwYXduaW5nIGFmdGVyIHRoZSBmaXJzdCBjaGVjay4KICAgICAgICBTdGFydC1TbGVlcCAtTWlsbGlzZWNvbmRzIDE1MDAKICAgICAgICBXYWl0LU5vU2lkZWNhcgogICAgICAgICJEZXNrdG9wIGxpZmVjeWNsZSBPSzogJG1vZGU7IGRlc2t0b3AgYW5kIG93bmVkIGRhZW1vbiBleGl0ZWQiCiAgICAgICAgJHNjcmlwdDpjb21wbGV0ZWRNb2Rlcy5BZGQoJG1vZGUpCiAgICB9IGZpbmFsbHkgewogICAgICAgIGlmICgtbm90ICRwcm9jZXNzLkhhc0V4aXRlZCkgeyAkcHJvY2Vzcy5LaWxsKCk7ICRwcm9jZXNzLldhaXRGb3JFeGl0KDUwMDApIHwgT3V0LU51bGwgfQogICAgICAgIGZvcmVhY2ggKCRjaGlsZCBpbiAoU2lkZWNhcnMpKSB7ICRjaGlsZC5LaWxsKCk7ICRjaGlsZC5XYWl0Rm9yRXhpdCg1MDAwKSB8IE91dC1OdWxsIH0KICAgIH0KfQoKfSBmaW5hbGx5IHsKICAgIFtJTy5EaXJlY3RvcnldOjpDcmVhdGVEaXJlY3RvcnkoJE91dHB1dERpcmVjdG9yeSkgfCBPdXQtTnVsbAogICAgJHJlcG9ydD1bb3JkZXJlZF1Ae3NjaGVtYVZlcnNpb249MTtvcmlnaW5hbFNjcmlwdFNoYTI1Nj0nNDI2MTA0ZmExNWZhODBjMWM2YzU0ZTQzZDAyMzRiOGM5ZTM2MjY5ZDhkNjhmMmEwOGVhYjAzZTJkZmZkNDExNSc7Y29ycmVjdGlvbj0nUmVmcmVzaCBjYWNoZWQgUHJvY2VzcyBIV05EIGFuZCByZXF1aXJlIHRoZSByZWFsIHZpc2libGUgZW5hYmxlZCBLbGlwcGVyIEZhcm0gbWFpbiB3aW5kb3cnO2V4aXRXYWl0TXM9MjAwMDA7aW5pdGlhbFdpbmRvd1dhaXRNcz0yNTAwMDtzaWRlY2FyV2FpdE1zPTcwMDA7bGF0ZVNpZGVjYXJDaGVja01zPTE1MDA7ZWFybHlDbG9zZVdhaXRzRm9yUGFnZVJlYWR5PSRmYWxzZTtjb21wbGV0ZWRNb2Rlcz0kc2NyaXB0OmNvbXBsZXRlZE1vZGVzLlRvQXJyYXkoKTt3aW5kb3dFdmlkZW5jZT0kc2NyaXB0OndpbmRvd0V2aWRlbmNlLlRvQXJyYXkoKX0KICAgIFtJTy5GaWxlXTo6V3JpdGVBbGxUZXh0KChKb2luLVBhdGggJE91dHB1dERpcmVjdG9yeSAnbWFpbi13aW5kb3ctbGlmZWN5Y2xlLXIxMTcuanNvbicpLCgkcmVwb3J0IHwgQ29udmVydFRvLUpzb24gLURlcHRoIDgpKQp9Cg=='))
+          if ((Get-FileHash candidate/scripts/check-desktop-exit-actual-window-r117.ps1).Hash.ToLowerInvariant() -ne 'c1f1c3bc66abef1d4a298274c99d7882db8fef742b99572f0abef815bd850ac1') { throw 'Corrected window-selection harness differs' }
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/candidate/scripts/check-desktop-exit-actual-window-r117.ps1",[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ('Harness parse failed: ' + (($errors | ForEach-Object Message) -join '; ')) }
+          [IO.File]::WriteAllBytes("$PWD/candidate/scripts/upgrade-actual-window-r117.ps1",[Convert]::FromBase64String('IyBGdW5jdGlvbnMgb25seTogc2FmZSB0byBkb3Qtc291cmNlIGJlZm9yZSB0aGUgZmlyc3QgUjExNiB1cGdyYWRlIGxhdW5jaC4KIyBMaWZlY3ljbGUgY2FzZXMgYXJlIGV4ZWN1dGVkIHNlcGFyYXRlbHkgYnkgdGhlaXIgdW5jaGFuZ2VkIGNvcnJlY3RlZCBoYXJuZXNzLgpBZGQtVHlwZSBAJwp1c2luZyBTeXN0ZW07CnVzaW5nIFN5c3RlbS5Db2xsZWN0aW9ucy5HZW5lcmljOwp1c2luZyBTeXN0ZW0uUnVudGltZS5JbnRlcm9wU2VydmljZXM7CnVzaW5nIFN5c3RlbS5UZXh0OwpwdWJsaWMgc3RhdGljIGNsYXNzIEtGVXBncmFkZUFjdHVhbE1haW4xMTcgewogcHVibGljIGRlbGVnYXRlIGJvb2wgQ2FsbGJhY2soSW50UHRyIGgsSW50UHRyIHApOwogW0RsbEltcG9ydCgidXNlcjMyLmRsbCIpXSBzdGF0aWMgZXh0ZXJuIGJvb2wgRW51bVdpbmRvd3MoQ2FsbGJhY2sgYyxJbnRQdHIgcCk7CiBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIildIHN0YXRpYyBleHRlcm4gdWludCBHZXRXaW5kb3dUaHJlYWRQcm9jZXNzSWQoSW50UHRyIGgsb3V0IHVpbnQgcCk7CiBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIildIHN0YXRpYyBleHRlcm4gYm9vbCBJc1dpbmRvd1Zpc2libGUoSW50UHRyIGgpOwogW0RsbEltcG9ydCgidXNlcjMyLmRsbCIpXSBzdGF0aWMgZXh0ZXJuIGJvb2wgSXNXaW5kb3dFbmFibGVkKEludFB0ciBoKTsKIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiLENoYXJTZXQ9Q2hhclNldC5Vbmljb2RlKV0gc3RhdGljIGV4dGVybiBpbnQgR2V0V2luZG93VGV4dChJbnRQdHIgaCxTdHJpbmdCdWlsZGVyIHMsaW50IG4pOwogcHVibGljIHN0YXRpYyBsb25nW10gTWFpbldpbmRvd3MoaW50IHByb2Nlc3NJZCkgewogIHZhciByb3dzPW5ldyBMaXN0PGxvbmc+KCk7CiAgRW51bVdpbmRvd3MoKGgscCk9Pnt1aW50IG93bmVyO0dldFdpbmRvd1RocmVhZFByb2Nlc3NJZChoLG91dCBvd25lcik7CiAgIGlmKG93bmVyPT0odWludClwcm9jZXNzSWQgJiYgSXNXaW5kb3dWaXNpYmxlKGgpICYmIElzV2luZG93RW5hYmxlZChoKSl7CiAgICB2YXIgdGl0bGU9bmV3IFN0cmluZ0J1aWxkZXIoMjA0OCk7R2V0V2luZG93VGV4dChoLHRpdGxlLHRpdGxlLkNhcGFjaXR5KTsKICAgIGlmKHRpdGxlLlRvU3RyaW5nKCk9PSJLbGlwcGVyIEZhcm0iKXJvd3MuQWRkKGguVG9JbnQ2NCgpKTsKICAgfXJldHVybiB0cnVlO30sSW50UHRyLlplcm8pO3JldHVybiByb3dzLlRvQXJyYXkoKTsKIH0KfQonQAokc2NyaXB0OmlubGluZVdpbmRvd0V2aWRlbmNlPVtDb2xsZWN0aW9ucy5HZW5lcmljLkxpc3Rbb2JqZWN0XV06Om5ldygpCmZ1bmN0aW9uIENvbmZpcm0tVXBncmFkZUFjdHVhbFdpbmRvdyhbRGlhZ25vc3RpY3MuUHJvY2Vzc10kUHJvY2Vzcyxbc3RyaW5nXSRDYXNlLFtzdHJpbmddJFN0YWdlLFtzdHJpbmddJE91dHB1dERpcmVjdG9yeSkgewogICAgJGNhY2hlZEhhbmRsZT0kUHJvY2Vzcy5NYWluV2luZG93SGFuZGxlLlRvSW50NjQoKQogICAgJGNhY2hlZFRpdGxlPSRQcm9jZXNzLk1haW5XaW5kb3dUaXRsZQogICAgJFByb2Nlc3MuUmVmcmVzaCgpCiAgICAkZXhpdGVkPSRQcm9jZXNzLkhhc0V4aXRlZAogICAgJGZyZXNoSGFuZGxlPWlmKCRleGl0ZWQpezBMfWVsc2V7JFByb2Nlc3MuTWFpbldpbmRvd0hhbmRsZS5Ub0ludDY0KCl9CiAgICAkZnJlc2hUaXRsZT1pZigkZXhpdGVkKXsnJ31lbHNleyRQcm9jZXNzLk1haW5XaW5kb3dUaXRsZX0KICAgICRhY3R1YWw9aWYoJGV4aXRlZCl7QCgpfWVsc2V7QChbS0ZVcGdyYWRlQWN0dWFsTWFpbjExN106Ok1haW5XaW5kb3dzKCRQcm9jZXNzLklkKSl9CiAgICAkY29uZmlybWVkPS1ub3QgJGV4aXRlZCAtYW5kICRhY3R1YWwuQ291bnQgLWVxIDEgLWFuZCAkZnJlc2hIYW5kbGUgLW5lIDAgLWFuZCAkYWN0dWFsWzBdIC1lcSAkZnJlc2hIYW5kbGUgLWFuZCAkZnJlc2hUaXRsZSAtZXEgJ0tsaXBwZXIgRmFybScKICAgICRyb3c9W29yZGVyZWRdQHtjYXNlPSRDYXNlO3N0YWdlPSRTdGFnZTtwaWQ9JFByb2Nlc3MuSWQ7dXRjPVtEYXRlVGltZV06OlV0Y05vdy5Ub1N0cmluZygnbycpO2hhc0V4aXRlZD0kZXhpdGVkO2NhY2hlZEhhbmRsZT0oJzB4JyskY2FjaGVkSGFuZGxlLlRvU3RyaW5nKCd4JykpO2NhY2hlZFRpdGxlPSRjYWNoZWRUaXRsZTtyZWZyZXNoZWRIYW5kbGU9KCcweCcrJGZyZXNoSGFuZGxlLlRvU3RyaW5nKCd4JykpO3JlZnJlc2hlZFRpdGxlPSRmcmVzaFRpdGxlO2FjdHVhbFZpc2libGVNYWluSGFuZGxlcz1AKCRhY3R1YWx8Rm9yRWFjaC1PYmplY3R7JzB4JyskXy5Ub1N0cmluZygneCcpfSk7Y29uZmlybWVkPSRjb25maXJtZWR9CiAgICAkc2NyaXB0OmlubGluZVdpbmRvd0V2aWRlbmNlLkFkZCgkcm93KQogICAgW0lPLkRpcmVjdG9yeV06OkNyZWF0ZURpcmVjdG9yeSgkT3V0cHV0RGlyZWN0b3J5KXxPdXQtTnVsbAogICAgW0lPLkZpbGVdOjpXcml0ZUFsbFRleHQoKEpvaW4tUGF0aCAkT3V0cHV0RGlyZWN0b3J5ICd1cGdyYWRlLWlubGluZS13aW5kb3ctcjExNy5qc29uJyksKEB7c2NoZW1hVmVyc2lvbj0xO2V2ZW50cz0kc2NyaXB0OmlubGluZVdpbmRvd0V2aWRlbmNlLlRvQXJyYXkoKX18Q29udmVydFRvLUpzb24gLURlcHRoIDgpKQogICAgaWYoJGNvbmZpcm1lZCl7V3JpdGUtSG9zdCAoIlVQR1JBREVfTUFJTl9XSU5ET1dfQ09ORklSTUVEIGNhc2U9JENhc2Ugc3RhZ2U9JFN0YWdlIHBpZD0kKCRQcm9jZXNzLklkKSBjYWNoZWQ9MHgkKCRjYWNoZWRIYW5kbGUuVG9TdHJpbmcoJ3gnKSkgcmVmcmVzaGVkPTB4JCgkZnJlc2hIYW5kbGUuVG9TdHJpbmcoJ3gnKSkgYWN0dWFsPTB4JCgkYWN0dWFsWzBdLlRvU3RyaW5nKCd4JykpIHRpdGxlPUtsaXBwZXIgRmFybSB2aXNpYmxlPXRydWUgZW5hYmxlZD10cnVlIil9CiAgICByZXR1cm4gJGNvbmZpcm1lZAp9CmZ1bmN0aW9uIFdhaXQtVXBncmFkZUFjdHVhbFdpbmRvdyhbRGlhZ25vc3RpY3MuUHJvY2Vzc10kUHJvY2Vzcyxbc3RyaW5nXSRDYXNlLFtzdHJpbmddJE91dHB1dERpcmVjdG9yeSkgewogICAgJGRlYWRsaW5lPVtEYXRlVGltZV06OlV0Y05vdy5BZGRTZWNvbmRzKDIwKQogICAgd2hpbGUoLW5vdCAkUHJvY2Vzcy5IYXNFeGl0ZWQgLWFuZCBbRGF0ZVRpbWVdOjpVdGNOb3cgLWx0ICRkZWFkbGluZSl7CiAgICAgICAgaWYoQ29uZmlybS1VcGdyYWRlQWN0dWFsV2luZG93ICRQcm9jZXNzICRDYXNlICd3YWl0LWZvci12aXNpYmxlLW1haW4nICRPdXRwdXREaXJlY3Rvcnkpe3JldHVybn0KICAgICAgICBTdGFydC1TbGVlcCAtTWlsbGlzZWNvbmRzIDEwMAogICAgfQogICAgdGhyb3cgIkFjdHVhbCB2aXNpYmxlIEtsaXBwZXIgRmFybSBtYWluIHdpbmRvdyBkaWQgbm90IGFwcGVhciB3aXRoaW4gdGhlIG9yaWdpbmFsIDIwIHNlY29uZCBib3VuZDogJENhc2UiCn0KZnVuY3Rpb24gQ2xvc2UtVXBncmFkZUFjdHVhbFdpbmRvdyhbRGlhZ25vc3RpY3MuUHJvY2Vzc10kUHJvY2Vzcyxbc3RyaW5nXSRDYXNlLFtzdHJpbmddJE91dHB1dERpcmVjdG9yeSkgewogICAgIyBSZWZyZXNoZXMgdGhlIHNhbWUgUHJvY2VzcyBpbW1lZGlhdGVseSBiZWZvcmUgaXRzIHJlYWwgQ2xvc2VNYWluV2luZG93LgogICAgaWYoLW5vdChDb25maXJtLVVwZ3JhZGVBY3R1YWxXaW5kb3cgJFByb2Nlc3MgJENhc2UgJ2ltbWVkaWF0ZWx5LWJlZm9yZS1jbG9zZScgJE91dHB1dERpcmVjdG9yeSkpe3Rocm93ICJBY3R1YWwgdmlzaWJsZSBLbGlwcGVyIEZhcm0gbWFpbiB3aW5kb3cgaXMgbm90IHRoZSByZWZyZXNoZWQgUHJvY2VzcyB0YXJnZXQ6ICRDYXNlIn0KICAgIHJldHVybiAkUHJvY2Vzcy5DbG9zZU1haW5XaW5kb3coKQp9Cg=='))
+          if ((Get-FileHash candidate/scripts/upgrade-actual-window-r117.ps1).Hash.ToLowerInvariant() -ne '34fe9c122199eb4e7aa91b219496e6c818a6a19c41b97583d4b5a5e2276ade5d') { throw 'Inline upgrade window helper differs' }
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/candidate/scripts/upgrade-actual-window-r117.ps1",[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ('Inline helper parse failed: ' + (($errors | ForEach-Object Message) -join '; ')) }
+          [IO.File]::WriteAllBytes("$PWD/candidate/scripts/check-minimized-telemetry-r118.ps1",[Convert]::FromBase64String('W0NtZGxldEJpbmRpbmcoKV0KcGFyYW0oCiAgICBbUGFyYW1ldGVyKE1hbmRhdG9yeSA9ICR0cnVlKV1bc3RyaW5nXSREZXNrdG9wRXhlLAogICAgW1BhcmFtZXRlcihNYW5kYXRvcnkgPSAkdHJ1ZSldW3N0cmluZ10kUHJvYmVFeGUsCiAgICBbUGFyYW1ldGVyKE1hbmRhdG9yeSA9ICR0cnVlKV1bc3RyaW5nXSRFbXVsYXRvclNjcmlwdCwKICAgIFtQYXJhbWV0ZXIoTWFuZGF0b3J5ID0gJHRydWUpXVtzdHJpbmddJE91dHB1dERpcmVjdG9yeQopCiRFcnJvckFjdGlvblByZWZlcmVuY2UgPSAnU3RvcCcKaWYgKC1ub3QgJElzV2luZG93cykgeyB0aHJvdyAnVGhlIGluc3RhbGxlZCBtaW5pbWl6ZS9yZXN0b3JlIHByb29mIHJlcXVpcmVzIFdpbmRvd3MuJyB9CiRkZXNrdG9wUGF0aCA9IChSZXNvbHZlLVBhdGggLUxpdGVyYWxQYXRoICREZXNrdG9wRXhlKS5QYXRoCiRwcm9iZVBhdGggPSAoUmVzb2x2ZS1QYXRoIC1MaXRlcmFsUGF0aCAkUHJvYmVFeGUpLlBhdGgKJGVtdWxhdG9yUGF0aCA9IChSZXNvbHZlLVBhdGggLUxpdGVyYWxQYXRoICRFbXVsYXRvclNjcmlwdCkuUGF0aAokbm9kZVBhdGggPSAoR2V0LUNvbW1hbmQgbm9kZSAtQ29tbWFuZFR5cGUgQXBwbGljYXRpb24gfCBTZWxlY3QtT2JqZWN0IC1GaXJzdCAxKS5Tb3VyY2UKaWYgKC1ub3QgJG5vZGVQYXRoIC1vciAtbm90IChUZXN0LVBhdGggLUxpdGVyYWxQYXRoICRub2RlUGF0aCAtUGF0aFR5cGUgTGVhZikpIHsgdGhyb3cgJ0EgcmVhbCBOb2RlLmpzIGFwcGxpY2F0aW9uIGV4ZWN1dGFibGUgaXMgcmVxdWlyZWQuJyB9CmlmIChbSU8uUGF0aF06OkdldEZpbGVOYW1lKCRkZXNrdG9wUGF0aCkgLWluZSAna2xpcHBlci1mYXJtLWNsaWVudC5leGUnKSB7IHRocm93ICdUaGUgcHJvb2YgbXVzdCBsYXVuY2ggdGhlIGluc3RhbGxlZCBkZXNrdG9wLicgfQppZiAoVGVzdC1QYXRoIC1MaXRlcmFsUGF0aCAkT3V0cHV0RGlyZWN0b3J5KSB7IHRocm93ICdUaGUgcHJvb2YgcmVxdWlyZXMgYSBmcmVzaCBpc29sYXRlZCBkaXJlY3RvcnkuJyB9CltJTy5EaXJlY3RvcnldOjpDcmVhdGVEaXJlY3RvcnkoJE91dHB1dERpcmVjdG9yeSkgfCBPdXQtTnVsbAokcHJvb2ZSb290ID0gKFJlc29sdmUtUGF0aCAtTGl0ZXJhbFBhdGggJE91dHB1dERpcmVjdG9yeSkuUGF0aAokZGF0YURpciA9IEpvaW4tUGF0aCAoW0Vudmlyb25tZW50XTo6R2V0Rm9sZGVyUGF0aChbRW52aXJvbm1lbnQrU3BlY2lhbEZvbGRlcl06OkFwcGxpY2F0aW9uRGF0YSkpICdhcHAua2xpcHBlci5mYXJtJwokZW5kcG9pbnRQYXRoID0gSm9pbi1QYXRoICRkYXRhRGlyICdrbGlwcGVyLWZhcm1kLmVuZHBvaW50Lmpzb24nCiRwcmludGVySWQgPSAncjExOC1taW5pbWl6ZWQtc3ludGhldGljLXByaW50ZXInCiRzdGFibGVJZCA9ICdydW50aW1lLXIxMTgtbWluaW1pemUnCiRwb3J0ID0gMTg3MjUKJHNjcmlwdDpldmVudHMgPSBbQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0W29iamVjdF1dOjpuZXcoKQokZGVza3RvcCA9ICRudWxsCiRlbXVsYXRvciA9ICRudWxsCiRvd25lZERhZW1vbklkID0gJG51bGwKJGFjdG9yQWRkZWQgPSAkZmFsc2UKJHBhc3NlZCA9ICRmYWxzZQpBZGQtVHlwZSBAJwp1c2luZyBTeXN0ZW07CnVzaW5nIFN5c3RlbS5Db2xsZWN0aW9ucy5HZW5lcmljOwp1c2luZyBTeXN0ZW0uUnVudGltZS5JbnRlcm9wU2VydmljZXM7CnVzaW5nIFN5c3RlbS5UZXh0OwpwdWJsaWMgc3RhdGljIGNsYXNzIEtGTWluaW1pemVkUjExOCB7CiAgICBwdWJsaWMgZGVsZWdhdGUgYm9vbCBFbnVtUHJvYyhJbnRQdHIgd2luZG93LCBJbnRQdHIgcGFyYW1ldGVyKTsKICAgIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiKV0gc3RhdGljIGV4dGVybiBib29sIEVudW1XaW5kb3dzKEVudW1Qcm9jIGNhbGxiYWNrLCBJbnRQdHIgcGFyYW1ldGVyKTsKICAgIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiKV0gcHVibGljIHN0YXRpYyBleHRlcm4gYm9vbCBJc1dpbmRvd1Zpc2libGUoSW50UHRyIHdpbmRvdyk7CiAgICBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIildIHB1YmxpYyBzdGF0aWMgZXh0ZXJuIGJvb2wgSXNJY29uaWMoSW50UHRyIHdpbmRvdyk7CiAgICBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIildIHB1YmxpYyBzdGF0aWMgZXh0ZXJuIGJvb2wgU2hvd1dpbmRvdyhJbnRQdHIgd2luZG93LCBpbnQgY29tbWFuZCk7CiAgICBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIildIHB1YmxpYyBzdGF0aWMgZXh0ZXJuIGJvb2wgUG9zdE1lc3NhZ2UoSW50UHRyIHdpbmRvdywgdWludCBtZXNzYWdlLCBJbnRQdHIgd1BhcmFtLCBJbnRQdHIgbFBhcmFtKTsKICAgIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiKV0gc3RhdGljIGV4dGVybiB1aW50IEdldFdpbmRvd1RocmVhZFByb2Nlc3NJZChJbnRQdHIgd2luZG93LCBvdXQgdWludCBwaWQpOwogICAgW0RsbEltcG9ydCgidXNlcjMyLmRsbCIsIENoYXJTZXQgPSBDaGFyU2V0LlVuaWNvZGUpXSBzdGF0aWMgZXh0ZXJuIGludCBHZXRXaW5kb3dUZXh0KEludFB0ciB3aW5kb3csIFN0cmluZ0J1aWxkZXIgdGV4dCwgaW50IGNvdW50KTsKICAgIHB1YmxpYyBzdGF0aWMgbG9uZ1tdIE1haW5XaW5kb3dzKGludCBwaWQpIHsKICAgICAgICB2YXIgd2luZG93cyA9IG5ldyBMaXN0PGxvbmc+KCk7CiAgICAgICAgRW51bVdpbmRvd3MoKHdpbmRvdywgcGFyYW1ldGVyKSA9PiB7CiAgICAgICAgICAgIHVpbnQgb3duZXI7IEdldFdpbmRvd1RocmVhZFByb2Nlc3NJZCh3aW5kb3csIG91dCBvd25lcik7CiAgICAgICAgICAgIGlmIChvd25lciA9PSAodWludClwaWQgJiYgSXNXaW5kb3dWaXNpYmxlKHdpbmRvdykpIHsKICAgICAgICAgICAgICAgIHZhciB0aXRsZSA9IG5ldyBTdHJpbmdCdWlsZGVyKDEwMjQpOyBHZXRXaW5kb3dUZXh0KHdpbmRvdywgdGl0bGUsIHRpdGxlLkNhcGFjaXR5KTsKICAgICAgICAgICAgICAgIGlmICh0aXRsZS5Ub1N0cmluZygpID09ICJLbGlwcGVyIEZhcm0iKSB3aW5kb3dzLkFkZCh3aW5kb3cuVG9JbnQ2NCgpKTsKICAgICAgICAgICAgfQogICAgICAgICAgICByZXR1cm4gdHJ1ZTsKICAgICAgICB9LCBJbnRQdHIuWmVybyk7CiAgICAgICAgcmV0dXJuIHdpbmRvd3MuVG9BcnJheSgpOwogICAgfQp9CidACmZ1bmN0aW9uIFdhaXQtUHJvb2YoW3NjcmlwdGJsb2NrXSRUZXN0LCBbc3RyaW5nXSREZXNjcmlwdGlvbiwgW2ludF0kVGltZW91dFNlY29uZHMgPSAzNSkgewogICAgJGRlYWRsaW5lID0gW0RhdGVUaW1lXTo6VXRjTm93LkFkZFNlY29uZHMoJFRpbWVvdXRTZWNvbmRzKQogICAgJGxhc3RFcnJvciA9ICcnCiAgICB3aGlsZSAoW0RhdGVUaW1lXTo6VXRjTm93IC1sdCAkZGVhZGxpbmUpIHsKICAgICAgICBpZiAoJG51bGwgLW5lICRkZXNrdG9wIC1hbmQgJGRlc2t0b3AuSGFzRXhpdGVkKSB7IHRocm93ICJPd25lZCBkZXNrdG9wIGV4aXRlZCBkdXJpbmcgJERlc2NyaXB0aW9uIiB9CiAgICAgICAgdHJ5IHsgJHZhbHVlID0gJiAkVGVzdDsgaWYgKCR2YWx1ZSkgeyByZXR1cm4gJHZhbHVlIH0gfSBjYXRjaCB7ICRsYXN0RXJyb3IgPSAkXy5FeGNlcHRpb24uTWVzc2FnZSB9CiAgICAgICAgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyAyMDAKICAgIH0KICAgIHRocm93ICJUaW1lZCBvdXQ6ICREZXNjcmlwdGlvbjsgbGFzdCBlcnJvcjogJGxhc3RFcnJvciIKfQpmdW5jdGlvbiBJbnZva2UtS2ZJcGMoW3N0cmluZ10kQ29tbWFuZCwgJFBheWxvYWQgPSAkbnVsbCkgewogICAgJHJlcXVlc3RJZCA9IFtndWlkXTo6TmV3R3VpZCgpLlRvU3RyaW5nKCdOJykKICAgICRzdGFydCA9IFtEaWFnbm9zdGljcy5Qcm9jZXNzU3RhcnRJbmZvXTo6bmV3KCRwcm9iZVBhdGgpCiAgICAkc3RhcnQuVXNlU2hlbGxFeGVjdXRlID0gJGZhbHNlCiAgICAkc3RhcnQuQ3JlYXRlTm9XaW5kb3cgPSAkdHJ1ZQogICAgJHN0YXJ0LlJlZGlyZWN0U3RhbmRhcmRJbnB1dCA9ICR0cnVlCiAgICAkc3RhcnQuUmVkaXJlY3RTdGFuZGFyZE91dHB1dCA9ICR0cnVlCiAgICAkc3RhcnQuUmVkaXJlY3RTdGFuZGFyZEVycm9yID0gJHRydWUKICAgICRzdGFydC5Bcmd1bWVudExpc3QuQWRkKCctLWRhdGEtZGlyJyk7ICRzdGFydC5Bcmd1bWVudExpc3QuQWRkKCRkYXRhRGlyKQogICAgJHByb2Nlc3MgPSBbRGlhZ25vc3RpY3MuUHJvY2Vzc106OlN0YXJ0KCRzdGFydCkKICAgIHRyeSB7CiAgICAgICAgJHN0ZG91dCA9ICRwcm9jZXNzLlN0YW5kYXJkT3V0cHV0LlJlYWRUb0VuZEFzeW5jKCkKICAgICAgICAkc3RkZXJyID0gJHByb2Nlc3MuU3RhbmRhcmRFcnJvci5SZWFkVG9FbmRBc3luYygpCiAgICAgICAgJHByb2Nlc3MuU3RhbmRhcmRJbnB1dC5Xcml0ZSgoQHtyZXF1ZXN0SWQ9JHJlcXVlc3RJZDtjb21tYW5kPSRDb21tYW5kO3BheWxvYWQ9JFBheWxvYWR9IHwgQ29udmVydFRvLUpzb24gLURlcHRoIDEyIC1Db21wcmVzcykpCiAgICAgICAgJHByb2Nlc3MuU3RhbmRhcmRJbnB1dC5DbG9zZSgpCiAgICAgICAgaWYgKC1ub3QgJHByb2Nlc3MuV2FpdEZvckV4aXQoMTIwMDApKSB7ICRwcm9jZXNzLktpbGwoKTsgdGhyb3cgIklQQyBwcm9iZSB0aW1lb3V0OiAkQ29tbWFuZCIgfQogICAgICAgIGlmICgkcHJvY2Vzcy5FeGl0Q29kZSAtbmUgMCkgeyB0aHJvdyAiSVBDIHByb2JlIGZhaWxlZDogJENvbW1hbmQ7ICQoJHN0ZGVyci5SZXN1bHQpIiB9CiAgICAgICAgJHJlc3BvbnNlID0gJHN0ZG91dC5SZXN1bHQgfCBDb252ZXJ0RnJvbS1Kc29uCiAgICAgICAgaWYgKCRyZXNwb25zZS5yZXF1ZXN0SWQgLW5lICRyZXF1ZXN0SWQgLW9yIC1ub3QgJHJlc3BvbnNlLm9rKSB7IHRocm93ICJJUEMgcmVzcG9uc2UgZmFpbGVkOiAkQ29tbWFuZDsgJCgkcmVzcG9uc2UuZXJyb3IpIiB9CiAgICAgICAgcmV0dXJuICRyZXNwb25zZS5kYXRhCiAgICB9IGZpbmFsbHkgeyAkcHJvY2Vzcy5EaXNwb3NlKCkgfQp9CmZ1bmN0aW9uIFJlYWQtUHJvb2ZBY3RvciB7CiAgICByZXR1cm4gQChJbnZva2UtS2ZJcGMgJ2FjdG9yX2xpc3QnIHwgV2hlcmUtT2JqZWN0IHsgJF8ucHJpbnRlcklkIC1lcSAkcHJpbnRlcklkIH0pIHwgU2VsZWN0LU9iamVjdCAtRmlyc3QgMQp9CmZ1bmN0aW9uIFN0YXJ0LVByb29mRW11bGF0b3IgewogICAgJHN0YXJ0ID0gW0RpYWdub3N0aWNzLlByb2Nlc3NTdGFydEluZm9dOjpuZXcoJG5vZGVQYXRoKQogICAgJHN0YXJ0LlVzZVNoZWxsRXhlY3V0ZSA9ICRmYWxzZTsgJHN0YXJ0LkNyZWF0ZU5vV2luZG93ID0gJHRydWUKICAgIGZvcmVhY2ggKCR2YWx1ZSBpbiBAKCRlbXVsYXRvclBhdGgsJy0taG9zdCcsJzEyNy4wLjAuMScsJy0tcG9ydCcsIiRwb3J0IiwnLS1tb2RlbCcsJ2sxYycsJy0tbW9kZScsJ25vcm1hbCxuZXh1c3Asa2VlcC1hbGl2ZScpKSB7ICRzdGFydC5Bcmd1bWVudExpc3QuQWRkKCR2YWx1ZSkgfQogICAgcmV0dXJuIFtEaWFnbm9zdGljcy5Qcm9jZXNzXTo6U3RhcnQoJHN0YXJ0KQp9CmZ1bmN0aW9uIFJlY29yZC1Qcm9vZihbc3RyaW5nXSRTdGFnZSwgJEFjdG9yKSB7CiAgICAkc2NyaXB0OmV2ZW50cy5BZGQoW29yZGVyZWRdQHtzdGFnZT0kU3RhZ2U7dXRjPVtEYXRlVGltZV06OlV0Y05vdy5Ub1N0cmluZygnbycpO2Nvbm5lY3RlZD0kQWN0b3IuY29ubmVjdGVkO2xhc3RTZWVuQXQ9JEFjdG9yLmxhc3RTZWVuQXQ7c2Vzc2lvbkVwb2NoPSRBY3Rvci5zZXNzaW9uRXBvY2g7dGVtcGVyYXR1cmU9JEFjdG9yLmNhY2hlZFN0YXR1cy5leHRydWRlci50ZW1wZXJhdHVyZX0pCn0KdHJ5IHsKICAgICRlbXVsYXRvciA9IFN0YXJ0LVByb29mRW11bGF0b3IKICAgIFdhaXQtUHJvb2YgeyAoSW52b2tlLVJlc3RNZXRob2QgImh0dHA6Ly8xMjcuMC4wLjE6JHBvcnQvc2VydmVyL2luZm8iIC1UaW1lb3V0U2VjIDIpLnJlc3VsdCB9ICdzeW50aGV0aWMgcHJpbnRlciBzdGFydHVwJyB8IE91dC1OdWxsCiAgICAkc3RhcnQgPSBbRGlhZ25vc3RpY3MuUHJvY2Vzc1N0YXJ0SW5mb106Om5ldygkZGVza3RvcFBhdGgpCiAgICAkc3RhcnQuVXNlU2hlbGxFeGVjdXRlID0gJGZhbHNlCiAgICAkc3RhcnQuV29ya2luZ0RpcmVjdG9yeSA9IFtJTy5QYXRoXTo6R2V0RGlyZWN0b3J5TmFtZSgkZGVza3RvcFBhdGgpCiAgICAjIFRhdXJpIHJlc29sdmVzIGFwcGxpY2F0aW9uIGRhdGEgdGhyb3VnaCB0aGUgV2luZG93cyBLbm93bkZvbGRlciBBUEkuCiAgICAjIFRoaXMgcHJvb2YgdXNlcyB0aGUgaXNvbGF0ZWQgQ0kgcnVubmVyIHByb2ZpbGUgYW5kIGlzb2xhdGVzIG9ubHkgdGVtcC4KICAgIGZvcmVhY2ggKCRlbnRyeSBpbiBAe1RFTVA9J1RlbXAnO1RNUD0nVGVtcCd9LkdldEVudW1lcmF0b3IoKSkgewogICAgICAgICRkaXJlY3RvcnkgPSBKb2luLVBhdGggJHByb29mUm9vdCAkZW50cnkuVmFsdWUKICAgICAgICBbSU8uRGlyZWN0b3J5XTo6Q3JlYXRlRGlyZWN0b3J5KCRkaXJlY3RvcnkpIHwgT3V0LU51bGwKICAgICAgICAkc3RhcnQuRW52aXJvbm1lbnRbJGVudHJ5LktleV0gPSAkZGlyZWN0b3J5CiAgICB9CiAgICAkZGVza3RvcCA9IFtEaWFnbm9zdGljcy5Qcm9jZXNzXTo6U3RhcnQoJHN0YXJ0KQogICAgJHdpbmRvdyA9IFdhaXQtUHJvb2YgeyAkd2luZG93cz1AKFtLRk1pbmltaXplZFIxMThdOjpNYWluV2luZG93cygkZGVza3RvcC5JZCkpOyBpZiAoJHdpbmRvd3MuQ291bnQgLWVxIDEpIHsgW0ludFB0cl06Om5ldygkd2luZG93c1swXSkgfSB9ICdhY3R1YWwgaW5zdGFsbGVkIG1haW4gd2luZG93JyA0MAogICAgJGhlYWx0aCA9IFdhaXQtUHJvb2YgeyBpZiAoVGVzdC1QYXRoICRlbmRwb2ludFBhdGgpIHsgSW52b2tlLUtmSXBjICdoZWFsdGgnIH0gfSAnZGVza3RvcC1vd25lZCBkYWVtb24gc3RhcnR1cCcgNDAKICAgICRlbmRwb2ludCA9IEdldC1Db250ZW50ICRlbmRwb2ludFBhdGggLVJhdyB8IENvbnZlcnRGcm9tLUpzb24KICAgIGlmICgkZW5kcG9pbnQucGlkIC1sZSAwIC1vciAkZW5kcG9pbnQucGlkIC1uZSAkaGVhbHRoLnBpZCkgeyB0aHJvdyAnRW5kcG9pbnQgcGlkIGRvZXMgbm90IGlkZW50aWZ5IHRoZSBhdXRoZW50aWNhdGVkIGRhZW1vbiBoZWFsdGggcmVzcG9uZGVyLicgfQogICAgJG93bmVkRGFlbW9uSWQgPSBbaW50XSRlbmRwb2ludC5waWQKICAgICMgVGhlIGNvcmUgcGVybWl0cyBmYWxsYmFjayBkZWZhdWx0cyA4MC83MTI1OyB0aGUgZXhwbGljaXQgbG9jYWwgdGVzdCBwb3J0CiAgICAjIGJlbG9uZ3MgaW4gaG9zdCBhbmQgaXMgcHJlc2VydmVkIGJ5IHBhcnNlX3RhcmdldC9jb25uZWN0X3dlYnNvY2tldC4KICAgICRjb2xsaXNpb24gPSBAKEludm9rZS1LZklwYyAnYWN0b3JfbGlzdCcgfCBXaGVyZS1PYmplY3QgeyAkXy5zdGFibGVJZCAtZXEgJHN0YWJsZUlkIC1vciAkXy5wcmludGVySWQgLWVxICRwcmludGVySWQgfSkKICAgIGlmICgkY29sbGlzaW9uLkNvdW50IC1ndCAwKSB7IHRocm93ICdUaGUgZGVkaWNhdGVkIHN5bnRoZXRpYyBwcmludGVyIGlkZW50aXR5IGFscmVhZHkgZXhpc3RzOyByZWZ1c2luZyB0byBhbHRlciBpdC4nIH0KICAgICRjb25maWcgPSBAe3N0YWJsZUlkPSRzdGFibGVJZDtwcmludGVySWQ9JHByaW50ZXJJZDttb2RlbElkPSdjcmVhbGl0eS1rMWMtMjAyNSc7aG9zdD0iMTI3LjAuMC4xOiRwb3J0IjtkZWZhdWx0UG9ydD03MTI1O2Zpcm13YXJlU2lnbmF0dXJlPSRudWxsO2NhcGFiaWxpdGllc0hpbnQ9JG51bGx9CiAgICBJbnZva2UtS2ZJcGMgJ2FjdG9yX3Vwc2VydCcgQHtjb25maWc9JGNvbmZpZzthcGlLZXk9JG51bGx9IHwgT3V0LU51bGwKICAgICRhY3RvckFkZGVkID0gJHRydWUKICAgICRiZWZvcmUgPSBXYWl0LVByb29mIHsgJGFjdG9yPVJlYWQtUHJvb2ZBY3RvcjsgaWYgKCRhY3Rvci5jb25uZWN0ZWQgLWFuZCAkYWN0b3IubGFzdFNlZW5BdCAtZ3QgMCAtYW5kICRhY3Rvci5jYWNoZWRTdGF0dXMuZXh0cnVkZXIudGVtcGVyYXR1cmUpIHsgJGFjdG9yIH0gfSAnaW5pdGlhbCBkZXNrdG9wLW93bmVkIHRlbGVtZXRyeScKICAgIFJlY29yZC1Qcm9vZiAndmlzaWJsZS1iZWZvcmUtbWluaW1pemUnICRiZWZvcmUKICAgIFtLRk1pbmltaXplZFIxMThdOjpTaG93V2luZG93KCR3aW5kb3csNikgfCBPdXQtTnVsbAogICAgV2FpdC1Qcm9vZiB7IFtLRk1pbmltaXplZFIxMThdOjpJc0ljb25pYygkd2luZG93KSB9ICdhY3R1YWwgd2luZG93IG1pbmltaXplJyA1IHwgT3V0LU51bGwKICAgICRtaW5pbWl6ZWRTdGFydCA9IFtEYXRlVGltZV06OlV0Y05vdwogICAgJGxhc3RTZWVuID0gJGJlZm9yZS5sYXN0U2VlbkF0CiAgICAkc2FtcGxlcyA9IDAKICAgIHdoaWxlICgoW0RhdGVUaW1lXTo6VXRjTm93IC0gJG1pbmltaXplZFN0YXJ0KS5Ub3RhbFNlY29uZHMgLWx0IDMwKSB7CiAgICAgICAgJGZyZXNoID0gV2FpdC1Qcm9vZiB7ICRhY3Rvcj1SZWFkLVByb29mQWN0b3I7IGlmICgkYWN0b3IuY29ubmVjdGVkIC1hbmQgJGFjdG9yLmxhc3RTZWVuQXQgLWd0ICRsYXN0U2VlbikgeyAkYWN0b3IgfSB9ICdmcmVzaCB0ZWxlbWV0cnkgd2hpbGUgbWluaW1pemVkJyAxMgogICAgICAgIGlmICgtbm90IFtLRk1pbmltaXplZFIxMThdOjpJc0ljb25pYygkd2luZG93KSkgeyB0aHJvdyAnVGhlIHdpbmRvdyBsZWZ0IG1pbmltaXplZCBzdGF0ZSBkdXJpbmcgdGhlIGJhY2tncm91bmQgcHJvb2YuJyB9CiAgICAgICAgUmVjb3JkLVByb29mICdtaW5pbWl6ZWQtZnJlc2gtc2FtcGxlJyAkZnJlc2gKICAgICAgICAkbGFzdFNlZW4gPSAkZnJlc2gubGFzdFNlZW5BdAogICAgICAgICRzYW1wbGVzKysKICAgICAgICBTdGFydC1TbGVlcCAtU2Vjb25kcyAyCiAgICB9CiAgICBpZiAoJHNhbXBsZXMgLWx0IDMpIHsgdGhyb3cgJ0luc3VmZmljaWVudCBpbmRlcGVuZGVudCBtaW5pbWl6ZWQgdGVsZW1ldHJ5IHNhbXBsZXMuJyB9CiAgICAkZW11bGF0b3IuS2lsbCgpOyAkZW11bGF0b3IuV2FpdEZvckV4aXQoNTAwMCkgfCBPdXQtTnVsbAogICAgJGxvc3QgPSBXYWl0LVByb29mIHsgJGFjdG9yPVJlYWQtUHJvb2ZBY3RvcjsgaWYgKCRudWxsIC1uZSAkYWN0b3IgLWFuZCAtbm90ICRhY3Rvci5jb25uZWN0ZWQpIHsgJGFjdG9yIH0gfSAnZGlzY29ubmVjdCBkZXRlY3RlZCB3aGlsZSBtaW5pbWl6ZWQnIDM1CiAgICBSZWNvcmQtUHJvb2YgJ21pbmltaXplZC1kaXNjb25uZWN0ZWQnICRsb3N0CiAgICAkZW11bGF0b3IgPSBTdGFydC1Qcm9vZkVtdWxhdG9yCiAgICAkcmVjb3ZlcmVkID0gV2FpdC1Qcm9vZiB7ICRhY3Rvcj1SZWFkLVByb29mQWN0b3I7IGlmICgkYWN0b3IuY29ubmVjdGVkIC1hbmQgJGFjdG9yLmxhc3RTZWVuQXQgLWd0ICRsYXN0U2VlbikgeyAkYWN0b3IgfSB9ICdyZWNvbm5lY3Qgd2l0aCBmcmVzaCB0ZWxlbWV0cnkgd2hpbGUgbWluaW1pemVkJyA0MAogICAgUmVjb3JkLVByb29mICdtaW5pbWl6ZWQtcmVjb25uZWN0ZWQnICRyZWNvdmVyZWQKICAgIGlmICgtbm90IFtLRk1pbmltaXplZFIxMThdOjpJc0ljb25pYygkd2luZG93KSkgeyB0aHJvdyAnUmVjb25uZWN0IHByb29mIGRpZCBub3Qgb2NjdXIgd2l0aCB0aGUgYWN0dWFsIHdpbmRvdyBtaW5pbWl6ZWQuJyB9CiAgICBbS0ZNaW5pbWl6ZWRSMTE4XTo6U2hvd1dpbmRvdygkd2luZG93LDkpIHwgT3V0LU51bGwKICAgIFdhaXQtUHJvb2YgeyBbS0ZNaW5pbWl6ZWRSMTE4XTo6SXNXaW5kb3dWaXNpYmxlKCR3aW5kb3cpIC1hbmQgLW5vdCBbS0ZNaW5pbWl6ZWRSMTE4XTo6SXNJY29uaWMoJHdpbmRvdykgfSAnYWN0dWFsIHdpbmRvdyByZXN0b3JlJyA1IHwgT3V0LU51bGwKICAgICRyZXN0b3JlZCA9IFdhaXQtUHJvb2YgeyAkYWN0b3I9UmVhZC1Qcm9vZkFjdG9yOyBpZiAoJGFjdG9yLmNvbm5lY3RlZCAtYW5kICRhY3Rvci5sYXN0U2VlbkF0IC1ndCAkcmVjb3ZlcmVkLmxhc3RTZWVuQXQpIHsgJGFjdG9yIH0gfSAnZnJlc2ggdGVsZW1ldHJ5IGFmdGVyIHJlc3RvcmUnIDEyCiAgICBSZWNvcmQtUHJvb2YgJ3Jlc3RvcmVkLWZyZXNoLXNhbXBsZScgJHJlc3RvcmVkCiAgICAkcGFzc2VkID0gJHRydWUKICAgIFdyaXRlLUhvc3QgJ0luc3RhbGxlZCBSMTE4IG1pbmltaXplIHByb29mIHBhc3NlZDogMzAgc2Vjb25kcyBvZiBmcmVzaCB0ZWxlbWV0cnksIGRpc2Nvbm5lY3QsIHJlY29ubmVjdCwgYW5kIHJlc3RvcmUgd2l0aCBzeW50aGV0aWMgbG9jYWxob3N0IHByaW50ZXIuJwp9IGZpbmFsbHkgewogICAgJGNsZWFudXBGYWlsdXJlID0gJG51bGwKICAgICRhY3RvclJlbW92ZWQgPSAkZmFsc2UKICAgIGlmICgkYWN0b3JBZGRlZCkgewogICAgICAgIHRyeSB7CiAgICAgICAgICAgICRjbGVhbnVwSGVhbHRoID0gSW52b2tlLUtmSXBjICdoZWFsdGgnCiAgICAgICAgICAgIGlmICgkY2xlYW51cEhlYWx0aC5waWQgLW5lICRvd25lZERhZW1vbklkKSB7IHRocm93ICdUaGUgYXV0aGVudGljYXRlZCBlbmRwb2ludCBjaGFuZ2VkIG93bmVycyBiZWZvcmUgc3ludGhldGljIGFjdG9yIGNsZWFudXAuJyB9CiAgICAgICAgICAgICRyZW1vdmVkID0gSW52b2tlLUtmSXBjICdhY3Rvcl9yZW1vdmUnIEB7c3RhYmxlSWQ9JHN0YWJsZUlkfQogICAgICAgICAgICBpZiAoLW5vdCAkcmVtb3ZlZC5yZW1vdmVkKSB7IHRocm93ICdUaGUgZGVkaWNhdGVkIHN5bnRoZXRpYyBhY3RvciB3YXMgbm90IHJlbW92ZWQuJyB9CiAgICAgICAgICAgICRhY3RvclJlbW92ZWQgPSAkdHJ1ZQogICAgICAgIH0gY2F0Y2ggeyAkY2xlYW51cEZhaWx1cmUgPSAkXy5FeGNlcHRpb24uTWVzc2FnZSB9CiAgICB9CiAgICAkcmVwb3J0ID0gW29yZGVyZWRdQHtzY2hlbWFWZXJzaW9uPTE7cGFzc2VkPSgkcGFzc2VkIC1hbmQgLW5vdCAkY2xlYW51cEZhaWx1cmUpO3N5bnRoZXRpY0FjdG9yUmVtb3ZlZD0kYWN0b3JSZW1vdmVkO2NsZWFudXBFcnJvcj0kY2xlYW51cEZhaWx1cmU7ZGVza3RvcFBpZD1pZigkZGVza3RvcCl7JGRlc2t0b3AuSWR9ZWxzZXskbnVsbH07ZGVza3RvcFBhdGg9JGRlc2t0b3BQYXRoO3N5bnRoZXRpY0hvc3Q9IjEyNy4wLjAuMTokcG9ydCI7bWluaW1pemVkTWluaW11bVNlY29uZHM9MzA7ZXZlbnRzPSRzY3JpcHQ6ZXZlbnRzLlRvQXJyYXkoKX0KICAgIFtJTy5GaWxlXTo6V3JpdGVBbGxUZXh0KChKb2luLVBhdGggJHByb29mUm9vdCAnbWluaW1pemVkLXRlbGVtZXRyeS1yMTE4Lmpzb24nKSwoJHJlcG9ydCB8IENvbnZlcnRUby1Kc29uIC1EZXB0aCA4KSkKICAgIGlmICgkbnVsbCAtbmUgJGRlc2t0b3AgLWFuZCAtbm90ICRkZXNrdG9wLkhhc0V4aXRlZCkgewogICAgICAgICRhY3R1YWw9QChbS0ZNaW5pbWl6ZWRSMTE4XTo6TWFpbldpbmRvd3MoJGRlc2t0b3AuSWQpKQogICAgICAgIGlmICgkYWN0dWFsLkNvdW50IC1lcSAxKSB7IFtLRk1pbmltaXplZFIxMThdOjpQb3N0TWVzc2FnZShbSW50UHRyXTo6bmV3KCRhY3R1YWxbMF0pLDB4MDAxMCxbSW50UHRyXTo6WmVybyxbSW50UHRyXTo6WmVybykgfCBPdXQtTnVsbCB9CiAgICAgICAgaWYgKC1ub3QgJGRlc2t0b3AuV2FpdEZvckV4aXQoMjAwMDApKSB7ICRkZXNrdG9wLktpbGwoKTsgJGRlc2t0b3AuV2FpdEZvckV4aXQoNTAwMCkgfCBPdXQtTnVsbDsgaWYgKCRwYXNzZWQpIHsgdGhyb3cgJ093bmVkIGRlc2t0b3AgZGlkIG5vdCBjbG9zZSBncmFjZWZ1bGx5IGFmdGVyIHRoZSBtaW5pbWl6ZSBwcm9vZi4nIH0gfQogICAgfQogICAgaWYgKCRudWxsIC1uZSAkZW11bGF0b3IgLWFuZCAtbm90ICRlbXVsYXRvci5IYXNFeGl0ZWQpIHsgJGVtdWxhdG9yLktpbGwoKTsgJGVtdWxhdG9yLldhaXRGb3JFeGl0KDUwMDApIHwgT3V0LU51bGwgfQogICAgaWYgKCRudWxsIC1uZSAkb3duZWREYWVtb25JZCkgewogICAgICAgICRvd25lZERhZW1vbiA9IEdldC1Qcm9jZXNzIC1JZCAkb3duZWREYWVtb25JZCAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZQogICAgICAgIGlmICgkb3duZWREYWVtb24gLWFuZCAtbm90ICRvd25lZERhZW1vbi5XYWl0Rm9yRXhpdCgxMDAwMCkpIHsKICAgICAgICAgICAgaWYgKCRvd25lZERhZW1vbi5QYXRoIC1lcSAoSm9pbi1QYXRoIChbSU8uUGF0aF06OkdldERpcmVjdG9yeU5hbWUoJGRlc2t0b3BQYXRoKSkgJ2tsaXBwZXItZmFybWQuZXhlJykpIHsgJG93bmVkRGFlbW9uLktpbGwoKSB9CiAgICAgICAgICAgIGlmICgkcGFzc2VkKSB7IHRocm93ICdPd25lZCBkYWVtb24gc3Vydml2ZWQgZGVza3RvcCBzaHV0ZG93biBhZnRlciB0aGUgbWluaW1pemUgcHJvb2YuJyB9CiAgICAgICAgfQogICAgfQogICAgaWYgKCRjbGVhbnVwRmFpbHVyZSkgeyB0aHJvdyAiRGVkaWNhdGVkIHN5bnRoZXRpYyBhY3RvciBjbGVhbnVwIGZhaWxlZDogJGNsZWFudXBGYWlsdXJlIiB9Cn0K'))
+          if ((Get-FileHash candidate/scripts/check-minimized-telemetry-r118.ps1).Hash.ToLowerInvariant() -ne 'cdf740bd7e09dde834a10ef649045addb48ca07fe442d6a53bbd879df09e19ff') { throw 'Minimized telemetry harness differs' }
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/candidate/scripts/check-minimized-telemetry-r118.ps1",[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ('Minimized harness parse failed: ' + (($errors | ForEach-Object Message) -join '; ')) }
+      - name: Verify upgrade from published R118 and installed runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+          & "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()'
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell startup probe failed' }
+          Set-Location candidate
+          . scripts/upgrade-actual-window-r117.ps1
+          $inlineProof = Join-Path $PWD 'inline-window-proof'
+          $setup = (Resolve-Path Klipper-Farm-R119-setup.exe).Path
+          $release = (Resolve-Path release).Path
+          $provenance = Get-Content provenance.json -Raw | ConvertFrom-Json
+          if ($provenance.workflowCommit -ne $env:GITHUB_SHA -or $provenance.buildId -ne 'V20.6-R11.9-PRINTER-CATALOG-2026-10-17' -or $provenance.sequence -ne 119 -or $provenance.baselineSequence -ne 118) { throw 'Wrong compiled candidate provenance' }
+          if ((Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $provenance.setupSha256) { throw 'Candidate hash mismatch' }
+          $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm upgrade test'
+          $installed = Start-Process $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($installed.ExitCode -ne 0) { throw 'Initial R119 install failed' }
+          $expected = @{}
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) { $expected[$name] = (Get-FileHash (Join-Path $installDir $name)).Hash }
+          $desktop = Join-Path $installDir 'klipper-farm-client.exe'
+          $desktopText = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          foreach ($marker in @($provenance.javascript,$provenance.stylesheet,$provenance.cameraWorker,'camera-detector/obico-failure-5a6b1be1fa.onnx','camera-detector/ort-wasm-simd-threaded.wasm','"installedSequence": 119','28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb')) {
+            if (-not $desktopText.Contains($marker)) { throw "Installed R119 resource or channel missing: $marker" }
+          }
+          node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$release/klipper-farm-ipc-probe.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry failed' }
+          gh release download r118 --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R118-setup.exe --dir old
+          if ($LASTEXITCODE -ne 0) { throw 'Published R118 download failed' }
+          $oldSetup = (Resolve-Path old/Klipper-Farm-R118-setup.exe).Path
+          if ((Get-Item $oldSetup).Length -ne 203541303) { throw 'R118 installer size mismatch' }
+          if ((Get-FileHash $oldSetup -Algorithm SHA256).Hash.ToLowerInvariant() -ne '005ef7b789f6c82b62460ec92120c89846f257114b28b7dc665764a83207f13b') { throw 'R118 hash mismatch' }
+          $oldInstall = Start-Process $oldSetup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($oldInstall.ExitCode -ne 0) { throw 'R118 baseline install failed' }
+          $baseline = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          if ($baseline -notmatch '"installedSequence"\s*:\s*118') { throw 'R118 baseline is not physically installed' }
+          $dataDir = Join-Path $env:APPDATA 'app.klipper.farm'
+          New-Item -ItemType Directory -Force $dataDir | Out-Null
+          $marker = Join-Path $dataDir 'updater-r118-preserve.txt'
+          [IO.File]::WriteAllText($marker,'preserve-r118-data')
+          $cacheRoot = Join-Path $env:LOCALAPPDATA 'app.klipper.farm/verified-updates'
+          $cleanupProbe = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Force $cleanupProbe | Out-Null
+          [IO.File]::WriteAllText((Join-Path $cleanupProbe 'installer.exe'),'unprotected-test-cache-fixture')
+          $oldDesktop = Start-Process $desktop -PassThru
+          Wait-UpgradeActualWindow -Process $oldDesktop -Case 'R118-before-update-helper' -OutputDirectory $inlineProof
+          $cleanupDeadline = [DateTime]::UtcNow.AddSeconds(12)
+          while ((Test-Path $cleanupProbe) -and [DateTime]::UtcNow -lt $cleanupDeadline) { Start-Sleep -Milliseconds 100 }
+          "Synthetic cache survives startup: $(Test-Path $cleanupProbe)"
+          $startupLog = Join-Path $env:APPDATA 'app.klipper.farm/logs/desktop-startup.log'
+          if (Test-Path $startupLog) { Get-Content $startupLog -Tail 25 }
+          $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
+          if (-not $desktopText.Contains($helperText)) { throw 'Candidate helper differs from the one embedded in R119' }
+          $cacheRoot = Join-Path $env:LOCALAPPDATA 'app.klipper.farm/verified-updates'
+          $attempt = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          $legacy = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          $partial = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Force $attempt,$legacy,$partial | Out-Null
+          $cachedSetup = Join-Path $attempt 'installer.exe'
+          Copy-Item $setup $cachedSetup
+          [IO.File]::WriteAllText((Join-Path $attempt 'manifest.json'),'synthetic-signed-manifest-fixture')
+          foreach ($path in @($legacy,$partial)) { [IO.File]::WriteAllText((Join-Path $path 'installer.exe'),'abandoned-cache-fixture') }
+          [IO.File]::WriteAllText((Join-Path $legacy 'helper-ready'),'ready')
+          [IO.File]::WriteAllText((Join-Path $legacy 'install-result.txt'),'Installed successfully')
+          $keep = Join-Path (Split-Path -Parent $cacheRoot) 'keep-update-cache-test.txt'
+          [IO.File]::WriteAllText($keep,'preserve-unrelated-file')
+          $ready = Join-Path $attempt 'helper-ready'
+          # Production update_apply holds UpdateState's lease/prepared path.
+          # This external harness has no app state. Use the supported active-owner
+          # marker to preserve its fixture until the actual helper takes over.
+          [IO.File]::WriteAllText($ready,(@{helperPid=$PID} | ConvertTo-Json -Compress))
+          $payload = @{parentPid=$oldDesktop.Id;executable=$desktop;installer=$cachedSetup;sha256=$provenance.setupSha256;sizeBytes=(Get-Item $setup).Length;ready=$ready;cacheRoot=$cacheRoot} | ConvertTo-Json -Compress
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardInput = $true
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $start.CreateNoWindow = $true
+          $start.EnvironmentVariables.Remove('PSModulePath')
+          $helperDebugPrefix = '$ProgressPreference = ''SilentlyContinue''; Set-PSDebug -Trace 1;' + [Environment]::NewLine
+          foreach ($argument in @('-NoProfile','-NonInteractive','-Command',($helperDebugPrefix + $helperText))) { $start.ArgumentList.Add($argument) }
+          $helper = [Diagnostics.Process]::Start($start)
+          $outRead = $helper.StandardOutput.ReadToEndAsync()
+          $errRead = $helper.StandardError.ReadToEndAsync()
+          $handshakeStarted = [Diagnostics.Stopwatch]::StartNew()
+          $helper.StandardInput.Write($payload)
+          $helper.StandardInput.Close()
+          $actualHelperReady = {
+            if (-not (Test-Path $ready)) { return $false }
+            try { return (Get-Content $ready -Raw | ConvertFrom-Json).helperPid -eq $helper.Id } catch { return $false }
+          }
+          $deadline = [DateTime]::UtcNow.AddSeconds(15)
+          while (-not (& $actualHelperReady) -and -not $helper.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+          if (-not (& $actualHelperReady)) {
+            Write-Host ('HELPER process: ' + ($helper | Select-Object Id,MainWindowTitle,TotalProcessorTime,StartTime | ConvertTo-Json -Compress))
+            Get-ChildItem $cacheRoot -Recurse -Force | Select-Object FullName,Length | ConvertTo-Json -Compress | Write-Host
+            if (Test-Path (Join-Path $cacheRoot 'last-error.txt')) { Get-Content (Join-Path $cacheRoot 'last-error.txt') }
+            Write-Host "HELPER handshake elapsedMs=$($handshakeStarted.ElapsedMilliseconds) exited=$($helper.HasExited)"
+            if (Test-Path install-result.txt) { Get-Content install-result.txt }
+            if (-not $helper.HasExited) { $helper.Kill(); $helper.WaitForExit(10000) | Out-Null }
+            $null = $outRead.Wait(5000)
+            $null = $errRead.Wait(5000)
+            if ($outRead.IsCompleted) { $outRead.Result | Set-Content helper-stdout.txt; Write-Host $outRead.Result }
+            if ($errRead.IsCompleted) { $errRead.Result | Set-Content helper-stderr.txt; Write-Host $errRead.Result }
+            throw 'Updater handshake failed'
+          }
+          "HELPER ready elapsedMs=$($handshakeStarted.ElapsedMilliseconds)"
+          if (-not (Close-UpgradeActualWindow -Process $oldDesktop -Case 'R118-close-for-upgrade' -OutputDirectory $inlineProof) -or -not $oldDesktop.WaitForExit(20000)) { throw 'R118 did not close cleanly' }
+          if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Update helper timeout' }
+          if ($helper.ExitCode -ne 0) { $outRead.Result; $errRead.Result; throw 'Update helper failed' }
+          $deadline = [DateTime]::UtcNow.AddSeconds(12)
+          while (((Test-Path $attempt) -or (Test-Path $legacy) -or (Test-Path $partial)) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 150 }
+          foreach ($path in @($attempt,$legacy,$partial)) { if (Test-Path $path) { throw "Update cache was not cleaned: $path" } }
+          if ((Get-Content -LiteralPath $keep -Raw) -ne 'preserve-unrelated-file') { throw 'Unrelated cache neighbor was changed' }
+          'Update cache runtime OK: active installer attempt, legacy completed update and partial download removed; unrelated file preserved'
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+            $hash = (Get-FileHash (Join-Path $installDir $name)).Hash
+            "UPDATED $name hash=$hash matchesR119=$($hash -eq $expected[$name])"
+            if ($hash -ne $expected[$name]) { throw "Wrong installed R119 payload: $name" }
+          }
+          if ((Get-Content $marker -Raw) -ne 'preserve-r118-data') { throw 'App data was removed' }
+          $restarted = @(Get-Process -Name klipper-farm-client -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $desktop })
+          if ($restarted.Count -eq 0) { throw 'R119 was not relaunched' }
+          foreach ($process in $restarted) {
+            Wait-UpgradeActualWindow -Process $process -Case 'R119-relaunched-before-close' -OutputDirectory $inlineProof
+            if ($process.HasExited -or -not (Close-UpgradeActualWindow -Process $process -Case 'R119-relaunched-close' -OutputDirectory $inlineProof) -or -not $process.WaitForExit(20000)) { throw 'R119 window lifecycle failed' }
+          }
+          foreach ($process in @(Get-Process -Name klipper-farmd -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $installDir 'klipper-farmd.exe') })) { if (-not $process.WaitForExit(10000)) { throw 'Sidecar survived desktop shutdown' } }
+          & scripts/check-desktop-exit-actual-window-r117.ps1 -Desktop $desktop -OutputDirectory (Join-Path $PWD 'main-window-proof')
+          New-Item -ItemType Directory -Force smoke | Out-Null
+          node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" "$PWD/smoke"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed desktop smoke failed' }
+          $minimizedProof = Join-Path $env:RUNNER_TEMP 'R119 minimized private validation'
+          & scripts/check-minimized-telemetry-r118.ps1 -DesktopExe $desktop -ProbeExe (Join-Path $release 'klipper-farm-ipc-probe.exe') -EmulatorScript (Join-Path $PWD 'scripts/hardware-emulator.mjs') -OutputDirectory $minimizedProof
+          if (-not $?) { throw 'Installed desktop minimize/restore telemetry proof failed' }
+          New-Item -ItemType Directory -Force minimized-telemetry-proof | Out-Null
+          Copy-Item (Join-Path $minimizedProof 'minimized-telemetry-r118.json') minimized-telemetry-proof/
+          $startupProof = Join-Path $env:RUNNER_TEMP 'R119 startup private validation'
+          & scripts/check-startup-instance-r117.ps1 -DesktopExe $desktop -OutputDirectory $startupProof
+          if (-not $?) { throw 'Actual installed desktop concurrent startup regression failed' }
+          New-Item -ItemType Directory -Force startup-instance-proof | Out-Null
+          Copy-Item (Join-Path $startupProof 'startup-instance-r117.json') startup-instance-proof/
+          $windowProof = Get-Content main-window-proof/main-window-lifecycle-r117.json -Raw | ConvertFrom-Json
+          if (($windowProof.completedModes -join ',') -ne 'close-during-startup,normal-close,force-desktop,recovery-close' -or $windowProof.exitWaitMs -ne 20000 -or $windowProof.earlyCloseWaitsForPageReady -ne $false) { throw 'Complete original lifecycle coverage or timing changed' }
+          $startup = Get-Content startup-instance-proof/startup-instance-r117.json -Raw | ConvertFrom-Json
+          if ($startup.cases.Count -ne 3) { throw 'Three real double-launch proofs are required' }
+          $external = @{schemaVersion=1;candidateBuildRunId=[long]$env:GITHUB_RUN_ID;candidateBuildHeadSha=$env:GITHUB_SHA;patchSha256=$provenance.patchSha256;setupSha256=$provenance.setupSha256;sourceSha256=$provenance.sourceSha256;baselineSourceSha256='12659233d2a1aff1401ce60a3eef2b8c99a61bb175576383d24b54a418db04f3';baselineSetupSha256='005ef7b789f6c82b62460ec92120c89846f257114b28b7dc665764a83207f13b';baselineSequence=118;sequence=119;validationRunId=[long]$env:GITHUB_RUN_ID;correctedLifecycleScriptSha256='c1f1c3bc66abef1d4a298274c99d7882db8fef742b99572f0abef815bd850ac1';inlineWindowHelperSha256='34fe9c122199eb4e7aa91b219496e6c818a6a19c41b97583d4b5a5e2276ade5d';minimizedHarnessSha256='cdf740bd7e09dde834a10ef649045addb48ca07fe442d6a53bbd879df09e19ff';fullR118UpgradeVerified=$true;dataPreservationVerified=$true;originalFourLifecycleModesVerified=$true;earlyCloseWaitsForPageReady=$false;exitWaitMs=20000;allThreeDoubleLaunchesVerified=$true;installedSmokeVerified=$true;minimizedTelemetryDisconnectReconnectRestoreVerified=$true}
+          $external | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+          'R118 to R119 physical upgrade, data preservation, relaunch and telemetry passed'
+      - name: Retain validated installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item candidate/Klipper-Farm-R119-setup.exe,candidate/SHA256SUMS.txt,candidate/provenance.json,candidate/exact-validation.json,candidate/minimized-telemetry-proof/minimized-telemetry-r118.json out/
+          Copy-Item candidate/main-window-proof/main-window-lifecycle-r117.json,candidate/startup-instance-proof/startup-instance-r117.json,candidate/inline-window-proof/upgrade-inline-window-r117.json out/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R119-Exact-Candidate-Validated
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain test diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R119-Exact-Candidate-Validation-logs
+          path: |
+            candidate/install-result.txt
+            candidate/helper-stdout.txt
+            candidate/helper-stderr.txt
+            candidate/smoke/
+            candidate/startup-instance-proof/
+            candidate/minimized-telemetry-proof/
+            candidate/main-window-proof/
+            candidate/inline-window-proof/
+            candidate/exact-validation.json
+          if-no-files-found: warn
+
+  publish-candidate:
+    needs: [build, validate]
+    runs-on: windows-2022
+    timeout-minutes: 12
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R119-Exact-Candidate-Validated
+          path: release-candidate
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R119-Reviewed-Source
+          path: release-source
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R119-Performance-Background-proof
+          path: release-ui-proof/performance-background
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R119-Printer-Catalog-proof
+          path: release-ui-proof/printer-catalog
+      - name: Publish validated R119 prerelease candidate for signing
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = @(Get-ChildItem release-source -Recurse -Filter 'KF-R119-FULL.zip')
+          if ($source.Count -ne 1) { throw 'Expected one frozen reviewed source archive' }
+          Copy-Item $source[0].FullName release-candidate/KF-R119-FULL.zip
+          Compress-Archive -Path release-ui-proof/* -DestinationPath release-candidate/R119-UI-proof.zip
+          Set-Location release-candidate
+          $provenance = Get-Content provenance.json -Raw | ConvertFrom-Json
+          $validation = Get-Content exact-validation.json -Raw | ConvertFrom-Json
+          if ($provenance.workflowCommit -ne $env:GITHUB_SHA -or $provenance.sequence -ne 119 -or $provenance.baselineSequence -ne 118) { throw 'Wrong candidate build provenance' }
+          if ($validation.candidateBuildHeadSha -ne $env:GITHUB_SHA -or -not $validation.fullR118UpgradeVerified -or -not $validation.minimizedTelemetryDisconnectReconnectRestoreVerified) { throw 'Candidate physical validation proof is missing' }
+          $setupHash = (Get-FileHash Klipper-Farm-R119-setup.exe).Hash.ToLowerInvariant()
+          $sourceHash = (Get-FileHash KF-R119-FULL.zip).Hash.ToLowerInvariant()
+          $uiProofHash = (Get-FileHash R119-UI-proof.zip).Hash.ToLowerInvariant()
+          if ($setupHash -ne $provenance.setupSha256 -or $sourceHash -ne $provenance.sourceSha256) { throw 'Candidate asset hash differs from validated build' }
+          if ((Get-Item Klipper-Farm-R119-setup.exe).Length -gt 512MB) { throw 'Installer exceeds updater limit' }
+          "$setupHash *Klipper-Farm-R119-setup.exe`n$sourceHash *KF-R119-FULL.zip`n$uiProofHash *R119-UI-proof.zip" | Set-Content SHA256SUMS.txt -Encoding utf8NoBOM
+          @'
+          R119 candidate: 500 printer models in a metadata-only catalog with preserved existing profiles.
+
+          This prerelease contains the exact Windows installer and source verified by this workflow. Automated checks include the 500-model catalog, existing advanced profiles, all preserved heavy-panel and physically minimized camera tests, and the installed R118 to R119 upgrade with preserved data, four window lifecycle modes, three real double launches, and actual desktop minimize/disconnect/reconnect/restore telemetry against a synthetic localhost printer.
+
+          The stable update manifest will be signed and published separately after verifying these exact assets. Physical printers and the user's fingerprint reader are outside this build environment.
+          '@ | Set-Content candidate-notes.md -Encoding utf8NoBOM
+          gh release view r119 --repo $env:GITHUB_REPOSITORY --json tagName 2>$null
+          if ($LASTEXITCODE -eq 0) { throw 'R119 already exists; review it before replacing or promoting any asset' }
+          gh release create r119 Klipper-Farm-R119-setup.exe KF-R119-FULL.zip R119-UI-proof.zip SHA256SUMS.txt provenance.json exact-validation.json minimized-telemetry-r118.json --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --prerelease --title 'Klipper Farm R119 candidate — printer catalog' --notes-file candidate-notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'Validated prerelease publication failed' }
