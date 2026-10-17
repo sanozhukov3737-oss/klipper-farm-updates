@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 119,
+  "version": "1.14.5-r119",
+  "publishedAt": 1792256162000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r119/Klipper-Farm-R119-setup.exe",
+    "sha256": "ce69dc1f9a530c247daa3d71a395e08480c925e0ab51f0b97f28e9be32f3ef62",
+    "sizeBytes": 203515253
+  },
+  "releaseNotes": "Каталог 500 моделей и 48 брендов: поиск, выбор при подключении и в настройках. Рабочие профили сохраняются, устаревшая проверка не перезаписывает выбор. Подключение через Klipper/Moonraker; для большинства моделей используется условное изображение.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "3e3af939d41cac853279cd1bf46993ae061bbcfe8d3023b976f84ae5b34b64717c4a3695b49e801f3482eedfdcb719b8472e6535292936977381e8034e105702"
+}
