@@ -1,4 +1,4 @@
-name: Diagnose R118 real WebRTC hidden receiver
+name: Diagnose R118 physically minimized WebRTC receiver
 on:
   workflow_dispatch:
   push:
@@ -29,7 +29,7 @@ jobs:
           if ((Get-Item incoming/KF-R117-FULL.zip).Length -ne 500171480 -or (Get-FileHash incoming/KF-R117-FULL.zip).Hash.ToLowerInvariant() -ne '2164e5398b0bdef4ecc733b43ece25c8e8252d31b017056e6229b55d48c6e5bf') { throw 'Published R117 source differs' }
           Expand-Archive incoming/KF-R117-FULL.zip work
           Rename-Item work/Klipper-Farm-R117 app
-          foreach ($item in @(@{name='r118-patch.json';sha='0f74eb5339e9316ba1cc1896d09b9729190a941065aa8178883957c1f112e81c'},@{name='r118-webrtc-test.mjs';sha='b20583cf4a85869398eb266ce04646902fb496101a9183bcc41efdf68453ce17'})) {
+          foreach ($item in @(@{name='r118-patch.json';sha='0f74eb5339e9316ba1cc1896d09b9729190a941065aa8178883957c1f112e81c'},@{name='r118-webrtc-test.mjs';sha='6f50c0e239936f18692286f279b13f9dfdb896dc31ef7a201637361015138f66'})) {
             $blob = gh api "repos/$env:GITHUB_REPOSITORY/git/trees/$env:GITHUB_SHA" --jq ('.tree[] | select(.path == "' + $item.name + '") | .sha')
             if ($LASTEXITCODE -ne 0 -or -not $blob) { throw "Reviewed file blob lookup failed: $($item.name)" }
             $encoded = gh api "repos/$env:GITHUB_REPOSITORY/git/blobs/$blob" --jq .content
@@ -55,7 +55,7 @@ jobs:
           $fixture = @($patch | Where-Object path -eq 'scripts/check-background-camera-browser-r118.mjs')
           if ($fixture.Count -ne 1 -or (Get-FileHash work/app/scripts/check-background-camera-browser-r118.mjs).Hash.ToLowerInvariant() -ne $fixture[0].afterSha256) { throw 'Original browser fixture does not match reviewed source' }
           Copy-Item incoming/r118-webrtc-test.mjs work/app/scripts/check-background-camera-browser-r118.mjs
-          if ((Get-FileHash work/app/scripts/check-background-camera-browser-r118.mjs).Hash.ToLowerInvariant() -ne 'b20583cf4a85869398eb266ce04646902fb496101a9183bcc41efdf68453ce17') { throw 'Browser fixture override differs' }
+          if ((Get-FileHash work/app/scripts/check-background-camera-browser-r118.mjs).Hash.ToLowerInvariant() -ne '6f50c0e239936f18692286f279b13f9dfdb896dc31ef7a201637361015138f66') { throw 'Browser fixture override differs' }
       - name: Install locked browser test dependencies
         shell: pwsh
         run: |
@@ -65,7 +65,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Locked production dependencies failed' }
           npm ci --prefix ui-tests --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { throw 'Locked browser acceptance dependencies failed' }
-      - name: Collect headless hidden-receiver diagnostics
+      - name: Collect headless physically minimized receiver diagnostics
         id: headless
         continue-on-error: true
         shell: pwsh
@@ -78,7 +78,7 @@ jobs:
           $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'webrtc-diagnostics/headless'
           node scripts/check-background-camera-browser-r118.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Headless diagnostic failed; inspect recorded visibility/decoder/peer evidence' }
-      - name: Require actual hidden-receiver acceptance with a headed browser
+      - name: Require physically minimized receiver acceptance with a headed browser
         id: headed
         shell: pwsh
         run: |
@@ -89,7 +89,7 @@ jobs:
           $env:KF_CAMERA_BROWSER_MODE = 'headed'
           $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'webrtc-diagnostics/headed'
           node scripts/check-background-camera-browser-r118.mjs
-          if ($LASTEXITCODE -ne 0) { throw 'Actual hidden WebRTC receiver acceptance failed' }
+          if ($LASTEXITCODE -ne 0) { throw 'Physically minimized WebRTC receiver acceptance failed' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
