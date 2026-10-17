@@ -1,0 +1,218 @@
+name: Validate exact R117 candidate with actual main window
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/windows-r117-exact-validation.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: windows-r117-exact-validation
+  cancel-in-progress: false
+jobs:
+  validate:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Restore exact immutable previously built R117 candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force incoming,candidate | Out-Null
+          $meta = gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/12096149161" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate metadata download failed' }
+          if ($meta.id -ne 12096149161 -or $meta.workflow_run.id -ne 39018659353 -or $meta.workflow_run.head_sha -ne '0f01d1fbc28ba52493c1b998f6ef1825e005d06b') { throw 'Candidate build run/head differs' }
+          if ($meta.size_in_bytes -ne 407022915 -or $meta.digest -ne 'sha256:19c8d873faa0e6191ad3814a18a8dd3e35d08ccb1115541688f3c56cdb461929') { throw 'Immutable artifact metadata differs' }
+          & curl.exe --fail --location --silent --show-error --header "Authorization: Bearer $env:GH_TOKEN" --header 'Accept: application/vnd.github+json' --output incoming/candidate.zip "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/artifacts/12096149161/zip"
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate ZIP download failed' }
+          if ((Get-Item incoming/candidate.zip).Length -ne 407022915 -or (Get-FileHash incoming/candidate.zip).Hash.ToLowerInvariant() -ne '19c8d873faa0e6191ad3814a18a8dd3e35d08ccb1115541688f3c56cdb461929') { throw 'Exact candidate ZIP differs' }
+          Expand-Archive incoming/candidate.zip candidate
+          if ((Get-FileHash candidate/Klipper-Farm-R117-setup.exe).Hash.ToLowerInvariant() -ne '8a86c490d7da7f23ee77637e25b926645146e8a6a942f94d252c963a1fa6bbd7') { throw 'Exact installer differs' }
+          $p = Get-Content candidate/provenance.json -Raw | ConvertFrom-Json
+          if ($p.workflowCommit -ne '0f01d1fbc28ba52493c1b998f6ef1825e005d06b' -or $p.patchSha256 -ne '69df1c0ac185b5b5ffb7a8bad3f551be75e2dace7026120577d7280bfbf053c3' -or $p.sequence -ne 117 -or $p.baselineSequence -ne 116) { throw 'Compiled source provenance differs' }
+          if ((Get-FileHash candidate/scripts/check-desktop-exit.ps1).Hash.ToLowerInvariant() -ne '426104fa15fa80c1c6c54e43d0234b8c9e36269d8d68f2a08eab03e2dffd4115') { throw 'Original lifecycle script differs' }
+          # This new validation-only file corrects cached HWND selection. The
+          # original shipped script and every executable remain unchanged.
+          [IO.File]::WriteAllBytes("$PWD/candidate/scripts/check-desktop-exit-actual-window-r117.ps1",[Convert]::FromBase64String('cGFyYW0oW1BhcmFtZXRlcihNYW5kYXRvcnk9JHRydWUpXVtzdHJpbmddJERlc2t0b3AsW1BhcmFtZXRlcihNYW5kYXRvcnk9JHRydWUpXVtzdHJpbmddJE91dHB1dERpcmVjdG9yeSkKJEVycm9yQWN0aW9uUHJlZmVyZW5jZSA9ICdTdG9wJwokRGVza3RvcCA9IChSZXNvbHZlLVBhdGggLUxpdGVyYWxQYXRoICREZXNrdG9wKS5QYXRoCiRkYWVtb25QYXRoID0gSm9pbi1QYXRoIChTcGxpdC1QYXRoIC1QYXJlbnQgJERlc2t0b3ApICdrbGlwcGVyLWZhcm1kLmV4ZScKCiMgVmFsaWRhdGlvbi1vbmx5IGNvcnJlY3Rpb246IC5ORVQgY2FjaGVzIE1haW5XaW5kb3dIYW5kbGUuIEEgdHJhbnNpZW50IHN0YXJ0dXAKIyB3aW5kb3cgY2FuIHBvcHVsYXRlIHRoYXQgY2FjaGUgYmVmb3JlIHRoZSBhY3R1YWwgdmlzaWJsZSBUYXVyaSBtYWluIHdpbmRvdy4KIyBSZXF1aXJlIHRoZSByZWFsIFBJRC90aXRsZS92aXNpYmxlIHdpbmRvdyBhbmQgcmVmcmVzaCB0aGUgc2FtZSBQcm9jZXNzIGNhY2hlLgojIFRoaXMgcHJlY29uZGl0aW9uIGRvZXMgbm90IHdhaXQgZm9yIHBhZ2UgbG9hZCwgZGFlbW9uIHJlYWRpbmVzcyBvciBsb2dpbi4KJHNjcmlwdDp3aW5kb3dFdmlkZW5jZT1bQ29sbGVjdGlvbnMuR2VuZXJpYy5MaXN0W29iamVjdF1dOjpuZXcoKQokc2NyaXB0OmNvbXBsZXRlZE1vZGVzPVtDb2xsZWN0aW9ucy5HZW5lcmljLkxpc3Rbc3RyaW5nXV06Om5ldygpCkFkZC1UeXBlIEAnCnVzaW5nIFN5c3RlbTsKdXNpbmcgU3lzdGVtLkNvbGxlY3Rpb25zLkdlbmVyaWM7CnVzaW5nIFN5c3RlbS5SdW50aW1lLkludGVyb3BTZXJ2aWNlczsKdXNpbmcgU3lzdGVtLlRleHQ7CnB1YmxpYyBzdGF0aWMgY2xhc3MgS0ZBY3R1YWxNYWluMTE3IHsKIHB1YmxpYyBkZWxlZ2F0ZSBib29sIENhbGxiYWNrKEludFB0ciBoLEludFB0ciBwKTsKIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiKV0gc3RhdGljIGV4dGVybiBib29sIEVudW1XaW5kb3dzKENhbGxiYWNrIGMsSW50UHRyIHApOwogW0RsbEltcG9ydCgidXNlcjMyLmRsbCIpXSBzdGF0aWMgZXh0ZXJuIHVpbnQgR2V0V2luZG93VGhyZWFkUHJvY2Vzc0lkKEludFB0ciBoLG91dCB1aW50IHApOwogW0RsbEltcG9ydCgidXNlcjMyLmRsbCIpXSBzdGF0aWMgZXh0ZXJuIGJvb2wgSXNXaW5kb3dWaXNpYmxlKEludFB0ciBoKTsKIFtEbGxJbXBvcnQoInVzZXIzMi5kbGwiKV0gc3RhdGljIGV4dGVybiBib29sIElzV2luZG93RW5hYmxlZChJbnRQdHIgaCk7CiBbRGxsSW1wb3J0KCJ1c2VyMzIuZGxsIixDaGFyU2V0PUNoYXJTZXQuVW5pY29kZSldIHN0YXRpYyBleHRlcm4gaW50IEdldFdpbmRvd1RleHQoSW50UHRyIGgsU3RyaW5nQnVpbGRlciBzLGludCBuKTsKIHB1YmxpYyBzdGF0aWMgbG9uZ1tdIE1haW5XaW5kb3dzKGludCBwcm9jZXNzSWQpIHsKICB2YXIgcm93cz1uZXcgTGlzdDxsb25nPigpOwogIEVudW1XaW5kb3dzKChoLHApPT57dWludCBvd25lcjtHZXRXaW5kb3dUaHJlYWRQcm9jZXNzSWQoaCxvdXQgb3duZXIpOwogICBpZihvd25lcj09KHVpbnQpcHJvY2Vzc0lkICYmIElzV2luZG93VmlzaWJsZShoKSAmJiBJc1dpbmRvd0VuYWJsZWQoaCkpewogICAgdmFyIHRpdGxlPW5ldyBTdHJpbmdCdWlsZGVyKDIwNDgpO0dldFdpbmRvd1RleHQoaCx0aXRsZSx0aXRsZS5DYXBhY2l0eSk7CiAgICBpZih0aXRsZS5Ub1N0cmluZygpPT0iS2xpcHBlciBGYXJtIilyb3dzLkFkZChoLlRvSW50NjQoKSk7CiAgIH1yZXR1cm4gdHJ1ZTt9LEludFB0ci5aZXJvKTtyZXR1cm4gcm93cy5Ub0FycmF5KCk7CiB9Cn0KJ0AKZnVuY3Rpb24gQ29uZmlybS1BY3R1YWxXaW5kb3coJHByb2Nlc3MsW3N0cmluZ10kc3RhZ2UpIHsKICAgICRjYWNoZWRIYW5kbGU9JHByb2Nlc3MuTWFpbldpbmRvd0hhbmRsZS5Ub0ludDY0KCkKICAgICRjYWNoZWRUaXRsZT0kcHJvY2Vzcy5NYWluV2luZG93VGl0bGUKICAgICRwcm9jZXNzLlJlZnJlc2goKQogICAgaWYgKCRwcm9jZXNzLkhhc0V4aXRlZCkgeyB0aHJvdyAnRGVza3RvcCBleGl0ZWQgYmVmb3JlIGl0cyByZWFsIG1haW4gd2luZG93IHdhcyByZWFkeScgfQogICAgJGZyZXNoSGFuZGxlPSRwcm9jZXNzLk1haW5XaW5kb3dIYW5kbGUuVG9JbnQ2NCgpCiAgICAkZnJlc2hUaXRsZT0kcHJvY2Vzcy5NYWluV2luZG93VGl0bGUKICAgICRhY3R1YWw9QChbS0ZBY3R1YWxNYWluMTE3XTo6TWFpbldpbmRvd3MoJHByb2Nlc3MuSWQpKQogICAgJGNvbmZpcm1lZD0kYWN0dWFsLkNvdW50IC1lcSAxIC1hbmQgJGZyZXNoSGFuZGxlIC1uZSAwIC1hbmQgJGFjdHVhbFswXSAtZXEgJGZyZXNoSGFuZGxlIC1hbmQgJGZyZXNoVGl0bGUgLWVxICdLbGlwcGVyIEZhcm0nCiAgICAkc2NyaXB0OndpbmRvd0V2aWRlbmNlLkFkZChbb3JkZXJlZF1Ae21vZGU9JG1vZGU7c3RhZ2U9JHN0YWdlO3BpZD0kcHJvY2Vzcy5JZDt1dGM9W0RhdGVUaW1lXTo6VXRjTm93LlRvU3RyaW5nKCdvJyk7Y2FjaGVkSGFuZGxlPSgnMHgnKyRjYWNoZWRIYW5kbGUuVG9TdHJpbmcoJ3gnKSk7Y2FjaGVkVGl0bGU9JGNhY2hlZFRpdGxlO3JlZnJlc2hlZEhhbmRsZT0oJzB4JyskZnJlc2hIYW5kbGUuVG9TdHJpbmcoJ3gnKSk7cmVmcmVzaGVkVGl0bGU9JGZyZXNoVGl0bGU7YWN0dWFsVmlzaWJsZU1haW5IYW5kbGVzPUAoJGFjdHVhbHxGb3JFYWNoLU9iamVjdHsnMHgnKyRfLlRvU3RyaW5nKCd4Jyl9KTtjb25maXJtZWQ9JGNvbmZpcm1lZH0pCiAgICBpZigkY29uZmlybWVkKXtXcml0ZS1Ib3N0ICgiTUFJTl9XSU5ET1dfQ09ORklSTUVEIG1vZGU9JG1vZGUgc3RhZ2U9JHN0YWdlIHBpZD0kKCRwcm9jZXNzLklkKSBjYWNoZWQ9MHgkKCRjYWNoZWRIYW5kbGUuVG9TdHJpbmcoJ3gnKSkgcmVmcmVzaGVkPTB4JCgkZnJlc2hIYW5kbGUuVG9TdHJpbmcoJ3gnKSkgYWN0dWFsPTB4JCgkYWN0dWFsWzBdLlRvU3RyaW5nKCd4JykpIHRpdGxlPUtsaXBwZXIgRmFybSB2aXNpYmxlPXRydWUgZW5hYmxlZD10cnVlIil9CiAgICByZXR1cm4gJGNvbmZpcm1lZAp9CmZ1bmN0aW9uIENsb3NlLUFjdHVhbE1haW5XaW5kb3coJHByb2Nlc3MpIHsKICAgIGlmICgtbm90IChDb25maXJtLUFjdHVhbFdpbmRvdyAkcHJvY2VzcyAnaW1tZWRpYXRlbHktYmVmb3JlLWNsb3NlJykpIHsgdGhyb3cgJ1JlZnJlc2hlZCBQcm9jZXNzIGhhbmRsZSBkb2VzIG5vdCBpZGVudGlmeSB0aGUgYWN0dWFsIHZpc2libGUgS2xpcHBlciBGYXJtIG1haW4gd2luZG93JyB9CiAgICByZXR1cm4gJHByb2Nlc3MuQ2xvc2VNYWluV2luZG93KCkKfQpmdW5jdGlvbiBTaWRlY2FycyB7IEAoR2V0LVByb2Nlc3MgLU5hbWUga2xpcHBlci1mYXJtZCAtRXJyb3JBY3Rpb24gU2lsZW50bHlDb250aW51ZSB8IFdoZXJlLU9iamVjdCB7ICRfLlBhdGggLWVxICRkYWVtb25QYXRoIH0pIH0KZnVuY3Rpb24gV2FpdC1Ob1NpZGVjYXIgewogICAgJGRlYWRsaW5lID0gW0RhdGVUaW1lXTo6VXRjTm93LkFkZFNlY29uZHMoNykKICAgIHdoaWxlICgoU2lkZWNhcnMpLkNvdW50IC1ndCAwIC1hbmQgW0RhdGVUaW1lXTo6VXRjTm93IC1sdCAkZGVhZGxpbmUpIHsgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyA1MCB9CiAgICBpZiAoKFNpZGVjYXJzKS5Db3VudCAtZ3QgMCkgeyB0aHJvdyAnRGVza3RvcC1vd25lZCBkYWVtb24gc3Vydml2ZWQgYXBwbGljYXRpb24gZXhpdCcgfQp9CmZ1bmN0aW9uIFdhaXQtV2luZG93KCRwcm9jZXNzKSB7CiAgICAkZGVhZGxpbmUgPSBbRGF0ZVRpbWVdOjpVdGNOb3cuQWRkU2Vjb25kcygyNSkKICAgIHdoaWxlICgtbm90ICRwcm9jZXNzLkhhc0V4aXRlZCAtYW5kIFtEYXRlVGltZV06OlV0Y05vdyAtbHQgJGRlYWRsaW5lKSB7CiAgICAgICAgaWYgKENvbmZpcm0tQWN0dWFsV2luZG93ICRwcm9jZXNzICd3YWl0LWZvci12aXNpYmxlLW1haW4nKSB7IHJldHVybiB9CiAgICAgICAgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyA1MAogICAgfQogICAgdGhyb3cgJ0Rlc2t0b3AgZGlkIG5vdCBjcmVhdGUgaXRzIGFjdHVhbCB2aXNpYmxlIEtsaXBwZXIgRmFybSBtYWluIHdpbmRvdycKfQpmdW5jdGlvbiBXYWl0LVNpZGVjYXIoJHByb2Nlc3MpIHsKICAgICRkZWFkbGluZSA9IFtEYXRlVGltZV06OlV0Y05vdy5BZGRTZWNvbmRzKDI1KQogICAgd2hpbGUgKC1ub3QgJHByb2Nlc3MuSGFzRXhpdGVkIC1hbmQgKFNpZGVjYXJzKS5Db3VudCAtZXEgMCAtYW5kIFtEYXRlVGltZV06OlV0Y05vdyAtbHQgJGRlYWRsaW5lKSB7IFN0YXJ0LVNsZWVwIC1NaWxsaXNlY29uZHMgNTAgfQogICAgJGNoaWxkcmVuID0gU2lkZWNhcnMKICAgIGlmICgkY2hpbGRyZW4uQ291bnQgLW5lIDEpIHsgdGhyb3cgJ0V4cGVjdGVkIG9uZSBkZXNrdG9wLW93bmVkIGRhZW1vbicgfQogICAgcmV0dXJuICRjaGlsZHJlblswXQp9CnRyeSB7CldhaXQtTm9TaWRlY2FyCmZvcmVhY2ggKCRtb2RlIGluIEAoJ2Nsb3NlLWR1cmluZy1zdGFydHVwJywnbm9ybWFsLWNsb3NlJywnZm9yY2UtZGVza3RvcCcsJ3JlY292ZXJ5LWNsb3NlJykpIHsKICAgICRwcm9jZXNzID0gU3RhcnQtUHJvY2VzcyAkRGVza3RvcCAtUGFzc1RocnUKICAgIHRyeSB7CiAgICAgICAgV2FpdC1XaW5kb3cgJHByb2Nlc3MKICAgICAgICBpZiAoJG1vZGUgLWVxICdjbG9zZS1kdXJpbmctc3RhcnR1cCcpIHsKICAgICAgICAgICAgaWYgKC1ub3QgKENsb3NlLUFjdHVhbE1haW5XaW5kb3cgJHByb2Nlc3MpKSB7IHRocm93ICdTdGFydHVwIHdpbmRvdyByZWplY3RlZCBjbG9zZScgfQogICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICRjaGlsZCA9IFdhaXQtU2lkZWNhciAkcHJvY2VzcwogICAgICAgICAgICAjIExldCBzdGFydHVwIHB1Ymxpc2ggaXRzIGF1dGhlbnRpY2F0ZWQgZW5kcG9pbnQgYmVmb3JlIGV4ZXJjaXNpbmcKICAgICAgICAgICAgIyBub3JtYWwgY2xvc2UvY3Jhc2guIE5vIHByaW50ZXJzIG9yIHByb2R1Y3Rpb24gam9icyBhcmUgdXNlZC4KICAgICAgICAgICAgU3RhcnQtU2xlZXAgLU1pbGxpc2Vjb25kcyAxMDAwCiAgICAgICAgICAgIGlmICgkbW9kZSAtZXEgJ2ZvcmNlLWRlc2t0b3AnKSB7ICRwcm9jZXNzLktpbGwoKSB9CiAgICAgICAgICAgIGVsc2VpZiAoJG1vZGUgLWVxICdyZWNvdmVyeS1jbG9zZScpIHsKICAgICAgICAgICAgICAgICRjaGlsZC5LaWxsKCk7ICRjaGlsZC5XYWl0Rm9yRXhpdCg1MDAwKSB8IE91dC1OdWxsCiAgICAgICAgICAgICAgICAjIEEgV2ViVmlldyBzbmFwc2hvdCByZXF1ZXN0IG1heSB0cmlnZ2VyIHJlY292ZXJ5IGNvbmN1cnJlbnRseS4KICAgICAgICAgICAgICAgIGlmICgtbm90IChDbG9zZS1BY3R1YWxNYWluV2luZG93ICRwcm9jZXNzKSkgeyB0aHJvdyAnUmVjb3Zlcnkgd2luZG93IHJlamVjdGVkIGNsb3NlJyB9CiAgICAgICAgICAgIH0gZWxzZWlmICgtbm90IChDbG9zZS1BY3R1YWxNYWluV2luZG93ICRwcm9jZXNzKSkgeyB0aHJvdyAnV2luZG93IHJlamVjdGVkIGNsb3NlJyB9CiAgICAgICAgfQogICAgICAgIGlmICgtbm90ICRwcm9jZXNzLldhaXRGb3JFeGl0KDIwMDAwKSkgeyB0aHJvdyAiRGVza3RvcCBleGl0IHRpbWVkIG91dDogJG1vZGUiIH0KICAgICAgICBXYWl0LU5vU2lkZWNhcgogICAgICAgICMgQ2F0Y2ggYSBsYXRlIHN0YXJ0dXAvcmVjb3Zlcnkgd29ya2VyIHNwYXduaW5nIGFmdGVyIHRoZSBmaXJzdCBjaGVjay4KICAgICAgICBTdGFydC1TbGVlcCAtTWlsbGlzZWNvbmRzIDE1MDAKICAgICAgICBXYWl0LU5vU2lkZWNhcgogICAgICAgICJEZXNrdG9wIGxpZmVjeWNsZSBPSzogJG1vZGU7IGRlc2t0b3AgYW5kIG93bmVkIGRhZW1vbiBleGl0ZWQiCiAgICAgICAgJHNjcmlwdDpjb21wbGV0ZWRNb2Rlcy5BZGQoJG1vZGUpCiAgICB9IGZpbmFsbHkgewogICAgICAgIGlmICgtbm90ICRwcm9jZXNzLkhhc0V4aXRlZCkgeyAkcHJvY2Vzcy5LaWxsKCk7ICRwcm9jZXNzLldhaXRGb3JFeGl0KDUwMDApIHwgT3V0LU51bGwgfQogICAgICAgIGZvcmVhY2ggKCRjaGlsZCBpbiAoU2lkZWNhcnMpKSB7ICRjaGlsZC5LaWxsKCk7ICRjaGlsZC5XYWl0Rm9yRXhpdCg1MDAwKSB8IE91dC1OdWxsIH0KICAgIH0KfQoKfSBmaW5hbGx5IHsKICAgIFtJTy5EaXJlY3RvcnldOjpDcmVhdGVEaXJlY3RvcnkoJE91dHB1dERpcmVjdG9yeSkgfCBPdXQtTnVsbAogICAgJHJlcG9ydD1bb3JkZXJlZF1Ae3NjaGVtYVZlcnNpb249MTtvcmlnaW5hbFNjcmlwdFNoYTI1Nj0nNDI2MTA0ZmExNWZhODBjMWM2YzU0ZTQzZDAyMzRiOGM5ZTM2MjY5ZDhkNjhmMmEwOGVhYjAzZTJkZmZkNDExNSc7Y29ycmVjdGlvbj0nUmVmcmVzaCBjYWNoZWQgUHJvY2VzcyBIV05EIGFuZCByZXF1aXJlIHRoZSByZWFsIHZpc2libGUgZW5hYmxlZCBLbGlwcGVyIEZhcm0gbWFpbiB3aW5kb3cnO2V4aXRXYWl0TXM9MjAwMDA7aW5pdGlhbFdpbmRvd1dhaXRNcz0yNTAwMDtzaWRlY2FyV2FpdE1zPTcwMDA7bGF0ZVNpZGVjYXJDaGVja01zPTE1MDA7ZWFybHlDbG9zZVdhaXRzRm9yUGFnZVJlYWR5PSRmYWxzZTtjb21wbGV0ZWRNb2Rlcz0kc2NyaXB0OmNvbXBsZXRlZE1vZGVzLlRvQXJyYXkoKTt3aW5kb3dFdmlkZW5jZT0kc2NyaXB0OndpbmRvd0V2aWRlbmNlLlRvQXJyYXkoKX0KICAgIFtJTy5GaWxlXTo6V3JpdGVBbGxUZXh0KChKb2luLVBhdGggJE91dHB1dERpcmVjdG9yeSAnbWFpbi13aW5kb3ctbGlmZWN5Y2xlLXIxMTcuanNvbicpLCgkcmVwb3J0IHwgQ29udmVydFRvLUpzb24gLURlcHRoIDgpKQp9Cg=='))
+          if ((Get-FileHash candidate/scripts/check-desktop-exit-actual-window-r117.ps1).Hash.ToLowerInvariant() -ne 'c1f1c3bc66abef1d4a298274c99d7882db8fef742b99572f0abef815bd850ac1') { throw 'Corrected window-selection harness differs' }
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/candidate/scripts/check-desktop-exit-actual-window-r117.ps1",[ref]$tokens,[ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) { throw ('Harness parse failed: ' + (($errors | ForEach-Object Message) -join '; ')) }
+      - name: Verify upgrade from published R116 and installed runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
+          & "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" -NoProfile -NonInteractive -Command '$PSVersionTable.PSVersion.ToString()'
+          if ($LASTEXITCODE -ne 0) { throw 'Windows PowerShell startup probe failed' }
+          Set-Location candidate
+          $setup = (Resolve-Path Klipper-Farm-R117-setup.exe).Path
+          $release = (Resolve-Path release).Path
+          $provenance = Get-Content provenance.json -Raw | ConvertFrom-Json
+          if ($provenance.workflowCommit -ne '0f01d1fbc28ba52493c1b998f6ef1825e005d06b' -or $provenance.buildId -ne 'V20.6-R11.7-STARTUP-HELLO-2026-10-17') { throw 'Wrong compiled candidate provenance' }
+          if ((Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant() -ne $provenance.setupSha256) { throw 'Candidate hash mismatch' }
+          $installDir = Join-Path $env:RUNNER_TEMP 'Klipper Farm upgrade test'
+          $installed = Start-Process $setup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($installed.ExitCode -ne 0) { throw 'Initial R117 install failed' }
+          $expected = @{}
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) { $expected[$name] = (Get-FileHash (Join-Path $installDir $name)).Hash }
+          $desktop = Join-Path $installDir 'klipper-farm-client.exe'
+          $desktopText = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          foreach ($marker in @($provenance.javascript,$provenance.stylesheet,$provenance.cameraWorker,'camera-detector/obico-failure-5a6b1be1fa.onnx','camera-detector/ort-wasm-simd-threaded.wasm','"installedSequence": 117','28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb')) {
+            if (-not $desktopText.Contains($marker)) { throw "Installed R117 resource or channel missing: $marker" }
+          }
+          node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$release/klipper-farm-ipc-probe.exe"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry failed' }
+          gh release download r116 --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R116-setup.exe --dir old
+          if ($LASTEXITCODE -ne 0) { throw 'Published R116 download failed' }
+          $oldSetup = (Resolve-Path old/Klipper-Farm-R116-setup.exe).Path
+          if ((Get-Item $oldSetup).Length -ne 203548710) { throw 'R116 installer size mismatch' }
+          if ((Get-FileHash $oldSetup -Algorithm SHA256).Hash.ToLowerInvariant() -ne '3cd0dd66ded41289da967e1a003edacb801868a2b04a5410c5e76f81e4b90798') { throw 'R116 hash mismatch' }
+          $oldInstall = Start-Process $oldSetup -ArgumentList ('/S /D=' + $installDir) -Wait -PassThru
+          if ($oldInstall.ExitCode -ne 0) { throw 'R116 baseline install failed' }
+          $baseline = [Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes($desktop))
+          if ($baseline -notmatch '"installedSequence"\s*:\s*116') { throw 'R116 baseline is not physically installed' }
+          $dataDir = Join-Path $env:APPDATA 'app.klipper.farm'
+          New-Item -ItemType Directory -Force $dataDir | Out-Null
+          $marker = Join-Path $dataDir 'updater-r116-preserve.txt'
+          [IO.File]::WriteAllText($marker,'preserve-r116-data')
+          $cacheRoot = Join-Path $env:LOCALAPPDATA 'app.klipper.farm/verified-updates'
+          $cleanupProbe = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Force $cleanupProbe | Out-Null
+          [IO.File]::WriteAllText((Join-Path $cleanupProbe 'installer.exe'),'unprotected-test-cache-fixture')
+          $oldDesktop = Start-Process $desktop -PassThru
+          $deadline = [DateTime]::UtcNow.AddSeconds(20)
+          while ($oldDesktop.MainWindowHandle -eq 0 -and -not $oldDesktop.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $oldDesktop.Refresh() }
+          if ($oldDesktop.HasExited -or $oldDesktop.MainWindowHandle -eq 0) { throw 'Installed R116 did not open a window' }
+          $cleanupDeadline = [DateTime]::UtcNow.AddSeconds(12)
+          while ((Test-Path $cleanupProbe) -and [DateTime]::UtcNow -lt $cleanupDeadline) { Start-Sleep -Milliseconds 100 }
+          "Synthetic cache survives startup: $(Test-Path $cleanupProbe)"
+          $startupLog = Join-Path $env:APPDATA 'app.klipper.farm/logs/desktop-startup.log'
+          if (Test-Path $startupLog) { Get-Content $startupLog -Tail 25 }
+          $helperText = Get-Content scripts/apply-online-update.ps1 -Raw -Encoding UTF8
+          if (-not $desktopText.Contains($helperText)) { throw 'Candidate helper differs from the one embedded in R117' }
+          $cacheRoot = Join-Path $env:LOCALAPPDATA 'app.klipper.farm/verified-updates'
+          $attempt = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          $legacy = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          $partial = Join-Path $cacheRoot ([guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Force $attempt,$legacy,$partial | Out-Null
+          $cachedSetup = Join-Path $attempt 'installer.exe'
+          Copy-Item $setup $cachedSetup
+          [IO.File]::WriteAllText((Join-Path $attempt 'manifest.json'),'synthetic-signed-manifest-fixture')
+          foreach ($path in @($legacy,$partial)) { [IO.File]::WriteAllText((Join-Path $path 'installer.exe'),'abandoned-cache-fixture') }
+          [IO.File]::WriteAllText((Join-Path $legacy 'helper-ready'),'ready')
+          [IO.File]::WriteAllText((Join-Path $legacy 'install-result.txt'),'Installed successfully')
+          $keep = Join-Path (Split-Path -Parent $cacheRoot) 'keep-update-cache-test.txt'
+          [IO.File]::WriteAllText($keep,'preserve-unrelated-file')
+          $ready = Join-Path $attempt 'helper-ready'
+          # Production update_apply holds UpdateState's lease/prepared path.
+          # This external harness has no app state. Use the supported active-owner
+          # marker to preserve its fixture until the actual helper takes over.
+          [IO.File]::WriteAllText($ready,(@{helperPid=$PID} | ConvertTo-Json -Compress))
+          $payload = @{parentPid=$oldDesktop.Id;executable=$desktop;installer=$cachedSetup;sha256=$provenance.setupSha256;sizeBytes=(Get-Item $setup).Length;ready=$ready;cacheRoot=$cacheRoot} | ConvertTo-Json -Compress
+          $start = [Diagnostics.ProcessStartInfo]::new()
+          $start.FileName = "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe"
+          $start.UseShellExecute = $false
+          $start.RedirectStandardInput = $true
+          $start.RedirectStandardOutput = $true
+          $start.RedirectStandardError = $true
+          $start.CreateNoWindow = $true
+          $start.EnvironmentVariables.Remove('PSModulePath')
+          $helperDebugPrefix = '$ProgressPreference = ''SilentlyContinue''; Set-PSDebug -Trace 1;' + [Environment]::NewLine
+          foreach ($argument in @('-NoProfile','-NonInteractive','-Command',($helperDebugPrefix + $helperText))) { $start.ArgumentList.Add($argument) }
+          $helper = [Diagnostics.Process]::Start($start)
+          $outRead = $helper.StandardOutput.ReadToEndAsync()
+          $errRead = $helper.StandardError.ReadToEndAsync()
+          $handshakeStarted = [Diagnostics.Stopwatch]::StartNew()
+          $helper.StandardInput.Write($payload)
+          $helper.StandardInput.Close()
+          $actualHelperReady = {
+            if (-not (Test-Path $ready)) { return $false }
+            try { return (Get-Content $ready -Raw | ConvertFrom-Json).helperPid -eq $helper.Id } catch { return $false }
+          }
+          $deadline = [DateTime]::UtcNow.AddSeconds(15)
+          while (-not (& $actualHelperReady) -and -not $helper.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100 }
+          if (-not (& $actualHelperReady)) {
+            Write-Host ('HELPER process: ' + ($helper | Select-Object Id,MainWindowTitle,TotalProcessorTime,StartTime | ConvertTo-Json -Compress))
+            Get-ChildItem $cacheRoot -Recurse -Force | Select-Object FullName,Length | ConvertTo-Json -Compress | Write-Host
+            if (Test-Path (Join-Path $cacheRoot 'last-error.txt')) { Get-Content (Join-Path $cacheRoot 'last-error.txt') }
+            Write-Host "HELPER handshake elapsedMs=$($handshakeStarted.ElapsedMilliseconds) exited=$($helper.HasExited)"
+            if (Test-Path install-result.txt) { Get-Content install-result.txt }
+            if (-not $helper.HasExited) { $helper.Kill(); $helper.WaitForExit(10000) | Out-Null }
+            $null = $outRead.Wait(5000)
+            $null = $errRead.Wait(5000)
+            if ($outRead.IsCompleted) { $outRead.Result | Set-Content helper-stdout.txt; Write-Host $outRead.Result }
+            if ($errRead.IsCompleted) { $errRead.Result | Set-Content helper-stderr.txt; Write-Host $errRead.Result }
+            throw 'Updater handshake failed'
+          }
+          "HELPER ready elapsedMs=$($handshakeStarted.ElapsedMilliseconds)"
+          if (-not $oldDesktop.CloseMainWindow() -or -not $oldDesktop.WaitForExit(20000)) { throw 'R116 did not close cleanly' }
+          if (-not $helper.WaitForExit(120000)) { $helper.Kill(); throw 'Update helper timeout' }
+          if ($helper.ExitCode -ne 0) { $outRead.Result; $errRead.Result; throw 'Update helper failed' }
+          $deadline = [DateTime]::UtcNow.AddSeconds(12)
+          while (((Test-Path $attempt) -or (Test-Path $legacy) -or (Test-Path $partial)) -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 150 }
+          foreach ($path in @($attempt,$legacy,$partial)) { if (Test-Path $path) { throw "Update cache was not cleaned: $path" } }
+          if ((Get-Content -LiteralPath $keep -Raw) -ne 'preserve-unrelated-file') { throw 'Unrelated cache neighbor was changed' }
+          'Update cache runtime OK: active installer attempt, legacy completed update and partial download removed; unrelated file preserved'
+          foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+            $hash = (Get-FileHash (Join-Path $installDir $name)).Hash
+            "UPDATED $name hash=$hash matchesR117=$($hash -eq $expected[$name])"
+            if ($hash -ne $expected[$name]) { throw "Wrong installed R117 payload: $name" }
+          }
+          if ((Get-Content $marker -Raw) -ne 'preserve-r116-data') { throw 'App data was removed' }
+          $restarted = @(Get-Process -Name klipper-farm-client -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $desktop })
+          if ($restarted.Count -eq 0) { throw 'R117 was not relaunched' }
+          foreach ($process in $restarted) {
+            $deadline = [DateTime]::UtcNow.AddSeconds(20)
+            while ($process.MainWindowHandle -eq 0 -and -not $process.HasExited -and [DateTime]::UtcNow -lt $deadline) { Start-Sleep -Milliseconds 100; $process.Refresh() }
+            if ($process.HasExited -or -not $process.CloseMainWindow() -or -not $process.WaitForExit(20000)) { throw 'R117 window lifecycle failed' }
+          }
+          foreach ($process in @(Get-Process -Name klipper-farmd -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq (Join-Path $installDir 'klipper-farmd.exe') })) { if (-not $process.WaitForExit(10000)) { throw 'Sidecar survived desktop shutdown' } }
+          & scripts/check-desktop-exit-actual-window-r117.ps1 -Desktop $desktop -OutputDirectory (Join-Path $PWD 'main-window-proof')
+          New-Item -ItemType Directory -Force smoke | Out-Null
+          node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" "$PWD/smoke"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed desktop smoke failed' }
+          $startupProof = Join-Path $env:RUNNER_TEMP 'R117 startup private validation'
+          & scripts/check-startup-instance-r117.ps1 -DesktopExe $desktop -OutputDirectory $startupProof
+          if (-not $?) { throw 'Actual installed desktop concurrent startup regression failed' }
+          New-Item -ItemType Directory -Force startup-instance-proof | Out-Null
+          Copy-Item (Join-Path $startupProof 'startup-instance-r117.json') startup-instance-proof/
+          $windowProof = Get-Content main-window-proof/main-window-lifecycle-r117.json -Raw | ConvertFrom-Json
+          if (($windowProof.completedModes -join ',') -ne 'close-during-startup,normal-close,force-desktop,recovery-close' -or $windowProof.exitWaitMs -ne 20000 -or $windowProof.earlyCloseWaitsForPageReady -ne $false) { throw 'Complete original lifecycle coverage or timing changed' }
+          $startup = Get-Content startup-instance-proof/startup-instance-r117.json -Raw | ConvertFrom-Json
+          if ($startup.cases.Count -ne 3) { throw 'Three real double-launch proofs are required' }
+          $external = @{schemaVersion=1;candidateArtifactId=12096149161;candidateArtifactSha256='19c8d873faa0e6191ad3814a18a8dd3e35d08ccb1115541688f3c56cdb461929';candidateArtifactBytes=407022915;candidateBuildRunId=39018659353;candidateBuildHeadSha='0f01d1fbc28ba52493c1b998f6ef1825e005d06b';patchSha256='69df1c0ac185b5b5ffb7a8bad3f551be75e2dace7026120577d7280bfbf053c3';setupSha256=$provenance.setupSha256;baselineSetupSha256='3cd0dd66ded41289da967e1a003edacb801868a2b04a5410c5e76f81e4b90798';validationWorkflowCommit=$env:GITHUB_SHA;validationRunId=[long]$env:GITHUB_RUN_ID;correctedLifecycleScriptSha256='c1f1c3bc66abef1d4a298274c99d7882db8fef742b99572f0abef815bd850ac1';fullR116UpgradeVerified=$true;dataPreservationVerified=$true;originalFourLifecycleModesVerified=$true;earlyCloseWaitsForPageReady=$false;exitWaitMs=20000;allThreeDoubleLaunchesVerified=$true;installedSmokeVerified=$true}
+          $external | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+          'R116 to R117 physical upgrade, data preservation, relaunch and telemetry passed'
+      - name: Retain validated installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          Copy-Item candidate/Klipper-Farm-R117-setup.exe,candidate/SHA256SUMS.txt,candidate/provenance.json,candidate/exact-validation.json out/
+          Copy-Item candidate/main-window-proof/main-window-lifecycle-r117.json,candidate/startup-instance-proof/startup-instance-r117.json out/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R117-Exact-Candidate-Validated
+          path: out/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Retain test diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R117-Exact-Candidate-Validation-logs
+          path: |
+            candidate/install-result.txt
+            candidate/helper-stdout.txt
+            candidate/helper-stderr.txt
+            candidate/smoke/
+            candidate/startup-instance-proof/
+            candidate/main-window-proof/
+            candidate/exact-validation.json
+          if-no-files-found: warn
