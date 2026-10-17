@@ -41,7 +41,7 @@ jobs:
           $encoded = gh api "repos/$env:GITHUB_REPOSITORY/git/blobs/$blob" --jq .content
           if ($LASTEXITCODE -ne 0) { throw 'Patch download failed' }
           [IO.File]::WriteAllBytes("$PWD/incoming/r119-patch.json",[Convert]::FromBase64String(($encoded -join '')))
-          if ((Get-FileHash incoming/r119-patch.json).Hash.ToLowerInvariant() -ne '7cd1040b2c10cec2f404613fab2c488b710d91713dd9f1e0bdc831ce0bd388a7') { throw 'Reviewed R119 patch checksum mismatch' }
+          if ((Get-FileHash incoming/r119-patch.json).Hash.ToLowerInvariant() -ne 'd0e50b26e97ee40cbd5355341bc8d4ad751104a614eab2518b4949a6d118b314') { throw 'Reviewed R119 patch checksum mismatch' }
           $patch = Get-Content incoming/r119-patch.json -Raw -Encoding UTF8 | ConvertFrom-Json
           $root = [IO.Path]::GetFullPath("$PWD/work/app") + [IO.Path]::DirectorySeparatorChar
           $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
