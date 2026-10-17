@@ -1,0 +1,262 @@
+name: Verify signed R118 assets and promote stable
+on:
+  workflow_dispatch:
+  push:
+    branches: [r118-background-panels]
+    paths: ['r118-signed-update.json', '.github/workflows/promote-r118.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: promote-r118
+  cancel-in-progress: false
+env:
+  R118_BUILD_RUN_ID: '39040985755'
+  R118_BUILD_HEAD_SHA: 'fffc8837e8144914bca3fb69369be66b7fa6a273'
+  R118_VALIDATION_RUN_ID: '39044060095'
+  R118_VALIDATION_HEAD_SHA: '05b824fa0d52c4651257930cbf382ab6f6e95cf0'
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Read pinned original source build, resumed validation and exact public prerelease
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:R118_VALIDATION_RUN_ID -notmatch '^[1-9][0-9]+$' -or $env:R118_VALIDATION_HEAD_SHA -notmatch '^[0-9a-f]{40}$') { throw 'Pin the successful resumed validation run ID and workflow commit before promotion' }
+          New-Item -ItemType Directory -Force incoming | Out-Null
+          foreach ($request in @(
+            @{name='source-run.json';url="repos/$env:GITHUB_REPOSITORY/actions/runs/$env:R118_BUILD_RUN_ID"},
+            @{name='source-jobs.json';url="repos/$env:GITHUB_REPOSITORY/actions/runs/$env:R118_BUILD_RUN_ID/jobs?per_page=100"},
+            @{name='source-artifact-12104452390.json';url="repos/$env:GITHUB_REPOSITORY/actions/artifacts/12104452390"},
+            @{name='source-artifact-12104612026.json';url="repos/$env:GITHUB_REPOSITORY/actions/artifacts/12104612026"},
+            @{name='source-artifact-12103887892.json';url="repos/$env:GITHUB_REPOSITORY/actions/artifacts/12103887892"},
+            @{name='validation-run.json';url="repos/$env:GITHUB_REPOSITORY/actions/runs/$env:R118_VALIDATION_RUN_ID"},
+            @{name='validation-jobs.json';url="repos/$env:GITHUB_REPOSITORY/actions/runs/$env:R118_VALIDATION_RUN_ID/jobs?per_page=100"},
+            @{name='release.json';url="repos/$env:GITHUB_REPOSITORY/releases/tags/r118"}
+          )) {
+            $body = gh api $request.url
+            if ($LASTEXITCODE -ne 0) { throw "Read-only verification request failed: $($request.name)" }
+            [IO.File]::WriteAllText((Join-Path "$PWD/incoming" $request.name),($body -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          }
+          foreach ($workflow in @(
+            @{name='source-workflow.yml';path='.github/workflows/windows-r118.yml';head=$env:R118_BUILD_HEAD_SHA},
+            @{name='validation-workflow.yml';path='.github/workflows/resume-r118-exact.yml';head=$env:R118_VALIDATION_HEAD_SHA}
+          )) {
+            $encoded = gh api "repos/$env:GITHUB_REPOSITORY/contents/$($workflow.path)?ref=$($workflow.head)" --jq .content
+            if ($LASTEXITCODE -ne 0 -or -not $encoded) { throw "Pinned workflow retrieval failed: $($workflow.name)" }
+            [IO.File]::WriteAllBytes((Join-Path "$PWD/incoming" $workflow.name),[Convert]::FromBase64String(($encoded -join '')))
+          }
+          $tag = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r118" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag lookup failed' }
+          $object = $tag.object
+          if ($object.type -eq 'tag') {
+            $annotated = gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Annotated release tag lookup failed' }
+            $object = $annotated.object
+          }
+          if ($object.type -ne 'commit') { throw 'Release tag does not resolve to a commit' }
+          @{commitSha=$object.sha} | ConvertTo-Json | Set-Content incoming/tag-commit.json -Encoding utf8NoBOM
+          $encoded = gh api "repos/$env:GITHUB_REPOSITORY/contents/r118-signed-update.json?ref=$env:GITHUB_SHA" --jq .content
+          if ($LASTEXITCODE -ne 0 -or -not $encoded) { throw 'Reviewed signed manifest retrieval failed' }
+          [IO.File]::WriteAllBytes("$PWD/incoming/update-v20.json",[Convert]::FromBase64String(($encoded -join '')))
+          gh release download r118 --repo $env:GITHUB_REPOSITORY --dir incoming --pattern Klipper-Farm-R118-setup.exe --pattern KF-R118-FULL.zip --pattern R118-UI-proof.zip --pattern provenance.json --pattern exact-validation.json --pattern build-origin.json --pattern minimized-telemetry-r118.json
+          if ($LASTEXITCODE -ne 0) { throw 'Public candidate download failed' }
+      - name: Verify signature against installed publisher key and exact build proofs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import assert from 'node:assert/strict';
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          
+          const base=path.resolve(process.argv[2]??'.');
+          const expectedRun=process.env.R118_VALIDATION_RUN_ID;
+          const expectedHead=process.env.R118_VALIDATION_HEAD_SHA;
+          const sourceRun='39040985755';
+          const sourceHead='fffc8837e8144914bca3fb69369be66b7fa6a273';
+          const sourceJob=117420279616;
+          const sourceWorkflowSha256='11f0efe03ba4d84c761fda1f1b6511b2bdb094c9895cf8b6ea066f3b07ad6f4b';
+          const provenanceSha256='105123a91e35b63b4a50e3e5194722d02aab8640e85f201155c19ddae14377ca';
+          const validationWorkflowSha256='ac0d7a93653350d4f44ae68dc026afe2736d7ecdd22c1b4f40ed8ef1fdaf8187';
+          const sourceArtifacts=[
+           {id:12104452390,name:'Klipper-Farm-R118-Candidate',bytes:407020101,sha256:'7e62fcb53cbfe2a1e91c5bbcf0fb7a1490ea941c1503b05f3a71be9fd4b371c9',prefix:'candidate'},
+           {id:12104612026,name:'Klipper-Farm-R118-Reviewed-Source',bytes:500237733,sha256:'f6aed9ac3435af99ff09a5b36cc8bdcb64d660b4c0d0b236fd0538d7d1054296',prefix:'source'},
+           {id:12103887892,name:'Klipper-Farm-R118-Performance-Background-proof',bytes:238651,sha256:'8f03e659e6c2f4b0483496b9a020ab9d67ef416e9e9bfc730366f23fe9a7a57a',prefix:'uiProof'},
+          ];
+          const expectedAssets={
+           'Klipper-Farm-R118-setup.exe':{sha256:'005ef7b789f6c82b62460ec92120c89846f257114b28b7dc665764a83207f13b',sizeBytes:203541303},
+           'KF-R118-FULL.zip':{sha256:'12659233d2a1aff1401ce60a3eef2b8c99a61bb175576383d24b54a418db04f3',sizeBytes:500195909},
+           'R118-UI-proof.zip':{sha256:'8f03e659e6c2f4b0483496b9a020ab9d67ef416e9e9bfc730366f23fe9a7a57a',sizeBytes:238651},
+          };
+          const repository='sanozhukov3737-oss/klipper-farm-updates';
+          const publicKeyHex='28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb';
+          assert.match(expectedRun??'',/^[1-9][0-9]+$/,'Pin the successful exact R118 validation run ID before promotion');
+          assert.match(expectedHead??'',/^[0-9a-f]{40}$/,'Pin the successful exact R118 validation commit before promotion');
+          assert.notEqual(expectedRun,sourceRun,'Source compilation and resumed validation must have separate run identities');
+          const readJson=(name,max=1024*1024)=>{const file=path.join(base,name);assert(fs.statSync(file).size<=max,`${name} is too large`);return JSON.parse(fs.readFileSync(file,'utf8'))};
+          const hash=async name=>{const digest=crypto.createHash('sha256');for await(const bytes of fs.createReadStream(path.join(base,name)))digest.update(bytes);return digest.digest('hex')};
+          const originalRun=readJson('source-run.json');
+          assert.equal(String(originalRun.id),sourceRun);assert.equal(originalRun.head_sha,sourceHead);
+          assert.equal(originalRun.event,'push');assert.equal(originalRun.head_branch,'r118-background-panels');
+          assert.equal(originalRun.status,'completed');assert.equal(originalRun.conclusion,'failure');
+          assert.equal(originalRun.path.split('@')[0],'.github/workflows/windows-r118.yml');
+          assert.equal(originalRun.head_repository.full_name,repository);
+          const originalJobs=readJson('source-jobs.json');
+          const compiledJobs=originalJobs.jobs.filter(job=>job.id===sourceJob&&job.name==='build');
+          assert.equal(compiledJobs.length,1,'The exact original source build job is required');
+          const compiled=compiledJobs[0];
+          assert.equal(compiled.status,'completed');assert.equal(compiled.conclusion,'success');
+          assert(compiled.steps.length>0&&compiled.steps.every(step=>step.status==='completed'&&step.conclusion==='success'),'Every original build step must have passed');
+          assert.deepEqual(originalJobs.jobs.filter(job=>job.conclusion==='failure').map(job=>job.id),[117426498828],'Only the original known validation harness job may have failed');
+          assert(originalJobs.jobs.some(job=>job.id===117426498828&&job.name==='validate'&&job.status==='completed'));
+          assert.equal(await hash('source-workflow.yml'),sourceWorkflowSha256,'Original reviewed source build workflow differs');
+          for(const artifact of sourceArtifacts){
+           const metadata=readJson(`source-artifact-${artifact.id}.json`);
+           assert.equal(metadata.id,artifact.id);assert.equal(metadata.name,artifact.name);assert.equal(metadata.expired,false);
+           assert.equal(String(metadata.workflow_run.id),sourceRun);assert.equal(metadata.workflow_run.head_sha,sourceHead);
+           assert.equal(metadata.size_in_bytes,artifact.bytes);assert.equal(metadata.digest,`sha256:${artifact.sha256}`);
+          }
+          const run=readJson('validation-run.json');
+          assert.equal(String(run.id),expectedRun);assert.equal(run.head_sha,expectedHead);
+          assert.equal(run.head_branch,'r118-background-panels');assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');
+          assert.equal(run.path.split('@')[0],'.github/workflows/resume-r118-exact.yml');
+          assert.equal(run.head_repository.full_name,repository);
+          assert.equal(await hash('validation-workflow.yml'),validationWorkflowSha256,'Reviewed resumed validation workflow differs');
+          const jobs=readJson('validation-jobs.json');
+          for(const name of ['build','validate','publish-candidate']){
+           const matched=jobs.jobs.filter(job=>job.name===name);
+           assert.equal(matched.length,1,`Exactly one resumed ${name} job is required`);
+           const job=matched[0];assert.equal(job.status,'completed');assert.equal(job.conclusion,'success');
+           assert(job.steps.length>0&&job.steps.every(step=>step.status==='completed'&&step.conclusion==='success'),`Every resumed ${name} job step must have passed`);
+          }
+          const release=readJson('release.json');
+          assert.equal(release.tag_name,'r118');assert.equal(release.prerelease,true);assert.equal(release.draft,false);assert.equal(release.target_commitish,sourceHead);
+          assert.equal(readJson('tag-commit.json').commitSha,sourceHead,'Release tag points to a different source commit');
+          const provenance=readJson('provenance.json'),validation=readJson('exact-validation.json'),minimized=readJson('minimized-telemetry-r118.json'),origin=readJson('build-origin.json');
+          assert.equal(await hash('provenance.json'),provenanceSha256,'Original provenance bytes must be preserved');
+          assert.equal(origin.schemaVersion,1);assert.equal(String(origin.sourceBuildRunId),sourceRun);assert.equal(origin.sourceBuildHeadSha,sourceHead);assert.equal(origin.sourceBuildJobId,sourceJob);assert.equal(origin.sourceBuildWorkflowSha256,sourceWorkflowSha256);
+          assert.equal(origin.originalBuildJobSuccess,true);assert.equal(origin.originalValidationWasOnlyFailure,true);assert.equal(origin.provenanceSha256,provenanceSha256);
+          for(const artifact of sourceArtifacts){assert.equal(origin[`${artifact.prefix}ArtifactId`],artifact.id);assert.equal(origin[`${artifact.prefix}ArtifactSha256`],artifact.sha256);}
+          assert.equal(provenance.workflowCommit,sourceHead);assert.equal(provenance.sequence,118);assert.equal(provenance.baselineSequence,117);
+          assert.equal(provenance.buildId,'V20.6-R11.8-BACKGROUND-PANELS-2026-10-17');
+          assert.equal(provenance.baselineSourceSha256,'2164e5398b0bdef4ecc733b43ece25c8e8252d31b017056e6229b55d48c6e5bf');
+          assert.equal(provenance.baselineSetupSha256,'8a86c490d7da7f23ee77637e25b926645146e8a6a942f94d252c963a1fa6bbd7');
+          assert.equal(validation.candidateBuildHeadSha,sourceHead);assert.equal(String(validation.candidateBuildRunId),sourceRun);
+          assert.equal(validation.sourceBuildHeadSha,sourceHead);assert.equal(String(validation.sourceBuildRunId),sourceRun);assert.equal(validation.sourceBuildJobId,sourceJob);assert.equal(validation.sourceBuildWorkflowSha256,sourceWorkflowSha256);
+          assert.equal(validation.validationWorkflowHeadSha,expectedHead);assert.equal(String(validation.validationWorkflowRunId),expectedRun);assert.equal(String(validation.validationRunId),expectedRun);assert.equal(validation.validationWorkflowPath,'.github/workflows/resume-r118-exact.yml');
+          assert.equal(validation.originalBuildJobSuccess,true);assert.equal(validation.originalProductBytesPreserved,true);
+          for(const artifact of sourceArtifacts.slice(0,2)){assert.equal(validation[`${artifact.prefix}ArtifactId`],artifact.id);assert.equal(validation[`${artifact.prefix}ArtifactSha256`],artifact.sha256);}
+          assert.equal(validation.minimizedHarnessSha256,'cdf740bd7e09dde834a10ef649045addb48ca07fe442d6a53bbd879df09e19ff');
+          assert.equal(validation.correctedLifecycleScriptSha256,'c1f1c3bc66abef1d4a298274c99d7882db8fef742b99572f0abef815bd850ac1');
+          assert.equal(validation.inlineWindowHelperSha256,'34fe9c122199eb4e7aa91b219496e6c818a6a19c41b97583d4b5a5e2276ade5d');
+          assert.equal(validation.patchSha256,provenance.patchSha256);assert.equal(validation.setupSha256,provenance.setupSha256);assert.equal(validation.sourceSha256,provenance.sourceSha256);
+          for(const flag of ['fullR117UpgradeVerified','dataPreservationVerified','originalFourLifecycleModesVerified','allThreeDoubleLaunchesVerified','installedSmokeVerified','minimizedTelemetryDisconnectReconnectRestoreVerified'])assert.equal(validation[flag],true,`${flag} is missing`);
+          assert.equal(validation.exitWaitMs,20000);assert.equal(validation.earlyCloseWaitsForPageReady,false);
+          assert.equal(minimized.passed,true);assert.equal(minimized.minimizedMinimumSeconds,30);assert.equal(minimized.syntheticActorRemoved,true);assert.equal(minimized.cleanupError,null);
+          const event=name=>minimized.events.find(value=>value.stage===name);
+          for(const name of ['visible-before-minimize','minimized-fresh-sample','minimized-disconnected','minimized-reconnected','restored-fresh-sample'])assert(event(name),`Missing actual desktop event: ${name}`);
+          const samples=minimized.events.filter(value=>value.stage==='minimized-fresh-sample');
+          assert(samples.length>=3,'At least three independent actual minimized telemetry samples are required');
+          let previous=event('visible-before-minimize').lastSeenAt;
+          for(const sample of samples){assert.equal(sample.connected,true);assert(Number.isSafeInteger(sample.lastSeenAt)&&sample.lastSeenAt>previous,'Minimized telemetry must advance between independent samples');previous=sample.lastSeenAt;}
+          assert(Date.parse(event('minimized-disconnected').utc)-Date.parse(event('visible-before-minimize').utc)>=30_000,'The actual minimized run was shorter than 30 seconds');
+          assert.equal(event('minimized-disconnected').connected,false);assert.equal(event('minimized-reconnected').connected,true);
+          assert(event('minimized-reconnected').lastSeenAt>previous);assert.equal(event('restored-fresh-sample').connected,true);assert(event('restored-fresh-sample').lastSeenAt>event('minimized-reconnected').lastSeenAt);
+          const manifest=readJson('update-v20.json',64*1024);
+          assert.deepEqual(Object.keys(manifest).sort(),['schemaVersion','channel','sequence','version','publishedAt','artifact','releaseNotes','signerKeyId','signatureHex'].sort());
+          assert.deepEqual(Object.keys(manifest.artifact).sort(),['url','sha256','sizeBytes'].sort());
+          assert.equal(manifest.schemaVersion,1);assert.equal(manifest.channel,'stable');assert.equal(manifest.sequence,118);assert.equal(manifest.version,'1.14.5-r118');
+          assert(Number.isSafeInteger(manifest.publishedAt)&&manifest.publishedAt>0);
+          assert(manifest.publishedAt<=Date.now()+600_000,'Signed manifest publication time exceeds the native updater clock-skew limit');
+          assert.equal(manifest.artifact.url,`https://github.com/${repository}/releases/download/r118/Klipper-Farm-R118-setup.exe`);
+          assert.match(manifest.artifact.sha256,/^[0-9a-f]{64}$/);assert(Number.isSafeInteger(manifest.artifact.sizeBytes)&&manifest.artifact.sizeBytes>0&&manifest.artifact.sizeBytes<=512*1024*1024);
+          assert.equal(manifest.signerKeyId,crypto.createHash('sha256').update(Buffer.from(publicKeyHex,'hex')).digest('hex').slice(0,32));
+          assert.match(manifest.signatureHex,/^[0-9a-f]{128}$/);
+          assert(manifest.releaseNotes===null||typeof manifest.releaseNotes==='string'&&manifest.releaseNotes.length<=8192&&!manifest.releaseNotes.includes('\0'));
+          const unsigned={schemaVersion:manifest.schemaVersion,channel:manifest.channel,sequence:manifest.sequence,version:manifest.version,publishedAt:manifest.publishedAt,artifact:{url:manifest.artifact.url,sha256:manifest.artifact.sha256,sizeBytes:manifest.artifact.sizeBytes},releaseNotes:manifest.releaseNotes,signerKeyId:manifest.signerKeyId};
+          const publicKey=crypto.createPublicKey({key:Buffer.concat([Buffer.from('302a300506032b6570032100','hex'),Buffer.from(publicKeyHex,'hex')]),type:'spki',format:'der'});
+          const signingBytes=Buffer.concat([Buffer.from('klipper-farm-update-manifest-v1\0'),Buffer.from(JSON.stringify(unsigned))]);
+          assert(crypto.verify(null,signingBytes,publicKey,Buffer.from(manifest.signatureHex,'hex')),'The Ed25519 signature does not match the installed publisher public key');
+          const files=[...Object.keys(expectedAssets),'provenance.json','exact-validation.json','build-origin.json','minimized-telemetry-r118.json'];
+          const hashes={};
+          for(const name of files){
+           const sha=await hash(name),size=fs.statSync(path.join(base,name)).size,assets=release.assets.filter(value=>value.name===name);
+           assert.equal(assets.length,1,`Exactly one public release asset ${name} is required`);const asset=assets[0];assert.equal(asset.digest,`sha256:${sha}`);assert.equal(asset.size,size);
+           hashes[name]={sha256:sha,sizeBytes:size};
+           if(expectedAssets[name])assert.deepEqual(hashes[name],expectedAssets[name],`Public product bytes differ from the exact original build: ${name}`);
+          }
+          assert.equal(hashes[files[0]].sha256,manifest.artifact.sha256);assert.equal(hashes[files[0]].sizeBytes,manifest.artifact.sizeBytes);
+          assert.equal(hashes[files[0]].sha256,provenance.setupSha256);assert.equal(hashes[files[1]].sha256,provenance.sourceSha256);
+          hashes['update-v20.json']={sha256:await hash('update-v20.json'),sizeBytes:fs.statSync(path.join(base,'update-v20.json')).size};
+          fs.writeFileSync(path.join(base,'SHA256SUMS.txt'),Object.entries(hashes).map(([name,entry])=>`${entry.sha256} *${name}`).join('\n')+'\n');
+          fs.writeFileSync(path.join(base,'promotion-attestation.json'),JSON.stringify({schemaVersion:1,buildRunId:sourceRun,buildHeadSha:sourceHead,sourceBuildRunId:sourceRun,sourceBuildHeadSha:sourceHead,sourceBuildJobId:sourceJob,sourceBuildWorkflowSha256:sourceWorkflowSha256,validationRunId:expectedRun,validationHeadSha:expectedHead,validationWorkflowPath:'.github/workflows/resume-r118-exact.yml',originalProductBytesPreserved:true,releaseId:release.id,publicKeyHex,ed25519SignatureVerified:true,assets:hashes},null,2)+'\n');
+          console.log('R118 promotion verification passed: exact original successful source build job, separate successful resumed validation/publication, preserved product/provenance bytes, upgrade/minimized proof, Ed25519 signature and installer size/hash.');
+          '@ | Set-Content verify-r118-promotion.mjs -Encoding utf8NoBOM
+          node verify-r118-promotion.mjs incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Signed candidate verification failed; stable release remains unchanged' }
+          @'
+          Ускорены большие списки файлов, локальная библиотека и очередь печати: отображение разбито на страницы, а медленный принтер больше не задерживает очереди остальных устройств.
+
+          Телеметрия обновляется при свёрнутом окне. После восстановления окна данные синхронизируются без параллельных повторных запросов.
+
+          Анализ камеры получает новые декодированные кадры без зависимости от отрисовки скрытого видео. Замерший поток не создаёт ложных подтверждений нового кадра.
+
+          Проверено на Windows: обновление поверх R117 с сохранением данных, четыре сценария завершения, три реальных двойных запуска и сворачивание с потерей/восстановлением связи. Проверки интерфейса и WebRTC используют синтетические данные; физические принтеры и отпечаток пользователя проверяются на его ПК.
+
+          Установка: Klipper-Farm-R118-setup.exe или штатное обновление программы. Исходники: KF-R118-FULL.zip. Подписанное обновление: stable, последовательность 118.
+          '@ | Set-Content incoming/release-notes-ru.md -Encoding utf8NoBOM
+          New-Item -ItemType Directory -Force verified | Out-Null
+          Copy-Item incoming/update-v20.json,incoming/SHA256SUMS.txt,incoming/promotion-attestation.json,incoming/release-notes-ru.md verified/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R118-Promotion-Verified
+          path: verified/
+          if-no-files-found: error
+          retention-days: 30
+  promote:
+    needs: verify
+    runs-on: windows-2022
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R118-Promotion-Verified
+          path: verified
+      - name: Recheck exact public assets and publish verified signed stable update
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location verified
+          $proof = Get-Content promotion-attestation.json -Raw | ConvertFrom-Json
+          if ($proof.sourceBuildRunId -ne $env:R118_BUILD_RUN_ID -or $proof.sourceBuildHeadSha -ne $env:R118_BUILD_HEAD_SHA -or $proof.validationRunId -ne $env:R118_VALIDATION_RUN_ID -or $proof.validationHeadSha -ne $env:R118_VALIDATION_HEAD_SHA -or -not $proof.originalProductBytesPreserved -or -not $proof.ed25519SignatureVerified) { throw 'Wrong verified promotion artifact' }
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r118" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Final prerelease lookup failed' }
+          if ($release.id -ne $proof.releaseId -or -not $release.prerelease -or $release.draft -or $release.target_commitish -ne $env:R118_BUILD_HEAD_SHA) { throw 'Candidate release changed after verification' }
+          foreach ($name in @('Klipper-Farm-R118-setup.exe','KF-R118-FULL.zip','R118-UI-proof.zip','provenance.json','exact-validation.json','build-origin.json','minimized-telemetry-r118.json')) {
+            $expected = $proof.assets.$name
+            $assets = @($release.assets | Where-Object name -eq $name)
+            if ($assets.Count -ne 1 -or $assets[0].digest -ne ('sha256:'+$expected.sha256) -or $assets[0].size -ne $expected.sizeBytes) { throw "Public asset changed after verification: $name" }
+          }
+          if ((Get-FileHash update-v20.json).Hash.ToLowerInvariant() -ne $proof.assets.'update-v20.json'.sha256) { throw 'Verified signed manifest changed' }
+          gh release upload r118 update-v20.json SHA256SUMS.txt promotion-attestation.json --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Verified public manifest upload failed' }
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r118" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Uploaded manifest metadata lookup failed' }
+          $manifest = @($release.assets | Where-Object name -eq 'update-v20.json')
+          if ($manifest.Count -ne 1 -or $manifest[0].digest -ne ('sha256:'+$proof.assets.'update-v20.json'.sha256)) { throw 'Uploaded public signed manifest differs' }
+          gh release edit r118 --repo $env:GITHUB_REPOSITORY --prerelease=false --latest --title 'Klipper Farm R118 — скорость экранов и фоновая работа' --notes-file release-notes-ru.md
+          if ($LASTEXITCODE -ne 0) { throw 'Verified stable promotion failed' }
