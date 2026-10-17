@@ -42,7 +42,7 @@ jobs:
           $encoded = gh api "repos/$env:GITHUB_REPOSITORY/git/blobs/$blob" --jq .content
           if ($LASTEXITCODE -ne 0) { throw 'Patch download failed' }
           [IO.File]::WriteAllBytes("$PWD/incoming/r117-patch.json",[Convert]::FromBase64String(($encoded -join '')))
-          if ((Get-FileHash incoming/r117-patch.json).Hash.ToLowerInvariant() -ne 'd86d874b1825d39855a1577462660e95aa37a1770a35373e108205b07f193dc6') { throw 'Reviewed R117 patch checksum mismatch' }
+          if ((Get-FileHash incoming/r117-patch.json).Hash.ToLowerInvariant() -ne '69df1c0ac185b5b5ffb7a8bad3f551be75e2dace7026120577d7280bfbf053c3') { throw 'Reviewed R117 patch checksum mismatch' }
           $patch = Get-Content incoming/r117-patch.json -Raw -Encoding UTF8 | ConvertFrom-Json
           $root = [IO.Path]::GetFullPath("$PWD/work/app") + [IO.Path]::DirectorySeparatorChar
           foreach ($item in $patch) {
@@ -95,6 +95,7 @@ jobs:
           node scripts/check-http-keepalive.mjs
           if ($LASTEXITCODE -ne 0) { throw 'HTTP boundary regression failed' }
       - name: Rebuild frontend and freeze complete reviewed source
+        id: frontend
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -242,6 +243,7 @@ jobs:
             light-compact-preview/
           if-no-files-found: error
       - name: Verify first printer detail opens before optional preview work
+        if: ${{ !cancelled() && steps.frontend.outcome == 'success' }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
