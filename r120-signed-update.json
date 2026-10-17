@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 120,
+  "version": "1.14.5-r120",
+  "publishedAt": 1792261579000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r120/Klipper-Farm-R120-setup.exe",
+    "sha256": "d325bc14695fca4ecdbc285b0476992d013fb8c3da988dca3724c7be2ef97e95",
+    "sizeBytes": 248297141
+  },
+  "releaseNotes": "R120: добавлено 471 локальное изображение принтеров. Изображения есть у 476 из 500 моделей и работают без интернета; для 24 моделей пока сохранён силуэт. Пользовательские фотографии сохраняют приоритет. Проверены 15 сценариев интерфейса Windows и обновление с R119 с сохранением данных. Для подключения требуется доступный Klipper/Moonraker.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "66f6d7a33c0c335b9690e9c3e913df06f7ac9eeb82c44ae523ced6c368e1f337fccbfddf1db7b9e37f70ce5a3bd383e6b4c3983651a94c956e9ea7e0ebeb040b"
+}
