@@ -21,7 +21,8 @@ const server=http.createServer((req,res)=>{
   res.end(name&&modules[name]?modules[name]:'<!doctype html><title>R118 camera background acceptance</title><body></body>');
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-let browser,receiver,sender;
+let browser,receiver,sender,browserCdp;
+const nativeWindows={};
 const browserEvents=[];
 const watchPage=(page,label)=>{
   page.on('console',message=>{if(browserEvents.length<80)browserEvents.push({page:label,type:message.type(),text:message.text().slice(0,1000)})});
@@ -41,7 +42,9 @@ const snapshot=async(page,label)=>{
   },label)}catch(error){return{page:label,error:String(error)}}
 };
 const diagnose=async(stage,saveImages=false)=>{
-  const state={mode,stage,at:new Date().toISOString(),pages:await Promise.all([snapshot(receiver,'receiver'),snapshot(sender,'sender')]),browserEvents:[...browserEvents]};
+  const windows={};
+  if(browserCdp)for(const [label,window] of Object.entries(nativeWindows))try{windows[label]={...window,...await browserCdp.send('Browser.getWindowBounds',{windowId:window.windowId})}}catch(error){windows[label]={...window,error:String(error)}}
+  const state={mode,stage,at:new Date().toISOString(),windows,pages:await Promise.all([snapshot(receiver,'receiver'),snapshot(sender,'sender')]),browserEvents:[...browserEvents]};
   fs.mkdirSync(diagnosticsDirectory,{recursive:true});
   const filename=stage.replace(/[^a-z0-9_-]/gi,'-');
   fs.writeFileSync(path.join(diagnosticsDirectory,`${filename}.json`),JSON.stringify(state,null,2));
@@ -50,11 +53,23 @@ const diagnose=async(stage,saveImages=false)=>{
   return state;
 };
 try{
-  browser=await chromium.launch({headless:mode!=='headed',...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{}),args:['--no-sandbox']});
-  const context=await browser.newContext();
-  receiver=await context.newPage();sender=await context.newPage();watchPage(receiver,'receiver');watchPage(sender,'sender');
+  browser=await chromium.launch({headless:mode!=='headed',...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{}),args:['--no-sandbox'],ignoreDefaultArgs:['--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding','--disable-background-timer-throttling']});
+  // Separate incognito contexts force distinct native browser windows: the
+  // receiver can be physically minimized while the sender keeps painting.
+  const receiverContext=await browser.newContext(),senderContext=await browser.newContext();
+  receiver=await receiverContext.newPage();sender=await senderContext.newPage();watchPage(receiver,'receiver');watchPage(sender,'sender');
   const url=`http://127.0.0.1:${server.address().port}/`;
   await Promise.all([receiver.goto(url),sender.goto(url)]);
+  browserCdp=await browser.newBrowserCDPSession();
+  for(const [label,context,page] of [['receiver',receiverContext,receiver],['sender',senderContext,sender]]){
+    const cdp=await context.newCDPSession(page);
+    // Playwright enables focus emulation for every page by default. Turn that
+    // instrumentation off so document.hidden reflects the real native window.
+    await cdp.send('Emulation.setFocusEmulationEnabled',{enabled:false});
+    const {targetInfo}=await cdp.send('Target.getTargetInfo');
+    nativeWindows[label]={targetId:targetInfo.targetId,...await browserCdp.send('Browser.getWindowForTarget',{targetId:targetInfo.targetId})};
+  }
+  assert.notEqual(nativeWindows.receiver.windowId,nativeWindows.sender.windowId,'receiver and sender require distinct native windows');
   const offer=await receiver.evaluate(async()=>{
     const {sampleCameraVideo}=await import('/cameraVideoFrames.js');
     const {holdMonitoringActivity}=await import('/backgroundActivity.js');
@@ -67,7 +82,7 @@ try{
     window.beginSampling=()=>{window.stopSampling=sampleCameraVideo({peer:pc,video,intervalMs:500,getJobToken:()=>`test-job`,capture:async(token,at,job)=>{
       const canvas=document.createElement('canvas');canvas.width=32;canvas.height=32;const ctx=canvas.getContext('2d');ctx.drawImage(video,0,0,32,32);
       const bytes=ctx.getImageData(0,0,32,32).data;let hash=2166136261;for(const value of bytes)hash=Math.imul(hash^value,16777619);
-      captured.push({token,at,job,hash});
+      captured.push({token,at,job,hash,hidden:document.hidden});
     },unavailable:reason=>unavailable.push(reason),progressed:()=>{}})};
     await pc.setLocalDescription(await pc.createOffer());
     await new Promise(resolve=>{if(pc.iceGatheringState==='complete')resolve();else pc.addEventListener('icegatheringstatechange',()=>{if(pc.iceGatheringState==='complete')resolve()})});
@@ -85,12 +100,21 @@ try{
   await receiver.evaluate(async answer=>{await pc.setRemoteDescription(answer);beginSampling()},answer);
   await sender.bringToFront();
   await diagnose('negotiated');
+  await receiver.waitForFunction(()=>video.readyState>=2,undefined,{timeout:15000,polling:250});
+  await receiver.evaluate(()=>{captured.length=0});
+  await browserCdp.send('Browser.setWindowBounds',{windowId:nativeWindows.receiver.windowId,bounds:{windowState:'normal'}});
+  await browserCdp.send('Browser.setWindowBounds',{windowId:nativeWindows.receiver.windowId,bounds:{windowState:'minimized'}});
+  await sender.bringToFront();
+  await diagnose('minimized');
   // RAF polling would itself stop on the deliberately hidden document, leaving
   // the acceptance waiter stuck even when decoder frames arrive correctly.
   await receiver.waitForFunction(()=>document.hidden&&video.readyState>=2,undefined,{timeout:15000,polling:250});
-  await receiver.waitForFunction(()=>captured.length>=5,undefined,{timeout:20000,polling:250});
-  const observations=await receiver.evaluate(()=>({hidden:document.hidden,captured:[...captured],unavailable:[...unavailable]}));
+  await receiver.evaluate(()=>{captured.length=0});
+  await receiver.waitForFunction(()=>captured.filter(frame=>frame.hidden).length>=5,undefined,{timeout:20000,polling:250});
+  const observations=await receiver.evaluate(()=>({hidden:document.hidden,captured:captured.filter(frame=>frame.hidden),unavailable:[...unavailable]}));
   assert(observations.hidden,'receiver must actually be a hidden browser document');
+  const {bounds:receiverBounds}=await browserCdp.send('Browser.getWindowBounds',{windowId:nativeWindows.receiver.windowId});
+  assert.equal(receiverBounds.windowState,'minimized','native receiver browser window must remain minimized while frames are captured');
   assert(new Set(observations.captured.map(frame=>frame.token)).size>=5,'decoded frame identities must advance');
   assert(new Set(observations.captured.map(frame=>frame.hash)).size>=3,'actual hidden video pixels must change');
   assert(observations.captured.every(frame=>frame.job==='test-job'));
@@ -105,7 +129,7 @@ try{
   await diagnose('passed',true);
   await receiver.evaluate(()=>{stopSampling();releaseMonitoring();pc.close()});
   await sender.evaluate(()=>pc.close());
-  console.log(`R118 browser camera PASS: hidden WebRTC receiver captured ${observations.captured.length} unique decoded frames with changing pixels; frozen stream produced no new evidence`);
+  console.log(`R118 browser camera PASS (${mode}): physically minimized hidden WebRTC receiver captured ${observations.captured.length} unique decoded frames with changing pixels; frozen stream produced no new evidence`);
 }catch(error){
   await diagnose('failed',true);
   throw error;
