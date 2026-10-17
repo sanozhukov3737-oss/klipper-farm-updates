@@ -1,0 +1,99 @@
+name: Diagnose R118 real WebRTC hidden receiver
+on:
+  workflow_dispatch:
+  push:
+    branches: [r118-background-panels]
+    paths: ['.github/workflows/diagnose-r118-webrtc.yml', 'r118-webrtc-test.mjs']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: diagnose-r118-webrtc
+  cancel-in-progress: false
+jobs:
+  browser:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Restore reviewed production source and override only the browser acceptance fixture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          gh release download r117 --repo $env:GITHUB_REPOSITORY --pattern KF-R117-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Verified R117 source download failed' }
+          if ((Get-Item incoming/KF-R117-FULL.zip).Length -ne 500171480 -or (Get-FileHash incoming/KF-R117-FULL.zip).Hash.ToLowerInvariant() -ne '2164e5398b0bdef4ecc733b43ece25c8e8252d31b017056e6229b55d48c6e5bf') { throw 'Published R117 source differs' }
+          Expand-Archive incoming/KF-R117-FULL.zip work
+          Rename-Item work/Klipper-Farm-R117 app
+          foreach ($item in @(@{name='r118-patch.json';sha='0f74eb5339e9316ba1cc1896d09b9729190a941065aa8178883957c1f112e81c'},@{name='r118-webrtc-test.mjs';sha='0076a9ec9fbc63c6c6d72122f3bc610866f4cfe4707aae512a8b94533d24240a'})) {
+            $blob = gh api "repos/$env:GITHUB_REPOSITORY/git/trees/$env:GITHUB_SHA" --jq ('.tree[] | select(.path == "' + $item.name + '") | .sha')
+            if ($LASTEXITCODE -ne 0 -or -not $blob) { throw "Reviewed file blob lookup failed: $($item.name)" }
+            $encoded = gh api "repos/$env:GITHUB_REPOSITORY/git/blobs/$blob" --jq .content
+            if ($LASTEXITCODE -ne 0) { throw "Reviewed file download failed: $($item.name)" }
+            $file = Join-Path "$PWD/incoming" $item.name
+            [IO.File]::WriteAllBytes($file,[Convert]::FromBase64String(($encoded -join '')))
+            if ((Get-FileHash $file).Hash.ToLowerInvariant() -ne $item.sha) { throw "Reviewed file hash differs: $($item.name)" }
+          }
+          $patch = Get-Content incoming/r118-patch.json -Raw -Encoding UTF8 | ConvertFrom-Json
+          $root = [IO.Path]::GetFullPath("$PWD/work/app") + [IO.Path]::DirectorySeparatorChar
+          $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+          foreach ($item in $patch) {
+            if (-not $item.path -or $item.path.Contains('\') -or [IO.Path]::IsPathRooted($item.path) -or $item.path.Contains(':') -or -not $seen.Add($item.path)) { throw 'Invalid or duplicate source patch path' }
+            $file = [IO.Path]::GetFullPath((Join-Path $root $item.path))
+            if (-not $file.StartsWith($root,[StringComparison]::OrdinalIgnoreCase)) { throw 'Source patch path escapes root' }
+            if ($item.beforeSha256) {
+              if ((Get-FileHash $file).Hash.ToLowerInvariant() -ne $item.beforeSha256) { throw "Published baseline file differs: $($item.path)" }
+            } elseif (Test-Path $file) { throw "Unexpected existing source patch file: $($item.path)" }
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($file)) | Out-Null
+            [IO.File]::WriteAllText($file,$item.content,[Text.UTF8Encoding]::new($false))
+            if ((Get-FileHash $file).Hash.ToLowerInvariant() -ne $item.afterSha256) { throw "Reviewed source output differs: $($item.path)" }
+          }
+          $fixture = @($patch | Where-Object path -eq 'scripts/check-background-camera-browser-r118.mjs')
+          if ($fixture.Count -ne 1 -or (Get-FileHash work/app/scripts/check-background-camera-browser-r118.mjs).Hash.ToLowerInvariant() -ne $fixture[0].afterSha256) { throw 'Original browser fixture does not match reviewed source' }
+          Copy-Item incoming/r118-webrtc-test.mjs work/app/scripts/check-background-camera-browser-r118.mjs
+          if ((Get-FileHash work/app/scripts/check-background-camera-browser-r118.mjs).Hash.ToLowerInvariant() -ne '0076a9ec9fbc63c6c6d72122f3bc610866f4cfe4707aae512a8b94533d24240a') { throw 'Browser fixture override differs' }
+      - name: Install locked browser test dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked production dependencies failed' }
+          npm ci --prefix ui-tests --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked browser acceptance dependencies failed' }
+      - name: Collect headless hidden-receiver diagnostics
+        id: headless
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = Join-Path $PWD 'ui-tests/node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_CAMERA_BROWSER_MODE = 'headless'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'webrtc-diagnostics/headless'
+          node scripts/check-background-camera-browser-r118.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Headless diagnostic failed; inspect recorded visibility/decoder/peer evidence' }
+      - name: Require actual hidden-receiver acceptance with a headed browser
+        id: headed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location work/app
+          $env:PLAYWRIGHT_MODULE_PATH = Join-Path $PWD 'ui-tests/node_modules/playwright/index.mjs'
+          $env:CHROMIUM_EXECUTABLE = Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+          $env:KF_CAMERA_BROWSER_MODE = 'headed'
+          $env:KF_UI_SCREENSHOTS = Join-Path $env:GITHUB_WORKSPACE 'webrtc-diagnostics/headed'
+          node scripts/check-background-camera-browser-r118.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Actual hidden WebRTC receiver acceptance failed' }
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: Klipper-Farm-R118-WebRTC-Diagnostics
+          path: webrtc-diagnostics/
+          if-no-files-found: warn
+          retention-days: 30
