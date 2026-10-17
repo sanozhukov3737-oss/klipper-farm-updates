@@ -1,0 +1,280 @@
+name: Verify signed R119 catalog candidate and promote stable
+on:
+  workflow_dispatch:
+  push:
+    branches: [r119-printer-catalog]
+    paths: ['r119-signed-update.json', '.github/workflows/promote-r119.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: promote-r119
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Read exact successful build and reviewed public candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force incoming | Out-Null
+          @'
+          {
+            "runId": "39048936840",
+            "headSha": "103da252062229d0486ca1e6e73a65a4daee5b7c",
+            "workflowSha256": "f554a6c896501d13021ab78ad8f86c3dfc756d7857cbdb1649942d82ea4dd65c",
+            "patchSha256": "d0e50b26e97ee40cbd5355341bc8d4ad751104a614eab2518b4949a6d118b314"
+          }
+          '@ | Set-Content incoming/build-pins.json -Encoding utf8NoBOM
+          @'
+          {
+            "Klipper-Farm-R119-setup.exe": {
+              "sha256": "ce69dc1f9a530c247daa3d71a395e08480c925e0ab51f0b97f28e9be32f3ef62",
+              "sizeBytes": 203515253
+            },
+            "KF-R119-FULL.zip": {
+              "sha256": "d2d4feb12370a707ae38ec4638f037bdaae57631e2097f03c25aa0fc4a0b60f5",
+              "sizeBytes": 500254340
+            },
+            "R119-UI-proof.zip": {
+              "sha256": "6072ccaf155985580211c310375e33dd76259ec215ba507fea58c128eeb874dd",
+              "sizeBytes": 1007371
+            },
+            "provenance.json": {
+              "sha256": "b72aff2bf415add2f4732af9f6d64a11946e3a8e845c868929fe72b151653d67",
+              "sizeBytes": 1119
+            },
+            "exact-validation.json": {
+              "sha256": "d177bfcd18189318a107535c00275d15d2b4fa55729b382f0fd9256f8dc1def0",
+              "sizeBytes": 1299
+            },
+            "minimized-telemetry-r118.json": {
+              "sha256": "6b3a93bafedfd58f2ed574f7d4dade606f489d19c4011a0266ecb1444c72f086",
+              "sizeBytes": 2050
+            }
+          }
+          '@ | Set-Content incoming/candidate-pins.json -Encoding utf8NoBOM
+          $pins = Get-Content incoming/build-pins.json -Raw | ConvertFrom-Json
+          if ($pins.runId -notmatch '^[1-9][0-9]+$' -or $pins.headSha -notmatch '^[0-9a-f]{40}$' -or $pins.workflowSha256 -notmatch '^[0-9a-f]{64}$' -or $pins.patchSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Pin the successful final R119 run, head, workflow and patch before promotion' }
+          foreach ($request in @(
+            @{name='build-run.json';url="repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.runId)"},
+            @{name='build-jobs.json';url="repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.runId)/jobs?per_page=100"},
+            @{name='release.json';url="repos/$env:GITHUB_REPOSITORY/releases/tags/r119"}
+          )) {
+            $body = gh api $request.url
+            if ($LASTEXITCODE -ne 0) { throw "Read-only verification request failed: $($request.name)" }
+            [IO.File]::WriteAllText((Join-Path "$PWD/incoming" $request.name),($body -join [Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          }
+          foreach ($file in @(
+            @{name='build-workflow.yml';path='.github/workflows/windows-r119.yml';head=$pins.headSha},
+            @{name='reviewed-patch.json';path='r119-patch.json';head=$pins.headSha},
+            @{name='update-v20.json';path='r119-signed-update.json';head=$env:GITHUB_SHA}
+          )) {
+            $encoded = gh api "repos/$env:GITHUB_REPOSITORY/contents/$($file.path)?ref=$($file.head)" --jq .content
+            if ($LASTEXITCODE -ne 0 -or -not $encoded) { throw "Reviewed source retrieval failed: $($file.name)" }
+            [IO.File]::WriteAllBytes((Join-Path "$PWD/incoming" $file.name),[Convert]::FromBase64String(($encoded -join '')))
+          }
+          $tag = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r119" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Release tag lookup failed' }
+          $object = $tag.object
+          if ($object.type -eq 'tag') {
+            $annotated = gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Annotated release tag lookup failed' }
+            $object = $annotated.object
+          }
+          if ($object.type -ne 'commit') { throw 'Release tag does not resolve to a commit' }
+          @{commitSha=$object.sha} | ConvertTo-Json | Set-Content incoming/tag-commit.json -Encoding utf8NoBOM
+          gh release download r119 --repo $env:GITHUB_REPOSITORY --dir incoming --pattern Klipper-Farm-R119-setup.exe --pattern KF-R119-FULL.zip --pattern R119-UI-proof.zip --pattern provenance.json --pattern exact-validation.json --pattern minimized-telemetry-r118.json
+          if ($LASTEXITCODE -ne 0) { throw 'Public exact candidate download failed' }
+          Add-Type -AssemblyName System.IO.Compression.ZipFile
+          $archive = [IO.Compression.ZipFile]::OpenRead((Join-Path $PWD 'incoming/KF-R119-FULL.zip'))
+          try {
+            $entry = $archive.GetEntry('Klipper-Farm-R119/src/data/printerCatalog.json')
+            if (-not $entry -or $entry.Length -gt 2MB) { throw 'Expected bounded reviewed printer catalog source entry' }
+            $inputStream = $entry.Open()
+            $outputStream = [IO.File]::Create((Join-Path $PWD 'incoming/printer-catalog.json'))
+            try { $inputStream.CopyTo($outputStream) } finally { $outputStream.Dispose(); $inputStream.Dispose() }
+          } finally { $archive.Dispose() }
+      - name: Verify Ed25519, catalog and complete same-origin acceptance proofs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          @'
+          import assert from 'node:assert/strict';
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          
+          const base=path.resolve(process.argv[2]??'.');
+          const readJson=(name,max=1024*1024)=>{const file=path.join(base,name);assert(fs.statSync(file).size<=max,`${name} is too large`);return JSON.parse(fs.readFileSync(file,'utf8'))};
+          const hash=async name=>{const digest=crypto.createHash('sha256');for await(const bytes of fs.createReadStream(path.join(base,name)))digest.update(bytes);return digest.digest('hex')};
+          const buildPins=readJson('build-pins.json');
+          assert.deepEqual(Object.keys(buildPins).sort(),['runId','headSha','workflowSha256','patchSha256'].sort());
+          assert.match(buildPins.runId,/^[1-9][0-9]+$/,'Pin the successful complete R119 run before promotion');
+          assert.match(buildPins.headSha,/^[0-9a-f]{40}$/,'Pin the exact complete R119 workflow commit');
+          assert.match(buildPins.workflowSha256,/^[0-9a-f]{64}$/,'Pin the reviewed complete Windows workflow bytes');
+          assert.match(buildPins.patchSha256,/^[0-9a-f]{64}$/,'Pin the reviewed final R119 patch bytes');
+          const expectedRun=buildPins.runId,expectedHead=buildPins.headSha,expectedWorkflowSha256=buildPins.workflowSha256,expectedPatchSha256=buildPins.patchSha256;
+          const catalogSha256='4e6a0f6b8491a417faaa35aa4252ea54742b1e2f778936f8183163e87831196b';
+          const repository='sanozhukov3737-oss/klipper-farm-updates';
+          const publicKeyHex='28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb';
+          const files=['Klipper-Farm-R119-setup.exe','KF-R119-FULL.zip','R119-UI-proof.zip','provenance.json','exact-validation.json','minimized-telemetry-r118.json'];
+          const expectedAssets=readJson('candidate-pins.json');
+          assert.deepEqual(Object.keys(expectedAssets).sort(),[...files].sort(),'Provide exact reviewed hashes and sizes for every public candidate asset');
+          for(const name of files){
+           const pin=expectedAssets[name];assert.deepEqual(Object.keys(pin).sort(),['sha256','sizeBytes']);
+           assert.match(pin.sha256,/^[0-9a-f]{64}$/,`Replace the reviewed ${name} hash placeholder`);
+           assert(Number.isSafeInteger(pin.sizeBytes)&&pin.sizeBytes>0,`Replace the reviewed ${name} numeric size placeholder`);
+          }
+          assert(expectedAssets[files[0]].sizeBytes<=512*1024*1024,'Installer exceeds native updater size limit');
+          const run=readJson('build-run.json');
+          assert.equal(String(run.id),expectedRun);assert.equal(run.head_sha,expectedHead);assert.equal(run.head_branch,'r119-printer-catalog');
+          assert.equal(run.event,'push');assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');
+          assert.equal(run.path.split('@')[0],'.github/workflows/windows-r119.yml');assert.equal(run.head_repository.full_name,repository);
+          const jobs=readJson('build-jobs.json');assert.equal(jobs.jobs.length,3,'Exactly the three reviewed candidate workflow jobs are required');
+          for(const name of ['build','validate','publish-candidate']){
+           const matches=jobs.jobs.filter(job=>job.name===name);assert.equal(matches.length,1,`Exactly one ${name} job is required`);
+           const job=matches[0];assert.equal(job.status,'completed');assert.equal(job.conclusion,'success');
+           assert(job.steps.length>0&&job.steps.every(step=>step.status==='completed'&&step.conclusion==='success'),`Every ${name} step must have passed`);
+          }
+          assert.equal(await hash('build-workflow.yml'),expectedWorkflowSha256,'Reviewed complete build and acceptance workflow differs');
+          assert.equal(await hash('reviewed-patch.json'),expectedPatchSha256,'Reviewed R119 patch differs');
+          const release=readJson('release.json');assert.equal(release.tag_name,'r119');assert.equal(release.prerelease,true);assert.equal(release.draft,false);assert.equal(release.target_commitish,expectedHead);
+          assert.equal(readJson('tag-commit.json').commitSha,expectedHead,'Release tag points to a different source commit');
+          const provenance=readJson('provenance.json'),validation=readJson('exact-validation.json'),minimized=readJson('minimized-telemetry-r118.json');
+          assert.equal(provenance.workflowCommit,expectedHead);assert.equal(provenance.sequence,119);assert.equal(provenance.baselineSequence,118);
+          assert.equal(provenance.buildId,'V20.6-R11.9-PRINTER-CATALOG-2026-10-17');assert.equal(provenance.patchSha256,expectedPatchSha256);
+          assert.equal(provenance.baselineSourceSha256,'12659233d2a1aff1401ce60a3eef2b8c99a61bb175576383d24b54a418db04f3');
+          assert.equal(provenance.baselineSetupSha256,'005ef7b789f6c82b62460ec92120c89846f257114b28b7dc665764a83207f13b');
+          assert.equal(provenance.setupSha256,expectedAssets[files[0]].sha256);assert.equal(provenance.sourceSha256,expectedAssets[files[1]].sha256);
+          assert.equal(provenance.printerCatalogSha256,catalogSha256);assert.equal(provenance.printerCatalogSchemaVersion,1);assert.equal(provenance.printerCatalogModelCount,500);
+          assert.equal(await hash('printer-catalog.json'),catalogSha256,'The catalog extracted from reviewed source differs');
+          const catalog=readJson('printer-catalog.json',2*1024*1024);assert.equal(catalog.schemaVersion,1);assert.equal(catalog.models.length,500);
+          assert.equal(new Set(catalog.models.map(model=>model.id)).size,500,'Catalog IDs must remain unique');
+          assert.equal(validation.candidateBuildHeadSha,expectedHead);assert.equal(String(validation.candidateBuildRunId),expectedRun);assert.equal(String(validation.validationRunId),expectedRun);
+          assert.equal(validation.patchSha256,expectedPatchSha256);assert.equal(validation.setupSha256,provenance.setupSha256);assert.equal(validation.sourceSha256,provenance.sourceSha256);
+          assert.equal(validation.baselineSequence,118);assert.equal(validation.sequence,119);assert.equal(validation.baselineSourceSha256,provenance.baselineSourceSha256);assert.equal(validation.baselineSetupSha256,provenance.baselineSetupSha256);
+          assert.equal(validation.minimizedHarnessSha256,'cdf740bd7e09dde834a10ef649045addb48ca07fe442d6a53bbd879df09e19ff');
+          assert.equal(validation.correctedLifecycleScriptSha256,'c1f1c3bc66abef1d4a298274c99d7882db8fef742b99572f0abef815bd850ac1');assert.equal(validation.inlineWindowHelperSha256,'34fe9c122199eb4e7aa91b219496e6c818a6a19c41b97583d4b5a5e2276ade5d');
+          for(const flag of ['fullR118UpgradeVerified','dataPreservationVerified','originalFourLifecycleModesVerified','allThreeDoubleLaunchesVerified','installedSmokeVerified','minimizedTelemetryDisconnectReconnectRestoreVerified'])assert.equal(validation[flag],true,`${flag} is missing`);
+          assert.equal(validation.exitWaitMs,20000);assert.equal(validation.earlyCloseWaitsForPageReady,false);
+          assert.equal(minimized.passed,true);assert.equal(minimized.minimizedMinimumSeconds,30);assert.equal(minimized.syntheticActorRemoved,true);assert.equal(minimized.cleanupError,null);
+          const event=name=>minimized.events.find(value=>value.stage===name);
+          for(const name of ['visible-before-minimize','minimized-fresh-sample','minimized-disconnected','minimized-reconnected','restored-fresh-sample'])assert(event(name),`Missing actual desktop event: ${name}`);
+          const samples=minimized.events.filter(value=>value.stage==='minimized-fresh-sample');
+          assert(samples.length>=3,'At least three independent actual minimized telemetry samples are required');
+          let previous=event('visible-before-minimize').lastSeenAt;
+          for(const sample of samples){assert.equal(sample.connected,true);assert(Number.isSafeInteger(sample.lastSeenAt)&&sample.lastSeenAt>previous,'Minimized telemetry must advance between independent samples');previous=sample.lastSeenAt;}
+          assert(Date.parse(event('minimized-disconnected').utc)-Date.parse(event('visible-before-minimize').utc)>=30_000,'The actual minimized run was shorter than 30 seconds');
+          assert.equal(event('minimized-disconnected').connected,false);assert.equal(event('minimized-reconnected').connected,true);
+          assert(event('minimized-reconnected').lastSeenAt>previous);assert.equal(event('restored-fresh-sample').connected,true);assert(event('restored-fresh-sample').lastSeenAt>event('minimized-reconnected').lastSeenAt);
+          const manifest=readJson('update-v20.json',64*1024);
+          assert.deepEqual(Object.keys(manifest).sort(),['schemaVersion','channel','sequence','version','publishedAt','artifact','releaseNotes','signerKeyId','signatureHex'].sort());
+          assert.deepEqual(Object.keys(manifest.artifact).sort(),['url','sha256','sizeBytes'].sort());
+          assert.equal(manifest.schemaVersion,1);assert.equal(manifest.channel,'stable');assert.equal(manifest.sequence,119);assert.equal(manifest.version,'1.14.5-r119');
+          assert(Number.isSafeInteger(manifest.publishedAt)&&manifest.publishedAt>0);
+          assert(manifest.publishedAt<=Date.now()+600_000,'Signed manifest publication time exceeds the native updater clock-skew limit');
+          assert.equal(manifest.artifact.url,`https://github.com/${repository}/releases/download/r119/Klipper-Farm-R119-setup.exe`);
+          assert.match(manifest.artifact.sha256,/^[0-9a-f]{64}$/);assert(Number.isSafeInteger(manifest.artifact.sizeBytes)&&manifest.artifact.sizeBytes>0&&manifest.artifact.sizeBytes<=512*1024*1024);
+          assert.equal(manifest.signerKeyId,crypto.createHash('sha256').update(Buffer.from(publicKeyHex,'hex')).digest('hex').slice(0,32));
+          assert.match(manifest.signatureHex,/^[0-9a-f]{128}$/);
+          assert(manifest.releaseNotes===null||typeof manifest.releaseNotes==='string'&&manifest.releaseNotes.length<=8192&&!manifest.releaseNotes.includes('\0'));
+          const unsigned={schemaVersion:manifest.schemaVersion,channel:manifest.channel,sequence:manifest.sequence,version:manifest.version,publishedAt:manifest.publishedAt,artifact:{url:manifest.artifact.url,sha256:manifest.artifact.sha256,sizeBytes:manifest.artifact.sizeBytes},releaseNotes:manifest.releaseNotes,signerKeyId:manifest.signerKeyId};
+          const publicKey=crypto.createPublicKey({key:Buffer.concat([Buffer.from('302a300506032b6570032100','hex'),Buffer.from(publicKeyHex,'hex')]),type:'spki',format:'der'});
+          const signingBytes=Buffer.concat([Buffer.from('klipper-farm-update-manifest-v1\0'),Buffer.from(JSON.stringify(unsigned))]);
+          assert(crypto.verify(null,signingBytes,publicKey,Buffer.from(manifest.signatureHex,'hex')),'The Ed25519 signature does not match the installed publisher public key');
+          const hashes={};
+          for(const name of files){
+           const sha=await hash(name),size=fs.statSync(path.join(base,name)).size,assets=release.assets.filter(value=>value.name===name);
+           assert.deepEqual({sha256:sha,sizeBytes:size},expectedAssets[name],`Public asset differs from exact reviewed candidate: ${name}`);
+           assert.equal(assets.length,1,`Exactly one public release asset ${name} is required`);assert.equal(assets[0].digest,`sha256:${sha}`);assert.equal(assets[0].size,size);
+           hashes[name]={sha256:sha,sizeBytes:size};
+          }
+          assert.equal(hashes[files[0]].sha256,manifest.artifact.sha256);assert.equal(hashes[files[0]].sizeBytes,manifest.artifact.sizeBytes);
+          hashes['update-v20.json']={sha256:await hash('update-v20.json'),sizeBytes:fs.statSync(path.join(base,'update-v20.json')).size};
+          fs.writeFileSync(path.join(base,'SHA256SUMS.txt'),Object.entries(hashes).map(([name,entry])=>`${entry.sha256} *${name}`).join('\n')+'\n');
+          fs.writeFileSync(path.join(base,'promotion-attestation.json'),JSON.stringify({schemaVersion:1,buildRunId:expectedRun,buildHeadSha:expectedHead,buildWorkflowSha256:expectedWorkflowSha256,patchSha256:expectedPatchSha256,sourceAndInstalledValidationSameRun:true,printerCatalogSha256:catalogSha256,printerCatalogModelCount:500,releaseId:release.id,publicKeyHex,ed25519SignatureVerified:true,assets:hashes},null,2)+'\n');
+          console.log('R119 promotion verification passed: complete same-origin build/installed validation/publication, exact reviewed patch/catalog/source and public assets, R118 upgrade/minimized proof, Ed25519 signature and installer size/hash.');
+          '@ | Set-Content verify-r119-promotion.mjs -Encoding utf8NoBOM
+          node verify-r119-promotion.mjs incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Signed exact candidate verification failed' }
+          @'
+          Добавлен каталог из 500 моделей принтеров с поиском по названию, бренду и русским вариантам. Каталог доступен при первом добавлении принтера, в обнаруженных устройствах и в настройках.
+
+          Выбранная модель сохраняется для каждого принтера. Рабочие профили управления, способ подключения и существующие настройки сохраняются. Поздний результат автоопределения учитывает сделанный пользователем выбор.
+
+          Для подключения требуется доступный Klipper/Moonraker. Для большинства моделей используется условное изображение.
+
+          Сохранены ускоренные большие списки, независимые очереди принтеров и мониторинг при свёрнутом окне.
+
+          Проверено на Windows: выбор моделей и сохранение настроек, обновление поверх R118 с данными, четыре сценария завершения, три двойных запуска, сворачивание с потерей и восстановлением связи. Автоматические UI/WebRTC проверки используют синтетические данные. Физические принтеры и считыватель отпечатка проверяются на пользовательском ПК.
+
+          Установка: Klipper-Farm-R119-setup.exe или штатное обновление. Исходники: KF-R119-FULL.zip. Подписанное обновление: stable, последовательность 119.
+          '@ | Set-Content incoming/release-notes-ru.md -Encoding utf8NoBOM
+          New-Item -ItemType Directory -Force verified | Out-Null
+          Copy-Item incoming/update-v20.json,incoming/SHA256SUMS.txt,incoming/promotion-attestation.json,incoming/release-notes-ru.md,incoming/build-pins.json verified/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-R119-Promotion-Verified
+          path: verified/
+          if-no-files-found: error
+          retention-days: 30
+  promote:
+    needs: verify
+    runs-on: windows-2022
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-R119-Promotion-Verified
+          path: verified
+      - name: Recheck public candidate and publish verified signed stable update
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location verified
+          $proof = Get-Content promotion-attestation.json -Raw | ConvertFrom-Json
+          $pins = Get-Content build-pins.json -Raw | ConvertFrom-Json
+          if ($proof.buildRunId -ne $pins.runId -or $proof.buildHeadSha -ne $pins.headSha -or $proof.buildWorkflowSha256 -ne $pins.workflowSha256 -or $proof.patchSha256 -ne $pins.patchSha256 -or -not $proof.sourceAndInstalledValidationSameRun -or -not $proof.ed25519SignatureVerified -or $proof.printerCatalogModelCount -ne 500) { throw 'Wrong verified promotion artifact' }
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r119" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Final prerelease lookup failed' }
+          if ($release.id -ne $proof.releaseId -or -not $release.prerelease -or $release.draft -or $release.target_commitish -ne $pins.headSha) { throw 'Candidate release changed after verification' }
+          $tag = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r119" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Final release tag lookup failed' }
+          $object = $tag.object
+          if ($object.type -eq 'tag') {
+            $annotated = gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Final annotated release tag lookup failed' }
+            $object = $annotated.object
+          }
+          if ($object.type -ne 'commit' -or $object.sha -ne $pins.headSha) { throw 'Candidate tag changed after verification' }
+          foreach ($name in @('Klipper-Farm-R119-setup.exe','KF-R119-FULL.zip','R119-UI-proof.zip','provenance.json','exact-validation.json','minimized-telemetry-r118.json')) {
+            $expected = $proof.assets.$name
+            $assets = @($release.assets | Where-Object name -eq $name)
+            if ($assets.Count -ne 1 -or $assets[0].digest -ne ('sha256:'+$expected.sha256) -or $assets[0].size -ne $expected.sizeBytes) { throw "Public asset changed after verification: $name" }
+          }
+          if ((Get-FileHash update-v20.json).Hash.ToLowerInvariant() -ne $proof.assets.'update-v20.json'.sha256 -or (Get-Item update-v20.json).Length -ne $proof.assets.'update-v20.json'.sizeBytes) { throw 'Verified signed manifest changed' }
+          $upload = @{}
+          foreach ($name in @('update-v20.json','SHA256SUMS.txt','promotion-attestation.json')) { $upload[$name] = @{sha256=(Get-FileHash $name).Hash.ToLowerInvariant();sizeBytes=(Get-Item $name).Length} }
+          gh release upload r119 update-v20.json SHA256SUMS.txt promotion-attestation.json --repo $env:GITHUB_REPOSITORY --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Verified public manifest upload failed' }
+          $release = gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r119" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.id -ne $proof.releaseId -or -not $release.prerelease -or $release.draft -or $release.target_commitish -ne $pins.headSha) { throw 'Uploaded candidate identity changed' }
+          foreach ($name in $upload.Keys) {
+            $assets = @($release.assets | Where-Object name -eq $name)
+            if ($assets.Count -ne 1 -or $assets[0].digest -ne ('sha256:'+$upload[$name].sha256) -or $assets[0].size -ne $upload[$name].sizeBytes) { throw "Uploaded verified asset differs: $name" }
+          }
+          gh release edit r119 --repo $env:GITHUB_REPOSITORY --prerelease=false --latest --title 'Klipper Farm R119 — каталог 500 моделей принтеров' --notes-file release-notes-ru.md
+          if ($LASTEXITCODE -ne 0) { throw 'Verified stable promotion failed' }
