@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 123,
+  "version": "1.14.5-r123",
+  "publishedAt": 1792347490000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r123/Klipper-Farm-R123-setup.exe",
+    "sha256": "1edcf1ce0baa69f52ab3e31a9b91f3a4de38349944e78c8819027e7dff55959a",
+    "sizeBytes": 232496310
+  },
+  "releaseNotes": "Учёт пластика по материалам и принтерам: общий запас, катушки, уведомления после каждого килограмма расхода и при достижении резерва. Автоматический расчёт по фактической длине Moonraker после печати, ручное подтверждение при недостающих данных. Старые катушки сохранены.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "f29af02259ad168fa1f5dc765e1d094402719f549ce7c84e68df5e1f5838eb7978450948edf4261d20c310b7cb89a9bb70941c9762ac206cee45c7d6fedc7200"
+}
