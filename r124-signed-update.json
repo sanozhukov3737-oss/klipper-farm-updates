@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 124,
+  "version": "1.14.5-r124",
+  "publishedAt": 1792355318000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r124/Klipper-Farm-R124-setup.exe",
+    "sha256": "f1e0b36ae0ea9ee25ad7f582bf53d8cb67cec722b8cf75ae2f84c35cac934dc1",
+    "sizeBytes": 232487108
+  },
+  "releaseNotes": "Исправлены чёрные поля ввода в разделе «Пластик». Формы добавления запаса и катушек согласованы со светлой и тёмной темами; улучшена видимость подсказок и клавиатурного фокуса.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "38ffaf728a71d0eb425cd4fb39d46de54b7f9b345e9395efd133136813bfad663bdc1d05600b3825ba0a6a1de0345d6a961ef899b2fc06595373fc587884cd0e"
+}
