@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 121,
+  "version": "1.14.5-r121",
+  "publishedAt": 1792333049000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r121/Klipper-Farm-R121-setup.exe",
+    "sha256": "01f51b401fadb17be4e4051c745d8fb1ccd1e48a79b377193523347b34358305",
+    "sizeBytes": 249221378
+  },
+  "releaseNotes": "Добавлены ещё 11 точных изображений принтеров. Теперь изображения есть у 487 из 500 моделей; для 13 оставлен силуэт. Изображения работают без интернета. Обновление с R120 с сохранением данных проверено на Windows.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "38dac9ccebe49d13090572aa7728818ebb10187fdfa43ff9b9e1e64cbaf1950689a1efb3df8d27d3a9aa4b4f1caab50a50d73e21bb91c169e8868374ec862901"
+}
