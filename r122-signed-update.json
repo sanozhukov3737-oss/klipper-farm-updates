@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 122,
+  "version": "1.14.5-r122",
+  "publishedAt": 1792341531000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r122/Klipper-Farm-R122-setup.exe",
+    "sha256": "74f6fba8fb141f697ee06233bac92c83592b51499f40a6ec624014ded3084e1f",
+    "sizeBytes": 232474624
+  },
+  "releaseNotes": "Убраны белые фоны у 142 карточек принтеров. Прозрачные изображения работают без интернета в светлой и тёмной темах.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "daeadbc8dcd5203a2b1e11a7820cdb2090772801b37e49a8723d580e00bf57904fad748ba139c3dcebcead89d4963cf03dedad74be4394a2cf297bc2aeb5dc06"
+}
