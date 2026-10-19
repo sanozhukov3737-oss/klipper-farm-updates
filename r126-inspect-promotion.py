@@ -64,6 +64,7 @@ with zipfile.ZipFile(incoming / 'KF-R126-FULL.zip') as source:
         payload_after_restart = report('installed-payload-after-restart.json')
         assert payload == payload_after_restart
         assert payload['passed'] is True and payload['comparison'] == 'nsis-extracted-exact-v1'
+        assert set(payload['binaries']) == {'klipper-farm-client.exe', 'klipper-farmd.exe'}
         for name, binary in payload['binaries'].items():
             assert name in ['klipper-farm-client.exe', 'klipper-farmd.exe']
             assert binary['expectedInstalledSha256'] == binary['installedSha256'] == binary['packagedSha256']
