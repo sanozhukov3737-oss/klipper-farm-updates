@@ -74,6 +74,14 @@ jobs:
         $artifact | ConvertTo-Json -Depth 30 | Set-Content candidate/proof/original-build-artifact.json -Encoding utf8NoBOM
 
         '
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: "$ErrorActionPreference='Stop'\n$seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'\nif (-not (Test-Path $seven)) { $seven=(Get-Command\
+        \ 7z.exe -ErrorAction Stop).Source }\n& $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R126-setup.exe\nif ($LASTEXITCODE\
+        \ -ne 0) { throw 'Could not extract exact NSIS installer payload' }\nforeach ($name in @('klipper-farm-client.exe','klipper-farmd.exe'))\
+        \ {\n  $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)\n  if ($items.Count -ne 1) { throw \"Expected one\
+        \ extracted NSIS payload: $name\" }\n  Write-Host \"EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())\"\
+        \n}\n"
     - name: Install over R125, verify data, native telemetry and real desktop window
       shell: pwsh
       run: '$ErrorActionPreference=''Stop''
@@ -120,7 +128,7 @@ jobs:
 
         if ($process.ExitCode -ne 0) { throw ''R126 install over R125 failed'' }
 
-        node "$env:GITHUB_WORKSPACE/r126-check-installed-payload.mjs" $installDir "$PWD/release" "$PWD/proof/installed-payload.json"
+        node "$env:GITHUB_WORKSPACE/r126-check-installed-payload.mjs" $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
 
         if ($LASTEXITCODE -ne 0) { throw ''Installed bytes differ from exact NSIS bundle payload'' }
 
@@ -148,11 +156,11 @@ jobs:
 
         if ($LASTEXITCODE -ne 0) { throw ''Existing printer or filament data changed after installed app restart'' }
 
-        node "$env:GITHUB_WORKSPACE/r126-check-installed-payload.mjs" $installDir "$PWD/release" "$PWD/proof/installed-payload-after-restart.json"
+        node "$env:GITHUB_WORKSPACE/r126-check-installed-payload.mjs" $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
 
         if ($LASTEXITCODE -ne 0) { throw ''Installed exact payload changed after restart'' }
 
-        @{release=''R126'';passed=$true;compiledRunId=''39290258346'';compiledHeadSha=''7a734159c835fa5ee2a2a395a66895e572a48e9e'';sourceArtifactId=''12207022304'';sourceArtifactDigest=''sha256:2fcd3d287648bc3c4329ec960a836b68791c267454840f5f3e984e9a3bc62b0e'';installerBundleMarkerVerified=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=125;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;installedRestartVerified=$true}
+        @{release=''R126'';passed=$true;compiledRunId=''39290258346'';compiledHeadSha=''7a734159c835fa5ee2a2a395a66895e572a48e9e'';sourceArtifactId=''12207022304'';sourceArtifactDigest=''sha256:2fcd3d287648bc3c4329ec960a836b68791c267454840f5f3e984e9a3bc62b0e'';exactInstallerPayloadVerified=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=125;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;installedRestartVerified=$true}
         | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
 
         Compress-Archive proof,smoke R126-UI-proof.zip
@@ -161,7 +169,15 @@ jobs:
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: r126-validated
-        path: candidate
+        path: 'candidate/Klipper-Farm-R126-setup.exe
+
+          candidate/KF-R126-FULL.zip
+
+          candidate/provenance.json
+
+          candidate/exact-validation.json
+
+          candidate/R126-UI-proof.zip'
         retention-days: 7
     - if: always()
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -195,7 +211,7 @@ jobs:
         $origin=Get-Content provenance.json -Raw | ConvertFrom-Json
 
         if (-not $proof.passed -or $proof.runId -ne $env:GITHUB_RUN_ID -or $proof.headSha -ne $env:GITHUB_SHA -or $proof.compiledRunId -ne $origin.runId
-        -or $proof.compiledHeadSha -ne $origin.headSha -or $proof.compiledHeadSha -ne ''7a734159c835fa5ee2a2a395a66895e572a48e9e'' -or -not $proof.installerBundleMarkerVerified)
+        -or $proof.compiledHeadSha -ne $origin.headSha -or $proof.compiledHeadSha -ne ''7a734159c835fa5ee2a2a395a66895e572a48e9e'' -or -not $proof.exactInstallerPayloadVerified)
         { throw ''Validation provenance differs'' }
 
         foreach ($asset in $origin.assets.PSObject.Properties) { if ((Get-FileHash $asset.Name).Hash.ToLowerInvariant() -ne $asset.Value.sha256
