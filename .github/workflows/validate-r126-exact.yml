@@ -16,7 +16,6 @@ concurrency:
   cancel-in-progress: false
 jobs:
   validate:
-    needs: build
     runs-on: windows-2022
     timeout-minutes: 20
     env:
