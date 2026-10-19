@@ -1,0 +1,218 @@
+name: Validate exact compiled R126 NSIS payload and publish candidate
+'on':
+  push:
+    branches:
+    - r126-flashforge-files
+    paths:
+    - .github/workflows/validate-r126-exact.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+env:
+  PYTHONUTF8: '1'
+concurrency:
+  group: r126-exact-acceptance
+  cancel-in-progress: false
+jobs:
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r126-candidate
+        path: candidate
+        run-id: 39290258346
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Verify immutable successful build and exact reused candidate
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        $run=gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/39290258346" | ConvertFrom-Json
+
+        if ($LASTEXITCODE -ne 0 -or $run.head_sha -ne ''7a734159c835fa5ee2a2a395a66895e572a48e9e'' -or $run.status -ne ''completed'') { throw
+        ''Original compiled build identity differs'' }
+
+        $jobs=gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/39290258346/jobs?per_page=100" | ConvertFrom-Json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Build jobs unavailable'' }
+
+        $built=@($jobs.jobs | Where-Object name -eq ''build'')
+
+        if ($built.Count -ne 1 -or $built[0].id -ne 118188773609 -or $built[0].conclusion -ne ''success'') { throw ''Original source/native/build
+        acceptance did not pass'' }
+
+        $artifact=gh api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/12207022304" | ConvertFrom-Json
+
+        if ($LASTEXITCODE -ne 0 -or $artifact.name -ne ''r126-candidate'' -or $artifact.digest -ne ''sha256:2fcd3d287648bc3c4329ec960a836b68791c267454840f5f3e984e9a3bc62b0e''
+        -or $artifact.workflow_run.id -ne 39290258346 -or $artifact.expired) { throw ''Compiled candidate artifact changed'' }
+
+        $origin=Get-Content candidate/provenance.json -Raw | ConvertFrom-Json
+
+        if ($origin.runId -ne ''39290258346'' -or $origin.headSha -ne ''7a734159c835fa5ee2a2a395a66895e572a48e9e'' -or $origin.sequence -ne 126
+        -or $origin.baselineSequence -ne 125) { throw ''Compiled candidate provenance differs'' }
+
+        foreach ($asset in $origin.assets.PSObject.Properties) { if ((Get-FileHash "candidate/$($asset.Name)").Hash.ToLowerInvariant() -ne $asset.Value.sha256
+        -or (Get-Item "candidate/$($asset.Name)").Length -ne $asset.Value.sizeBytes) { throw ''Reused compiled candidate bytes changed'' } }
+
+        $run | ConvertTo-Json -Depth 30 | Set-Content candidate/proof/original-build-run.json -Encoding utf8NoBOM
+
+        $jobs | ConvertTo-Json -Depth 30 | Set-Content candidate/proof/original-build-jobs.json -Encoding utf8NoBOM
+
+        $artifact | ConvertTo-Json -Depth 30 | Set-Content candidate/proof/original-build-artifact.json -Encoding utf8NoBOM
+
+        '
+    - name: Install over R125, verify data, native telemetry and real desktop window
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        Set-Location candidate
+
+        $installDir=Join-Path $env:RUNNER_TEMP ''KF-R126-upgrade''
+
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+
+        gh release download r125 --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R125-setup.exe --dir old
+
+        if ($LASTEXITCODE -ne 0) { throw ''R125 installer download failed'' }
+
+        $old=(Resolve-Path old/Klipper-Farm-R125-setup.exe).Path
+
+        if ((Get-FileHash $old).Hash.ToLowerInvariant() -ne ''7a2d12bf1fafd9232be32ca7ee534027ee9948ea0d636040e8cf05ae40cd7fdf'') { throw ''R125
+        installer differs'' }
+
+        $process=Start-Process $old -ArgumentList (''/S /D=''+$installDir) -Wait -PassThru
+
+        if ($process.ExitCode -ne 0) { throw ''R125 install failed'' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+
+        if ($LASTEXITCODE -ne 0) { throw ''Published R125 actual WebView startup failed'' }
+
+
+        $dataDir=Join-Path $env:APPDATA ''app.klipper.farm''
+
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+
+        $marker=Join-Path $dataDir ''r126-preservation.txt''
+
+        [IO.File]::WriteAllText($marker,''preserve-existing-data'')
+
+        python scripts/r126-upgrade-data.py seed --database (Join-Path $dataDir ''farm.sqlite3'') --proof proof/upgrade-data-seed.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Legacy seed failed'' }
+
+        $setup=(Resolve-Path Klipper-Farm-R126-setup.exe).Path
+
+        $process=Start-Process $setup -ArgumentList (''/S /D=''+$installDir) -Wait -PassThru
+
+        if ($process.ExitCode -ne 0) { throw ''R126 install over R125 failed'' }
+
+        node "$env:GITHUB_WORKSPACE/r126-check-installed-payload.mjs" $installDir "$PWD/release" "$PWD/proof/installed-payload.json"
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed bytes differ from exact NSIS bundle payload'' }
+
+        if ((Get-Content $marker -Raw) -ne ''preserve-existing-data'') { throw ''Existing app data lost'' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed WebView main-window smoke failed'' }
+
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe"
+        --report "$PWD/proof/headless-runtime.json"
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed telemetry regression failed'' }
+
+        python scripts/r126-upgrade-data.py verify --database (Join-Path $dataDir ''farm.sqlite3'') --proof proof/upgrade-data-preserved.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Printer configuration, stocks, usage, reserves or spools changed during upgrade'' }
+
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed R126 second actual WebView startup failed'' }
+
+        python scripts/r126-upgrade-data.py verify --database (Join-Path $dataDir ''farm.sqlite3'') --proof proof/upgrade-data-after-restart.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Existing printer or filament data changed after installed app restart'' }
+
+        node "$env:GITHUB_WORKSPACE/r126-check-installed-payload.mjs" $installDir "$PWD/release" "$PWD/proof/installed-payload-after-restart.json"
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed exact payload changed after restart'' }
+
+        @{release=''R126'';passed=$true;compiledRunId=''39290258346'';compiledHeadSha=''7a734159c835fa5ee2a2a395a66895e572a48e9e'';sourceArtifactId=''12207022304'';sourceArtifactDigest=''sha256:2fcd3d287648bc3c4329ec960a836b68791c267454840f5f3e984e9a3bc62b0e'';installerBundleMarkerVerified=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=125;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;installedRestartVerified=$true}
+        | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+
+        Compress-Archive proof,smoke R126-UI-proof.zip
+
+        '
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r126-validated
+        path: candidate
+        retention-days: 7
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r126-installed-evidence
+        path: 'candidate/proof
+
+          candidate/smoke'
+        retention-days: 7
+  publish:
+    needs: validate
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r126-validated
+        path: candidate
+    - name: Publish exact validated R126 candidate
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        Set-Location candidate
+
+        $proof=Get-Content exact-validation.json -Raw | ConvertFrom-Json
+
+        $origin=Get-Content provenance.json -Raw | ConvertFrom-Json
+
+        if (-not $proof.passed -or $proof.runId -ne $env:GITHUB_RUN_ID -or $proof.headSha -ne $env:GITHUB_SHA -or $proof.compiledRunId -ne $origin.runId
+        -or $proof.compiledHeadSha -ne $origin.headSha -or $proof.compiledHeadSha -ne ''7a734159c835fa5ee2a2a395a66895e572a48e9e'' -or -not $proof.installerBundleMarkerVerified)
+        { throw ''Validation provenance differs'' }
+
+        foreach ($asset in $origin.assets.PSObject.Properties) { if ((Get-FileHash $asset.Name).Hash.ToLowerInvariant() -ne $asset.Value.sha256
+        -or (Get-Item $asset.Name).Length -ne $asset.Value.sizeBytes) { throw ''Validated bytes changed'' } }
+
+        @''
+
+        Исправлены профиль Flashforge Adventurer 5M, загрузка списка файлов при HTTP 404 и оформление диагностики поиска. Убраны белые остатки
+        фона у K1C 2025 и Flashforge 5M. Для сохранённого рассогласования модели и профиля откройте настройки, нажмите «Применить профиль» и сохраните.
+        Проверено на Windows Edge и установкой поверх R125 с сохранением данных.
+
+        ''@ | Set-Content notes.md -Encoding utf8NoBOM
+
+        gh release create r126 Klipper-Farm-R126-setup.exe KF-R126-FULL.zip provenance.json exact-validation.json R126-UI-proof.zip --target $origin.headSha
+        --repo $env:GITHUB_REPOSITORY --prerelease --title ''Klipper Farm R126 — Flashforge, файлы и оформление'' --notes-file notes.md
+
+        if ($LASTEXITCODE -ne 0) { throw ''Candidate publication failed'' }
+
+        '
