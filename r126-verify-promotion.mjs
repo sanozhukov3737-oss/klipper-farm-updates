@@ -58,3 +58,4 @@ fs.writeFileSync(path.join(root,'promotion-attestation.json'),JSON.stringify(att
 const sums=[];for(const name of [...Object.keys(evidenceAssets),'promotion-attestation.json','r126-promotion-contract.json'])sums.push(`${await hash(name)}  ${name}`);
 fs.writeFileSync(path.join(root,'SHA256SUMS.txt'),sums.join('\n')+'\n');
 console.log(JSON.stringify(attestation,null,2));
+assert.equal(inspection.exactInstalledNsisPayloadVerified,true);
