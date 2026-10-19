@@ -60,6 +60,18 @@ with zipfile.ZipFile(incoming / 'KF-R126-FULL.zip') as source:
         assert runtime['passed'] is True and runtime['registeredPrinters'] == 7
         for flag in ['staleCommandRejected', 'offlineMemberIsolation', 'freshTelemetryAllHealthy']:
             assert runtime[flag] is True, flag
+        payload = report('installed-payload.json')
+        payload_after_restart = report('installed-payload-after-restart.json')
+        assert payload == payload_after_restart
+        assert payload['passed'] is True and payload['comparison'] == 'tauri-nsis-bundle-type-marker-v1'
+        for name, binary in payload['binaries'].items():
+            assert binary['expectedInstalledSha256'] == binary['installedSha256']
+            if binary['bundleMarkerPatched']:
+                assert name == 'klipper-farm-client.exe'
+                assert binary['tokenBefore'] == '__TAURI_BUNDLE_TYPE_VAR_UNK'
+                assert binary['tokenAfter'] == '__TAURI_BUNDLE_TYPE_VAR_NSS' and binary['changedByteCount'] == 3
+            else:
+                assert binary['compiledSha256'] == binary['installedSha256']
         markers = [p for p in names if '/smoke/' in '/' + p.replace('\\', '/') and Path(p).name.startswith('desktop-startup-smoke-client-') and p.endswith('.json')]
         assert len(markers) >= 3
         for name in markers:
@@ -76,6 +88,7 @@ result = {'passed': True, 'release': 'R126', 'reviewedFileCount': 30,
           'realSQLitePrinterConfigurations': 7, 'legacySpools': 2,
           'installedUpgradeAndRestartDataPreserved': True,
           'desktopWebViewMarkers': len(markers), 'nativeRuntimeEmulatorVerified': True,
+          'exactInstalledPayloadAndTauriMarkerVerified': True, 'installedBinaries': payload['binaries'],
           'physicalPrinterTested': False,
           'scope': 'Windows hosted runner; production Edge UI, native processes and local printer emulator. Physical printer and actual Windows system DPI not tested.'}
 (incoming / 'source-inspection.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')

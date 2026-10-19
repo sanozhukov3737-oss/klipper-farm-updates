@@ -8,18 +8,30 @@ const json=name=>JSON.parse(fs.readFileSync(path.join(root,name),'utf8').replace
 const hash=async name=>{const h=crypto.createHash('sha256');for await(const chunk of fs.createReadStream(path.join(root,name)))h.update(chunk);return h.digest('hex')};
 const contract=json('r126-promotion-contract.json'), run=json('build-run.json'), jobs=json('build-jobs.json').jobs;
 const release=json('release.json'), provenance=json('provenance.json'), acceptance=json('exact-validation.json');
+const validationRun=json('validation-run.json'), validationJobs=json('validation-jobs.json').jobs, sourceArtifact=json('source-artifact.json');
 const manifest=json('update-v20.json'), inspection=json('source-inspection.json'), tag=json('tag-commit.json');
 const repo='sanozhukov3737-oss/klipper-farm-updates', publicHex='28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb';
 assert.equal(contract.repository,repo);assert.equal(contract.sequence,126);assert.equal(contract.patchSha256,'20d20017dfa46ccbb53ffca6b243aeb4691a88e4f4c8c670f3fda83512ddfeae');
 assert.equal(String(run.id),String(contract.buildRunId));assert.equal(run.head_sha,contract.buildHeadSha);
-assert.equal(run.head_branch,'r126-flashforge-files');assert.equal(run.event,'push');assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');
+assert.equal(run.head_branch,'r126-flashforge-files');assert.equal(run.event,'push');assert.equal(run.status,'completed');assert.equal(run.conclusion,'failure');
 assert.equal(run.path,'.github/workflows/windows-r126.yml');
 assert.equal(await hash('build-workflow.yml'),contract.buildWorkflowSha256);
-for(const name of ['build','validate','publish']){const matches=jobs.filter(job=>job.name===name);assert.equal(matches.length,1);assert.equal(matches[0].status,'completed');assert.equal(matches[0].conclusion,'success')}
+for(const name of ['build']){const matches=jobs.filter(job=>job.name===name);assert.equal(matches.length,1);assert.equal(matches[0].id,118188773609);assert.equal(matches[0].status,'completed');assert.equal(matches[0].conclusion,'success')}
+assert.equal(String(validationRun.id),String(contract.validationRunId));assert.equal(validationRun.head_sha,contract.validationHeadSha);
+assert.equal(validationRun.status,'completed');assert.equal(validationRun.conclusion,'success');assert.equal(validationRun.path,'.github/workflows/validate-r126-exact.yml');
+assert.equal(validationRun.head_branch,'r126-flashforge-files');assert.equal(validationRun.event,'push');
+for(const name of ['validate','publish']){const matches=validationJobs.filter(job=>job.name===name);assert.equal(matches.length,1);assert.equal(matches[0].status,'completed');assert.equal(matches[0].conclusion,'success')}
+assert.equal(await hash('validation-workflow.yml'),contract.validationWorkflowSha256);
+assert.equal(await hash('validation-payload-verifier.mjs'),contract.validationPayloadVerifierSha256);
+assert.equal(String(sourceArtifact.id),String(contract.sourceArtifactId));assert.equal(sourceArtifact.digest,contract.sourceArtifactDigest);
+assert.equal(String(sourceArtifact.workflow_run.id),String(run.id));assert.equal(sourceArtifact.workflow_run.head_sha,run.head_sha);
 assert.equal(release.id,contract.releaseId);assert.equal(release.tag_name,'r126');assert.equal(release.draft,false);assert.equal(release.prerelease,true);
 assert.equal(release.target_commitish,contract.buildHeadSha);assert.equal(tag.commitSha,contract.buildHeadSha);
 assert.equal(String(provenance.runId),String(run.id));assert.equal(provenance.headSha,run.head_sha);assert.equal(provenance.sequence,126);assert.equal(provenance.baselineSequence,125);
-assert.equal(String(acceptance.runId),String(run.id));assert.equal(acceptance.headSha,run.head_sha);assert.equal(acceptance.upgradeFrom,125);
+assert.equal(String(acceptance.runId),String(validationRun.id));assert.equal(acceptance.headSha,validationRun.head_sha);assert.equal(acceptance.upgradeFrom,125);
+assert.equal(String(acceptance.compiledRunId),String(run.id));assert.equal(acceptance.compiledHeadSha,run.head_sha);
+assert.equal(String(acceptance.sourceArtifactId),String(contract.sourceArtifactId));assert.equal(acceptance.sourceArtifactDigest,contract.sourceArtifactDigest);
+assert.equal(acceptance.installerBundleMarkerVerified,true);
 for(const flag of ['passed','installedBinaryHashesMatch','desktopWebViewLoaded','legacyDataPreserved','printerConfigurationPreserved','filamentInventoryPreserved','installedRestartVerified'])assert.equal(acceptance[flag],true,flag);
 assert.equal(inspection.passed,true);assert.equal(inspection.reviewedFileCount,30);assert.equal(inspection.exactPublishedSourceMatchesReviewedPatch,true);
 assert.equal(inspection.installedUpgradeAndRestartDataPreserved,true);assert.equal(inspection.nativeRuntimeEmulatorVerified,true);
@@ -41,7 +53,7 @@ const publicKey=crypto.createPublicKey({key:Buffer.concat([Buffer.from('302a3005
 assert.ok(crypto.verify(null,signingBytes,publicKey,Buffer.from(manifest.signatureHex,'hex')),'Publisher root signature invalid');
 assert.equal(manifest.releaseNotes,fs.readFileSync(path.join(root,'r126-release-notes.md'),'utf8'));
 const evidenceAssets={...contract.assets,'update-v20.json':{sha256:await hash('update-v20.json'),sizeBytes:fs.statSync(path.join(root,'update-v20.json')).size}};
-const attestation={schemaVersion:1,release:'R126',sequence:126,passed:true,repository:repo,releaseId:release.id,buildRunId:String(run.id),buildHeadSha:run.head_sha,buildWorkflowSha256:contract.buildWorkflowSha256,patchSha256:contract.patchSha256,sourceAndInstalledValidationSameRun:true,ed25519SignatureVerified:true,signerKeyId:keyId,promotionHeadSha:process.env.GITHUB_SHA??null,physicalPrinterTested:false,inspection,assets:evidenceAssets,verifiedAt:new Date().toISOString()};
+const attestation={schemaVersion:1,release:'R126',sequence:126,passed:true,repository:repo,releaseId:release.id,buildRunId:String(run.id),buildHeadSha:run.head_sha,buildWorkflowSha256:contract.buildWorkflowSha256,successfulBuildJobId:118188773609,validationRunId:String(validationRun.id),validationHeadSha:validationRun.head_sha,validationWorkflowSha256:contract.validationWorkflowSha256,sourceArtifactId:String(sourceArtifact.id),sourceArtifactDigest:sourceArtifact.digest,patchSha256:contract.patchSha256,compiledArtifactBoundToInstalledValidation:true,ed25519SignatureVerified:true,signerKeyId:keyId,promotionHeadSha:process.env.GITHUB_SHA??null,physicalPrinterTested:false,inspection,assets:evidenceAssets,verifiedAt:new Date().toISOString()};
 fs.writeFileSync(path.join(root,'promotion-attestation.json'),JSON.stringify(attestation,null,2)+'\n');
 const sums=[];for(const name of [...Object.keys(evidenceAssets),'promotion-attestation.json','r126-promotion-contract.json'])sums.push(`${await hash(name)}  ${name}`);
 fs.writeFileSync(path.join(root,'SHA256SUMS.txt'),sums.join('\n')+'\n');

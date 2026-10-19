@@ -1,2 +1,5 @@
 r126-patch.json -text
 r126-transfer/** -text
+r126-signed-update.json -text
+r126-promotion-contract.json -text
+r126-release-notes.md -text
