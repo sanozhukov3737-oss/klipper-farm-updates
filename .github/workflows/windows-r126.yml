@@ -184,8 +184,11 @@ jobs:
 
           work/app/.klipper-build-cache/*.log
 
-          work/app/.klipper-build-cache/target/*last.log'
+          work/app/.klipper-build-cache/target/*last.log
+
+          work/app/.klipper-build-cache/logs/*'
         retention-days: 7
+        include-hidden-files: true
   validate:
     needs: build
     runs-on: windows-2022
@@ -334,3 +337,5 @@ jobs:
         if ($LASTEXITCODE -ne 0) { throw ''Candidate publication failed'' }
 
         '
+env:
+  PYTHONUTF8: '1'
