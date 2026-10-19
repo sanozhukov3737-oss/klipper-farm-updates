@@ -1,0 +1,148 @@
+name: Verify signed R126 and publish stable
+'on':
+  push:
+    branches:
+    - r126-flashforge-files
+    paths:
+    - r126-signed-update.json
+    - r126-promotion-contract.json
+    - .github/workflows/promote-r126.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+env:
+  PYTHONUTF8: '1'
+concurrency:
+  group: promote-r126
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Verify exact candidate, Windows installation evidence and publisher signature
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ($env:GITHUB_REPOSITORY -ne 'sanozhukov3737-oss/klipper-farm-updates') { throw 'Wrong repository' }
+        New-Item -ItemType Directory -Force incoming,verified | Out-Null
+        Copy-Item r126-promotion-contract.json,r126-release-notes.md incoming/
+        Copy-Item r126-signed-update.json incoming/update-v20.json
+        $pins=Get-Content r126-promotion-contract.json -Raw | ConvertFrom-Json
+        function Save-Api([string]$endpoint,[string]$name) {
+          $body=gh api $endpoint
+          if ($LASTEXITCODE -ne 0) { throw "Metadata read failed: $name" }
+          [IO.File]::WriteAllText((Join-Path $PWD "incoming/$name"),($body -join "`n"),[Text.UTF8Encoding]::new($false))
+        }
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)" 'build-run.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)/jobs?per_page=100" 'build-jobs.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/releases/tags/r126" 'release.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.validationRunId)" 'validation-run.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.validationRunId)/jobs?per_page=100" 'validation-jobs.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($pins.sourceArtifactId)" 'source-artifact.json'
+        foreach ($item in @(@{name='validation-workflow.yml';path='.github/workflows/validate-r126-exact.yml'},@{name='validation-payload-verifier.mjs';path='r126-check-installed-payload.mjs'})) {
+          $content=gh api "repos/$env:GITHUB_REPOSITORY/contents/$($item.path)?ref=$($pins.validationHeadSha)" --jq .content
+          if ($LASTEXITCODE -ne 0) { throw 'Exact validation source retrieval failed' }
+          [IO.File]::WriteAllBytes((Join-Path $PWD ('incoming/'+$item.name)),[Convert]::FromBase64String(($content -join '')))
+        }
+        $encoded=gh api "repos/$env:GITHUB_REPOSITORY/contents/.github/workflows/windows-r126.yml?ref=$($pins.buildHeadSha)" --jq .content
+        if ($LASTEXITCODE -ne 0) { throw 'Exact build workflow retrieval failed' }
+        [IO.File]::WriteAllBytes((Join-Path $PWD 'incoming/build-workflow.yml'),[Convert]::FromBase64String(($encoded -join '')))
+        $tag=gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r126" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw 'Release tag retrieval failed' }
+        $object=$tag.object
+        if ($object.type -eq 'tag') {
+          $annotated=gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Annotated tag retrieval failed' }
+          $object=$annotated.object
+        }
+        if ($object.type -ne 'commit') { throw 'Release tag must resolve to a commit' }
+        @{commitSha=$object.sha} | ConvertTo-Json | Set-Content incoming/tag-commit.json -Encoding utf8NoBOM
+        gh release download r126 --repo $env:GITHUB_REPOSITORY --dir incoming --pattern Klipper-Farm-R126-setup.exe --pattern KF-R126-FULL.zip --pattern R126-UI-proof.zip --pattern provenance.json --pattern exact-validation.json
+        if ($LASTEXITCODE -ne 0) { throw 'Exact public candidate download failed' }
+        python r126-inspect-promotion.py incoming r126-patch.json
+        if ($LASTEXITCODE -ne 0) { throw 'Source or installed Windows proof inspection failed' }
+        node r126-verify-promotion.mjs incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Pinned candidate or root signature verification failed' }
+        foreach ($file in @('update-v20.json','SHA256SUMS.txt','promotion-attestation.json','r126-promotion-contract.json','r126-release-notes.md')) { Copy-Item "incoming/$file" verified/ }
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r126-verified-stable
+        path: verified
+        retention-days: 30
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r126-promotion-evidence
+        path: |
+          incoming/*.json
+          incoming/*.yml
+          incoming/SHA256SUMS.txt
+        retention-days: 30
+  promote:
+    needs: verify
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r126-verified-stable
+        path: verified
+    - name: Recheck candidate and publish verified stable manifest
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location verified
+        $proof=Get-Content promotion-attestation.json -Raw | ConvertFrom-Json
+        $pins=Get-Content r126-promotion-contract.json -Raw | ConvertFrom-Json
+        if (-not $proof.passed -or -not $proof.ed25519SignatureVerified -or -not $proof.compiledArtifactBoundToInstalledValidation -or $proof.sequence -ne 126 -or $proof.promotionHeadSha -ne $env:GITHUB_SHA -or $proof.buildHeadSha -ne $pins.buildHeadSha -or $proof.buildRunId -ne $pins.buildRunId -or $proof.validationRunId -ne $pins.validationRunId -or $proof.validationHeadSha -ne $pins.validationHeadSha) { throw 'Verification provenance differs' }
+        function Check-Candidate {
+          $candidate=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r126" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate metadata unavailable' }
+          if ($candidate.id -ne $pins.releaseId -or $candidate.draft -or -not $candidate.prerelease -or $candidate.target_commitish -ne $pins.buildHeadSha) { throw 'Candidate release changed' }
+          foreach ($asset in $pins.assets.PSObject.Properties) {
+            $actual=@($candidate.assets | Where-Object name -eq $asset.Name)
+            if ($actual.Count -ne 1 -or $actual[0].size -ne $asset.Value.sizeBytes -or $actual[0].digest -ne ('sha256:'+$asset.Value.sha256)) { throw "Candidate bytes changed: $($asset.Name)" }
+          }
+          $tag=gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r126" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate tag unavailable' }
+          $object=$tag.object
+          if ($object.type -eq 'tag') {
+            $annotated=gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Annotated tag unavailable' }
+            $object=$annotated.object
+          }
+          if ($object.type -ne 'commit' -or $object.sha -ne $pins.buildHeadSha) { throw 'Candidate tag changed' }
+        }
+        Check-Candidate
+        if ((Get-FileHash update-v20.json).Hash.ToLowerInvariant() -ne $proof.assets.'update-v20.json'.sha256 -or (Get-Item update-v20.json).Length -ne $proof.assets.'update-v20.json'.sizeBytes) { throw 'Verified signed manifest changed' }
+        $upload=@{}
+        foreach ($name in @('update-v20.json','SHA256SUMS.txt','promotion-attestation.json','r126-promotion-contract.json')) { $upload[$name]=@{sha256=(Get-FileHash $name).Hash.ToLowerInvariant();sizeBytes=(Get-Item $name).Length} }
+        gh release upload r126 update-v20.json SHA256SUMS.txt promotion-attestation.json r126-promotion-contract.json --repo $env:GITHUB_REPOSITORY --clobber
+        if ($LASTEXITCODE -ne 0) { throw 'Verified manifest upload failed' }
+        Check-Candidate
+        $candidate=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r126" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw 'Uploaded metadata unavailable' }
+        foreach ($name in $upload.Keys) {
+          $asset=@($candidate.assets | Where-Object name -eq $name)
+          if ($asset.Count -ne 1 -or $asset[0].digest -ne ('sha256:'+$upload[$name].sha256) -or $asset[0].size -ne $upload[$name].sizeBytes) { throw "Uploaded verified asset differs: $name" }
+        }
+        Check-Candidate
+        gh release edit r126 --repo $env:GITHUB_REPOSITORY --prerelease=false --latest --title 'Klipper Farm R126 — Flashforge, файлы и оформление' --notes-file r126-release-notes.md
+        if ($LASTEXITCODE -ne 0) { throw 'Stable R126 publication failed' }
