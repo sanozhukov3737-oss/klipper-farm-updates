@@ -31,7 +31,7 @@ assert.equal(String(provenance.runId),String(run.id));assert.equal(provenance.he
 assert.equal(String(acceptance.runId),String(validationRun.id));assert.equal(acceptance.headSha,validationRun.head_sha);assert.equal(acceptance.upgradeFrom,125);
 assert.equal(String(acceptance.compiledRunId),String(run.id));assert.equal(acceptance.compiledHeadSha,run.head_sha);
 assert.equal(String(acceptance.sourceArtifactId),String(contract.sourceArtifactId));assert.equal(acceptance.sourceArtifactDigest,contract.sourceArtifactDigest);
-assert.equal(acceptance.installerBundleMarkerVerified,true);
+assert.equal(acceptance.exactInstallerPayloadVerified,true);
 for(const flag of ['passed','installedBinaryHashesMatch','desktopWebViewLoaded','legacyDataPreserved','printerConfigurationPreserved','filamentInventoryPreserved','installedRestartVerified'])assert.equal(acceptance[flag],true,flag);
 assert.equal(inspection.passed,true);assert.equal(inspection.reviewedFileCount,30);assert.equal(inspection.exactPublishedSourceMatchesReviewedPatch,true);
 assert.equal(inspection.installedUpgradeAndRestartDataPreserved,true);assert.equal(inspection.nativeRuntimeEmulatorVerified,true);

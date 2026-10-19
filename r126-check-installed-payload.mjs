@@ -3,30 +3,25 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-const [installDir,compiledDir,output]=process.argv.slice(2);
-assert.ok(installDir&&compiledDir&&output);
+const [installDir,packageDir,output]=process.argv.slice(2);
+assert.ok(installDir&&packageDir&&output);
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
-const report={schemaVersion:1,passed:true,comparison:'tauri-nsis-bundle-type-marker-v1',binaries:{}};
+const report={schemaVersion:1,passed:true,comparison:'nsis-extracted-exact-v1',binaries:{}};
+const files=[];
+const walk=folder=>{for(const entry of fs.readdirSync(folder,{withFileTypes:true})){
+ assert.ok(!entry.isSymbolicLink(),'Extracted NSIS payload must not contain symlinks');
+ const name=path.join(folder,entry.name);if(entry.isDirectory())walk(name);else if(entry.isFile())files.push(name);
+}};
+walk(packageDir);
 for(const name of ['klipper-farm-client.exe','klipper-farmd.exe']){
- const raw=fs.readFileSync(path.join(compiledDir,name));
+ const packagedFiles=files.filter(file=>path.basename(file).toLowerCase()===name);
+ assert.equal(packagedFiles.length,1,`Expected one exact NSIS payload file: ${name}`);
+ const packaged=fs.readFileSync(packagedFiles[0]);
  const installed=fs.readFileSync(path.join(installDir,name));
- const entry={sizeBytes:installed.length,compiledSha256:sha(raw),installedSha256:sha(installed),bundleMarkerPatched:false};
- assert.equal(installed.length,raw.length,`Installed binary length differs: ${name}`);
- let expected=raw;
- if(!raw.equals(installed)){
-  assert.equal(name,'klipper-farm-client.exe','Only desktop EXE may have a Tauri bundle type marker patch');
-  const before=Buffer.from('__TAURI_BUNDLE_TYPE_VAR_UNK');
-  const after=Buffer.from('__TAURI_BUNDLE_TYPE_VAR_NSS');
-  const offset=raw.indexOf(before);
-  assert.ok(offset>=0,'Compiled desktop does not contain the documented Tauri bundle type token');
-  expected=Buffer.from(raw);after.copy(expected,offset);
-  const differences=[];for(let i=0;i<raw.length;i++)if(raw[i]!==installed[i]&&differences.length<32)differences.push(i);
-  assert.ok(expected.equals(installed),`Installed desktop differs beyond the exact first Tauri NSIS token: ${JSON.stringify({compiledSha256:sha(raw),installedSha256:sha(installed),tokenOffset:offset,firstDifferences:differences})}`);
-  entry.bundleMarkerPatched=true;entry.tokenOffset=offset;entry.tokenBefore=before.toString();entry.tokenAfter=after.toString();entry.changedByteCount=differences.length;
-  assert.equal(differences.length,3,'Unexpected number of Tauri token byte changes');
- }
- entry.expectedInstalledSha256=sha(expected);
- assert.equal(entry.installedSha256,entry.expectedInstalledSha256,`Installed exact payload hash differs: ${name}`);
+ const entry={sizeBytes:installed.length,packagedSha256:sha(packaged),installedSha256:sha(installed),expectedInstalledSha256:sha(packaged),packagedPath:path.relative(packageDir,packagedFiles[0]).replaceAll('\\','/')};
+ assert.equal(installed.length,packaged.length,`Installed binary length differs from extracted NSIS payload: ${name}`);
+ assert.equal(entry.installedSha256,entry.packagedSha256,`Installed SHA-256 differs from extracted NSIS payload: ${name}`);
+ assert.ok(packaged.equals(installed),`Installed bytes differ from extracted NSIS payload: ${name}`);
  if(name==='klipper-farm-client.exe'){
   assert.ok(installed.includes(Buffer.from('V20.6-R12.6-FLASHFORGE-FILES-2026-10-19')),'Installed desktop build identity differs');
   assert.ok(installed.includes(Buffer.from('28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb')),'Installed publisher public key differs');
