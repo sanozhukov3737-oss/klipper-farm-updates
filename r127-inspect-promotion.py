@@ -85,7 +85,7 @@ with zipfile.ZipFile(incoming / 'KF-R127-FULL.zip') as source, zipfile.ZipFile(b
         assert {r['path']: r['sha256'] for r in delta['modifiedFiles']} == {r['path']: r['sha256'] for r in rows}
         counts = {}
         for name, minimum in [('r127-print-start.json', 12), ('r127-sound-core.json', 12),
-                              ('r127-filament-core.json', 9), ('warehouse-r127-report.json', 7),
+                              ('warehouse-r127-report.json', 7),
                               ('filament-inventory-r123-report.json', 17), ('sound-settings-ui.json', 4)]:
             result = report(name)
             assert isinstance(result['passed'], int) and result['passed'] >= minimum, name

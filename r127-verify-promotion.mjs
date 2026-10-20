@@ -68,9 +68,12 @@ const nativeProof=fs.readFileSync(path.join(root,'native-bundle-verification.txt
 assert.equal(nativeProof,`verified channel=stable sequence=127 version=1.14.5-r127 sha256=${manifest.artifact.sha256} bytes=${manifest.artifact.sizeBytes}`);
 const channelProof=json('update-sequence-verification.json');
 assert.equal(channelProof.passed,true);assert.equal(channelProof.availableFromR126,true);assert.equal(channelProof.noRepeatedUpdateFromR127,true);
+const accounting=json('r127-filament-core.json');
+assert.equal(accounting.cases.length,9);assert.equal(new Set(accounting.cases.map(c=>c.name)).size,9);assert.ok(accounting.cases.every(c=>c.passed===true));
+inspection.acceptanceCases['r127-filament-core.json']=accounting.cases.length;
 const assets={...contract.assets,'update-v20.json':{sha256:await hash('update-v20.json'),sizeBytes:fs.statSync(path.join(root,'update-v20.json')).size}};
 const attestation={schemaVersion:1,release:'R127',sequence:127,tag:'r127-ota',passed:true,repository:repo,releaseId:release.id,buildRunId:String(run.id),buildHeadSha:run.head_sha,buildWorkflowSha256:contract.buildWorkflowSha256,jobs:contract.jobs,sourceArtifactId:String(artifact.id),sourceArtifactDigest:artifact.digest,patchSha256:patchSha,checkpointSha256:checkpointSha,compiledArtifactBoundToInstalledValidation:true,embeddedInstalledSequenceVerified:true,ed25519SignatureVerified:true,nativeUpdaterModuleVerified:true,nativeVerificationSha256:await hash('native-bundle-verification.txt'),signerKeyId:keyId,promotionHeadSha:process.env.GITHUB_SHA??null,inspection,channelProof,assets,verifiedAt:new Date().toISOString(),physicalPrinterTested:false};
 fs.writeFileSync(path.join(root,'promotion-attestation.json'),JSON.stringify(attestation,null,2)+'\n');
-const sums=[];for(const name of [...Object.keys(assets),'promotion-attestation.json','r127-promotion-contract.json','native-bundle-verification.txt','update-sequence-verification.json'])sums.push(`${await hash(name)}  ${name}`);
+const sums=[];for(const name of [...Object.keys(assets),'promotion-attestation.json','r127-promotion-contract.json','native-bundle-verification.txt','update-sequence-verification.json','r127-filament-core.json'])sums.push(`${await hash(name)}  ${name}`);
 fs.writeFileSync(path.join(root,'SHA256SUMS.txt'),sums.join('\n')+'\n');
 console.log(JSON.stringify(attestation,null,2));
