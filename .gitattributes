@@ -3,3 +3,9 @@ r126-transfer/** -text
 r126-signed-update.json -text
 r126-promotion-contract.json -text
 r126-release-notes.md -text
+r127-* -text
+R127-* -text
+KF-R127-* -text
+apply-r127.py -text
+.github/workflows/windows-r127-ota.yml -text
+.github/workflows/promote-r127.yml -text
