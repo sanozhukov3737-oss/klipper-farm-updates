@@ -1,0 +1,18 @@
+{
+  "release": "R130",
+  "sequence": 130,
+  "passed": true,
+  "releaseId": 418807895,
+  "buildRunId": "39481880663",
+  "promotionRunId": "39487531118",
+  "buildHeadSha": "c5d2c1f410b98cdd99b22b59d7a5b4f978a1e2bf",
+  "promotionHeadSha": "f954aa5c086334b3adae5917450fea0373dec704",
+  "manifestSha256": "907eabb69ced151d0d2cb554b008b67a386dae91c7632dfe62fcce06f05f228c",
+  "installerSha256": "c5b68e39dcbafc46bd50b8cde7d29344530fb0747465a524e96e8df63669c3dc",
+  "publicApplicationEndpointVerified": true,
+  "productionRustUpdaterVerified": true,
+  "filamentReplacementCases": 11,
+  "unifiedPrintersCases": 24,
+  "installedUpgradeFrom": 129,
+  "installedUpgradeAndRestartDataPreserved": true
+}
