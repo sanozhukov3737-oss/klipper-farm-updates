@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "sequence": 128,
+  "tag": "r128-ota",
+  "releaseId": 418645189,
+  "buildRunId": "39456358940",
+  "buildHeadSha": "e0a787ac01ab7560fdb5d61ba0299985a62cb9c4",
+  "buildWorkflowSha256": "73a22831e3f2587fafa829c4717a3142327aa5d450b7b0e45ec4bd49b9603509",
+  "jobs": {
+    "build": 118744158337,
+    "validate": 118759324501,
+    "publish": 118761145139
+  },
+  "sourceArtifactId": "12282941284",
+  "sourceArtifactDigest": "sha256:b1020947bfea316e7028a6d4bef92e37bcf456e89cdc763613fab683dc5a6983",
+  "patchSha256": "3a31e2453643f0cfe784a04fd79275e791b884c2411435cb0ac55e1fd05a6b57",
+  "checkpointSha256": "faf406664f9aa04a930cea1a16a02fa79bfe6d9c2d02d83b4e5d191a99e765f4",
+  "assets": {
+    "exact-validation.json": {
+      "sha256": "4e7c931d49a31c0ab0c366cc36ff21e1b7cea8388d827d01eee9f99be3571b4e",
+      "sizeBytes": 489
+    },
+    "KF-R128-FULL.zip": {
+      "sha256": "1f4e28e7cad0296d75bf1f61bdc6a6427c8f2cc6fbf2b96a6f60827893c877c2",
+      "sizeBytes": 582750097
+    },
+    "Klipper-Farm-R128-setup.exe": {
+      "sha256": "cc20ee1f5408c9cb7a7c7f2b0d02db73e4cc3f9ea15a77d1519e28174a00f52e",
+      "sizeBytes": 233749954
+    },
+    "provenance.json": {
+      "sha256": "983c04732629f84f0d74c88d1c0e9e438e45f4c32bff6ca92d8fa6b61912acd6",
+      "sizeBytes": 725
+    },
+    "R128-UI-proof.zip": {
+      "sha256": "7f2ef813a0603edf3f255b553961b143f4f00a9429e0e4996cb803cf411fecc8",
+      "sizeBytes": 5415619
+    }
+  }
+}
