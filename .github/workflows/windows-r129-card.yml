@@ -1,0 +1,255 @@
+name: Build and validate R129 card filament replacement
+'on':
+  push:
+    branches:
+    - r129-card-filament
+    paths:
+    - .github/workflows/windows-r129-card.yml
+    - KF-R129-CARD-checkpoint.zip
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: windows-r129-ota
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Restore reviewed R129 checkpoint and exact published R128 source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ((Get-FileHash KF-R129-CARD-checkpoint.zip).Hash.ToLowerInvariant() -ne 'e9862c5f9e74b1014329d41224dfc543e60984fa9546041909fb16279a68089d') { throw 'Reviewed R129 checkpoint differs' }
+        Expand-Archive KF-R129-CARD-checkpoint.zip .r129-checkpoint
+        Copy-Item .r129-checkpoint/r129-build ci -Recurse
+        if ((Get-FileHash .r129-checkpoint/r129-card-patch.json).Hash.ToLowerInvariant() -ne 'ec2a23951c99003796fd27bff0e0f485efb288489c2998b155d8d1d169975cfb') { throw 'Reviewed R129 patch differs' }
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+        gh release download r128-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R128-FULL.zip --dir incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Published R128 source download failed' }
+        if ((Get-Item incoming/KF-R128-FULL.zip).Length -ne 582750097 -or (Get-FileHash incoming/KF-R128-FULL.zip).Hash.ToLowerInvariant() -ne '1f4e28e7cad0296d75bf1f61bdc6a6427c8f2cc6fbf2b96a6f60827893c877c2') { throw 'Published R128 archive differs' }
+        Expand-Archive incoming/KF-R128-FULL.zip work
+        Rename-Item work/Klipper-Farm-R128 app
+        python .r129-checkpoint/apply-r129.py work/app .r129-checkpoint/r129-card-patch.json
+        if ($LASTEXITCODE -ne 0) { throw 'R129 patch application failed' }
+        python ci/verify-source.py work/app .r129-checkpoint/r129-card-patch.json incoming/KF-R128-FULL.zip proof/source-delta.json
+        if ($LASTEXITCODE -ne 0) { throw 'Unreviewed source changed' }
+    - name: Check R129 launch, sound, inventory and existing printer regressions
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+        node node_modules/typescript/bin/tsc --noEmit
+        if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+        $env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r129-finish-core.json'
+        $env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r129-print-start.json'
+        $env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r129-sound-core.json'
+        $env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r129-filament-core.json'
+        foreach ($script in @('check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+        }
+    - name: Verify live fleet, warehouse, print workflow and WebAudio in Windows Edge
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --prefix ui-tests --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'UI dependencies failed' }
+        $env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+        $env:KF_UI_SCREENSHOTS=Join-Path $env:GITHUB_WORKSPACE 'proof'
+        foreach ($script in @('filament-replace-r129.mjs','fleet-live-r128.mjs','filament-inventory.mjs','filament-warehouse.mjs','file-workflow.mjs','notification-sound.mjs','r126-profile-app.mjs','r126-files.mjs','r126-ui.mjs','updater.mjs')) {
+         node "ui-tests/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Windows Edge acceptance failed: $script" }
+        }
+        Remove-Item ui-tests/node_modules -Recurse -Force
+    - name: Compile frontend and freeze complete R129 source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm run build
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
+        node scripts/lock-v20-6-dist.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend source contract failed' }
+        node scripts/generate-release-manifests.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Manifest generation failed' }
+        node scripts/check-release-portability.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Source portability failed' }
+        $env:KF_ARCHIVE_ROOT='Klipper-Farm-R129'
+        $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'candidate/KF-R129-FULL.zip'
+        New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+        node scripts/build-reproducible-zip.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Complete R129 source archive failed' }
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+        components: clippy
+    - name: Build Windows installer and retain exact candidate
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        node scripts/build-and-install-windows.mjs --build-only
+        if ($LASTEXITCODE -ne 0) { throw 'Windows native checks and build failed' }
+        $release=Join-Path $PWD '.klipper-build-cache/target/release'
+        New-Item -ItemType Directory -Force ../../candidate/release,../../candidate/scripts | Out-Null
+        foreach ($file in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $file) ../../candidate/release/ }
+        foreach ($file in @('check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item "scripts/$file" ../../candidate/scripts/ }
+        Copy-Item ../../ci/r129-upgrade-data.py,../../ci/r129-check-installed-payload.mjs ../../candidate/scripts/
+        $setup=@(Get-ChildItem INSTALLER -Filter '*.exe')
+        if ($setup.Count -ne 1) { throw 'Expected exactly one R129 installer' }
+        Copy-Item $setup[0].FullName ../../candidate/Klipper-Farm-R129-setup.exe
+        Copy-Item ../../proof ../../candidate/proof -Recurse
+        $manifest=@{}
+        foreach ($name in @('Klipper-Farm-R129-setup.exe','KF-R129-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
+        @{release='R129';sequence=129;baselineSequence=128;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;checkpointSha256='e9862c5f9e74b1014329d41224dfc543e60984fa9546041909fb16279a68089d';patchSha256='ec2a23951c99003796fd27bff0e0f485efb288489c2998b155d8d1d169975cfb';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r129-ota-candidate
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - name: Retain build evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r129-ota-build-evidence
+        path: |-
+          proof
+          work/app/.klipper-build-cache/*.log
+          work/app/.klipper-build-cache/target/*last.log
+          work/app/.klipper-build-cache/logs/*
+        retention-days: 14
+        include-hidden-files: true
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r129-ota-candidate
+        path: candidate
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+        if (-not (Test-Path $seven)) { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }
+        & $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R129-setup.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }
+        foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+          $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)
+          if ($items.Count -ne 1) { throw "Expected one extracted NSIS payload: $name" }
+          Write-Host "EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())"
+        }
+    - name: Install R129 over R128 and verify exact payload, data and desktop restart
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R129-upgrade'
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+        gh release download r128-ota --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R128-setup.exe --dir old
+        if ($LASTEXITCODE -ne 0) { throw 'R128 installer download failed' }
+        $old=(Resolve-Path old/Klipper-Farm-R128-setup.exe).Path
+        if ((Get-FileHash $old).Hash.ToLowerInvariant() -ne 'cc20ee1f5408c9cb7a7c7f2b0d02db73e4cc3f9ea15a77d1519e28174a00f52e') { throw 'R128 installer differs' }
+        $process=Start-Process $old -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R128 install failed' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Published R128 actual WebView startup failed' }
+
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+        $marker=Join-Path $dataDir 'r129-preservation.txt'
+        [IO.File]::WriteAllText($marker,'preserve-existing-data')
+        python scripts/r129-upgrade-data.py seed --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-seed.json
+        if ($LASTEXITCODE -ne 0) { throw 'Legacy seed failed' }
+        $setup=(Resolve-Path Klipper-Farm-R129-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R129 install over R128 failed' }
+        node scripts/r129-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed bytes differ from exact NSIS bundle payload' }
+        if ((Get-Content $marker -Raw) -ne 'preserve-existing-data') { throw 'Existing app data lost' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed WebView main-window smoke failed' }
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe" --report "$PWD/proof/headless-runtime.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry regression failed' }
+        python scripts/r129-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-preserved.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer configuration, stocks, usage, reserves or spools changed during upgrade' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed R129 second actual WebView startup failed' }
+        python scripts/r129-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-after-restart.json
+        if ($LASTEXITCODE -ne 0) { throw 'Existing printer or filament data changed after installed app restart' }
+        node scripts/r129-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed exact payload changed after restart' }
+        @{release='R129';installedSequence=129;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=128;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;installedRestartVerified=$true} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+        Compress-Archive proof,smoke R129-UI-proof.zip
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r129-ota-validated
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r129-ota-installed-evidence
+        path: |-
+          candidate/proof
+          candidate/smoke
+        retention-days: 14
+  publish:
+    needs: validate
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r129-ota-validated
+        path: candidate
+    - name: Publish exact validated R129 installer as a prerelease
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $proof=Get-Content exact-validation.json -Raw | ConvertFrom-Json
+        $origin=Get-Content provenance.json -Raw | ConvertFrom-Json
+        if (-not $proof.passed -or $proof.installedSequence -ne 129 -or -not $proof.embeddedUpdateChannelVerified -or -not $proof.exactInstallerPayloadVerified -or $proof.runId -ne $env:GITHUB_RUN_ID -or $origin.headSha -ne $env:GITHUB_SHA -or $proof.headSha -ne $origin.headSha -or $origin.sequence -ne 129) { throw 'Validation provenance differs' }
+        foreach ($asset in $origin.assets.PSObject.Properties) { if ((Get-FileHash $asset.Name).Hash.ToLowerInvariant() -ne $asset.Value.sha256 -or (Get-Item $asset.Name).Length -ne $asset.Value.sizeBytes) { throw 'Validated bytes changed' } }
+        @'
+        R129: замена пластика прямо на карточке принтера. Нажмите блок с катушкой и стрелками, выберите катушку по цвету и остатку и подтвердите установку. Занятые другими принтерами и пустые катушки недоступны. Карточка обновляется сразу. Остатки, накопленный расход и история назначений сохраняются. Из окна выбора можно открыть склад.
+        Проверены 11 сценариев замены в Windows Edge, установка поверх R128, точные байты установщика, сохранение данных семи принтеров и повторный запуск.
+        '@ | Set-Content notes.md -Encoding utf8NoBOM
+        gh release create r129-ota Klipper-Farm-R129-setup.exe KF-R129-FULL.zip provenance.json exact-validation.json R129-UI-proof.zip --target $env:GITHUB_SHA --repo $env:GITHUB_REPOSITORY --prerelease --title 'Klipper Farm R129 — замена пластика на карточке принтера' --notes-file notes.md
+        if ($LASTEXITCODE -ne 0) { throw 'R129 candidate publication failed' }

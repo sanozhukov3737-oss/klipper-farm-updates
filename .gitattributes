@@ -15,3 +15,9 @@ KF-R128-* -text
 apply-r128.py -text
 .github/workflows/windows-r128-visual.yml -text
 .github/workflows/promote-r128.yml -text
+r129-* -text
+R129-* -text
+KF-R129-* -text
+apply-r129.py -text
+.github/workflows/windows-r129-card.yml -text
+.github/workflows/promote-r129.yml -text
