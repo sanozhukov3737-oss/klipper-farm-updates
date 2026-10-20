@@ -60,7 +60,7 @@ assert.equal(manifest.artifact.sizeBytes,contract.assets['Klipper-Farm-R129-setu
 assert.ok(Number.isSafeInteger(manifest.publishedAt)&&manifest.publishedAt>=Date.parse(run.created_at)&&manifest.publishedAt<Date.now()+300000);
 assert.equal(manifest.releaseNotes,fs.readFileSync(path.join(root,'r129-release-notes.md'),'utf8'));
 const keyId=crypto.createHash('sha256').update(Buffer.from(publicHex,'hex')).digest('hex').slice(0,32);
-assert.equal(manifest.signerKeyId,keyId);assert.match(manifest.signatureHex,/^[a-f0-9]{129}$/);
+assert.equal(manifest.signerKeyId,keyId);assert.match(manifest.signatureHex,/^[a-f0-9]{128}$/);
 const unsigned={schemaVersion:manifest.schemaVersion,channel:manifest.channel,sequence:manifest.sequence,version:manifest.version,publishedAt:manifest.publishedAt,artifact:{url:manifest.artifact.url,sha256:manifest.artifact.sha256,sizeBytes:manifest.artifact.sizeBytes},releaseNotes:manifest.releaseNotes,signerKeyId:manifest.signerKeyId};
 const publicKey=crypto.createPublicKey({key:Buffer.concat([Buffer.from('302a300506032b6570032100','hex'),Buffer.from(publicHex,'hex')]),type:'spki',format:'der'});
 assert.ok(crypto.verify(null,Buffer.concat([Buffer.from('klipper-farm-update-manifest-v1\0'),Buffer.from(JSON.stringify(unsigned))]),publicKey,Buffer.from(manifest.signatureHex,'hex')),'Publisher root signature invalid');

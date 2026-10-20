@@ -6,6 +6,9 @@ name: Verify signed R129 and publish automatic update
     - .gitattributes
     - r129-signed-update.json
     - r129-promotion-contract.json
+    - r129-verify-promotion.mjs
+    - r129-verify-update-sequence.mjs
+    - r129-inspect-promotion.py
     - .github/workflows/promote-r129.yml
   workflow_dispatch: {}
 permissions:
