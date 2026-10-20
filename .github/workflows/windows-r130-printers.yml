@@ -34,10 +34,10 @@ jobs:
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        if ((Get-FileHash KF-R130-PRINTERS-checkpoint.zip).Hash.ToLowerInvariant() -ne 'e546de8aa289116f15b72c053d72e0a251d7d72bfd0623484139c9c59a11bac0') { throw 'Reviewed R130 checkpoint differs' }
+        if ((Get-FileHash KF-R130-PRINTERS-checkpoint.zip).Hash.ToLowerInvariant() -ne 'c5ecd7af08fee7ff250503314665770592fbb70ba8f114059f9b56f41c17c19f') { throw 'Reviewed R130 checkpoint differs' }
         Expand-Archive KF-R130-PRINTERS-checkpoint.zip .r130-checkpoint
         Copy-Item .r130-checkpoint/r130-build ci -Recurse
-        if ((Get-FileHash .r130-checkpoint/r130-printers-patch.json).Hash.ToLowerInvariant() -ne '87b9143b2c79debfb4dc20b585950bef5715865c29fee2ff8555744504531c46') { throw 'Reviewed R130 patch differs' }
+        if ((Get-FileHash .r130-checkpoint/r130-printers-patch.json).Hash.ToLowerInvariant() -ne 'e249507230410fe0655870cc31ef06f1265793aef0fa9ed1e4e132770c7b8466') { throw 'Reviewed R130 patch differs' }
         New-Item -ItemType Directory -Force incoming,proof | Out-Null
         gh release download r129-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R129-FULL.zip --dir incoming
         if ($LASTEXITCODE -ne 0) { throw 'Published R129 source download failed' }
@@ -119,7 +119,7 @@ jobs:
         Copy-Item ../../proof ../../candidate/proof -Recurse
         $manifest=@{}
         foreach ($name in @('Klipper-Farm-R130-setup.exe','KF-R130-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
-        @{release='R130';sequence=130;baselineSequence=129;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;checkpointSha256='e546de8aa289116f15b72c053d72e0a251d7d72bfd0623484139c9c59a11bac0';patchSha256='87b9143b2c79debfb4dc20b585950bef5715865c29fee2ff8555744504531c46';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+        @{release='R130';sequence=130;baselineSequence=129;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;checkpointSha256='c5ecd7af08fee7ff250503314665770592fbb70ba8f114059f9b56f41c17c19f';patchSha256='e249507230410fe0655870cc31ef06f1265793aef0fa9ed1e4e132770c7b8466';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: r130-ota-candidate
