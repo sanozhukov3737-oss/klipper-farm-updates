@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "sequence": 130,
+  "tag": "r130-ota",
+  "releaseId": 418807895,
+  "buildRunId": "39481880663",
+  "buildHeadSha": "c5d2c1f410b98cdd99b22b59d7a5b4f978a1e2bf",
+  "buildWorkflowSha256": "74dedecc735c1de2d5c0e98a3f14e3fdb325ba9f89510c5dc3a88fcc6c2fbf7c",
+  "jobs": {
+    "build": 118832234508,
+    "validate": 118847366307,
+    "publish": 118849290736
+  },
+  "sourceArtifactId": "12293622046",
+  "sourceArtifactDigest": "sha256:bf0e4214d16564ea15b414922eb3512136a29407d1670139f19e968eed82545b",
+  "patchSha256": "e249507230410fe0655870cc31ef06f1265793aef0fa9ed1e4e132770c7b8466",
+  "checkpointSha256": "c5ecd7af08fee7ff250503314665770592fbb70ba8f114059f9b56f41c17c19f",
+  "assets": {
+    "exact-validation.json": {
+      "sha256": "99eb9541477237b993a79775ccd7662d523bd650ec51b06902fe1d90cb55ac68",
+      "sizeBytes": 489
+    },
+    "KF-R130-FULL.zip": {
+      "sha256": "8e4435635501433180ad00f92cc01b1935fe836f6443bf16793ca4f3bd4f7ad5",
+      "sizeBytes": 582769488
+    },
+    "Klipper-Farm-R130-setup.exe": {
+      "sha256": "c5b68e39dcbafc46bd50b8cde7d29344530fb0747465a524e96e8df63669c3dc",
+      "sizeBytes": 233717551
+    },
+    "provenance.json": {
+      "sha256": "ef06204ec9223a0c4a0153ec3ecb47516fb9cc3719396bd8e6e5bbb899eaef73",
+      "sizeBytes": 725
+    },
+    "R130-UI-proof.zip": {
+      "sha256": "dba053c6b03890cc1e1e80e0d5d0cffffcb8995cbe12d6eb90f9f96c6dd6a6cd",
+      "sizeBytes": 10174487
+    }
+  }
+}
