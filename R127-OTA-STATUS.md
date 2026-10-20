@@ -1,0 +1,1 @@
+R127 OTA candidate: installedSequence=127, existing trusted publisher key and stable endpoint retained. Exact Windows NSIS payload must embed the complete R127 channel. Build, upgrade, data preservation and restart checks required before stable promotion.
