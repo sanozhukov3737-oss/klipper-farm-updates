@@ -1,0 +1,19 @@
+{
+  "release": "R131",
+  "sequence": 131,
+  "passed": true,
+  "releaseId": 418867916,
+  "buildRunId": "39491165197",
+  "promotionRunId": "39496502453",
+  "buildHeadSha": "37e3f6be1737b03a9b6f2c29a02ff78b7b4a1ae7",
+  "promotionHeadSha": "f013a50f06a9d2c356ecedf14d49ff1892acecc3",
+  "manifestSha256": "9268a4169475e0c29242a44d2eb947d2f5a88ddea96ad92c2223b5fc0e680e3a",
+  "installerSha256": "0ea18680939a38ab05af88758fcdf2b1b7460c0622832f9fce3416aecfeb3191",
+  "publicApplicationEndpointVerified": true,
+  "productionRustUpdaterVerified": true,
+  "printerBrowserCases": 24,
+  "dashboardBrowserCases": 7,
+  "reviewedSourceFiles": 11,
+  "installedUpgradeFrom": 130,
+  "installedUpgradeAndRestartDataPreserved": true
+}
