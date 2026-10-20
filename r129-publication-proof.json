@@ -1,0 +1,17 @@
+{
+  "release": "R129",
+  "sequence": 129,
+  "passed": true,
+  "releaseId": 418700277,
+  "buildRunId": "39465091789",
+  "promotionRunId": "39471508010",
+  "buildHeadSha": "8d877b233a3c835f41f4a4762aca9fae7e24eb2c",
+  "promotionHeadSha": "9fa9359beae769d963934076349cf3486a6f4df2",
+  "manifestSha256": "8cbec9ce67319d6e755b9e3146e4594fcfa927aeef12f92c162cdd6ae89ba70e",
+  "installerSha256": "d75b45f92643ad7dde6adc27bb35f4bc41a5010b9d5e02b6f855a1c311566b66",
+  "publicApplicationEndpointVerified": true,
+  "productionRustUpdaterVerified": true,
+  "filamentReplacementCases": 11,
+  "installedUpgradeFrom": 128,
+  "installedUpgradeAndRestartDataPreserved": true
+}
