@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "sequence": 131,
+  "tag": "r131-ota",
+  "releaseId": 418867916,
+  "buildRunId": "39491165197",
+  "buildHeadSha": "37e3f6be1737b03a9b6f2c29a02ff78b7b4a1ae7",
+  "buildWorkflowSha256": "ff424c2f3f6332c18038f43b3268c06504274d98f75fab038127a3abc2d614e3",
+  "jobs": {
+    "build": 118864402306,
+    "validate": 118876776231,
+    "publish": 118879577898
+  },
+  "sourceArtifactId": "12297236331",
+  "sourceArtifactDigest": "sha256:b91fcc5e31fec5474008dd1ea89d7170bae60cae866631a51b3b0e6fb8fbee7e",
+  "patchSha256": "22d45c25bc296fdd46880267168a72333059bedfe050e245e8e23cb0ee34d1d6",
+  "checkpointSha256": "b8018498377c7810426271f671a8147e7ce8f915edcf0d58f0a56355c36b72d7",
+  "assets": {
+    "exact-validation.json": {
+      "sha256": "8cfd17cf9ef8ab6a1f94b0a53bb547e35959f09608f5cb4a6e92b9a208be4d1a",
+      "sizeBytes": 489
+    },
+    "KF-R131-FULL.zip": {
+      "sha256": "0ed98e2960845b92c5d4c7888494b7deddbf0141d3127fd6e5832f7ccc2dff0f",
+      "sizeBytes": 582766914
+    },
+    "Klipper-Farm-R131-setup.exe": {
+      "sha256": "0ea18680939a38ab05af88758fcdf2b1b7460c0622832f9fce3416aecfeb3191",
+      "sizeBytes": 233718528
+    },
+    "provenance.json": {
+      "sha256": "f5e4a06b4be96032a75e54e2e1255d4ed0e9ef5856d2d656e38ba3867a1ba470",
+      "sizeBytes": 728
+    },
+    "R131-UI-proof.zip": {
+      "sha256": "8768f5510f70f05d47c679881f598a1e76eb5bbf042b8918e082681a512e87f2",
+      "sizeBytes": 10168921
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 131,
+  "version": "1.14.5-r131",
+  "publishedAt": 1792529879000,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r131-ota/Klipper-Farm-R131-setup.exe",
+    "sha256": "0ea18680939a38ab05af88758fcdf2b1b7460c0622832f9fce3416aecfeb3191",
+    "sizeBytes": 233718528
+  },
+  "releaseNotes": "R131 — компактные карточки принтеров.\n\nУбрана панель «Когда освободятся принтеры» на главной и во вкладке «Принтеры».\nС карточек удалены кнопки «Открыть» и «Повторить». Принтер открывается нажатием на карточку; открытие с клавиатуры также работает.\nФайлы, настройки, камера, пауза и продолжение печати, замена пластика и удаление принтера доступны на карточке.\n",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "269232a9cf81525dbfabf9e7abe7a7b25e0aa831fc410264bb17de05702384e3abcb6ef6d24272f3668ab8f100fa750537f03780de79c90275636e48f5fa9f09"
+}
