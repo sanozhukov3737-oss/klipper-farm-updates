@@ -9,3 +9,9 @@ KF-R127-* -text
 apply-r127.py -text
 .github/workflows/windows-r127-ota.yml -text
 .github/workflows/promote-r127.yml -text
+r128-* -text
+R128-* -text
+KF-R128-* -text
+apply-r128.py -text
+.github/workflows/windows-r128-visual.yml -text
+.github/workflows/promote-r128.yml -text
