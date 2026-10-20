@@ -27,3 +27,9 @@ KF-R130-* -text
 apply-r130.py -text
 .github/workflows/windows-r130-printers.yml -text
 .github/workflows/promote-r130.yml -text
+r131-* -text
+R131-* -text
+KF-R131-* -text
+apply-r131.py -text
+.github/workflows/windows-r131-cleanup.yml -text
+.github/workflows/promote-r131.yml -text
