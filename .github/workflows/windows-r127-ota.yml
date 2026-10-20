@@ -1,0 +1,254 @@
+name: Build and validate R127 automatic update candidate
+'on':
+  push:
+    branches:
+    - r127-filament-warehouse
+    paths:
+    - .github/workflows/windows-r127-ota.yml
+    - KF-R127-OTA-checkpoint.zip
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: windows-r127-ota
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Restore reviewed R127 checkpoint and exact published R126 source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ((Get-FileHash KF-R127-OTA-checkpoint.zip).Hash.ToLowerInvariant() -ne '605c951c250c8019336238b5d0846800f5db745d8dc618abdcc1fbbc06195fd3') { throw 'Reviewed R127 checkpoint differs' }
+        Expand-Archive KF-R127-OTA-checkpoint.zip .r127-checkpoint
+        Copy-Item .r127-checkpoint/r127-build ci -Recurse
+        if ((Get-FileHash .r127-checkpoint/r127-ota-patch.json).Hash.ToLowerInvariant() -ne '4e60c17b7c17ee6d260c644e628f2559c4b8f79dc2d1dbb4709c0312cbc7b8e9') { throw 'Reviewed R127 patch differs' }
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+        gh release download r126 --repo $env:GITHUB_REPOSITORY --pattern KF-R126-FULL.zip --dir incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Published R126 source download failed' }
+        if ((Get-Item incoming/KF-R126-FULL.zip).Length -ne 582677041 -or (Get-FileHash incoming/KF-R126-FULL.zip).Hash.ToLowerInvariant() -ne 'f1d17335d03f262ab9b34a6d3d37bd22cc312fe0b3550b69c4c0cb61fe6ad236') { throw 'Published R126 archive differs' }
+        Expand-Archive incoming/KF-R126-FULL.zip work
+        Rename-Item work/Klipper-Farm-R126 app
+        python .r127-checkpoint/apply-r127.py work/app .r127-checkpoint/r127-ota-patch.json
+        if ($LASTEXITCODE -ne 0) { throw 'R127 patch application failed' }
+        python ci/verify-source.py work/app .r127-checkpoint/r127-ota-patch.json incoming/KF-R126-FULL.zip proof/source-delta.json
+        if ($LASTEXITCODE -ne 0) { throw 'Unreviewed source changed' }
+    - name: Check R127 launch, sound, inventory and existing printer regressions
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+        node node_modules/typescript/bin/tsc --noEmit
+        if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+        $env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r127-print-start.json'
+        $env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r127-sound-core.json'
+        $env:KF_R127_FILAMENT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r127-filament-core.json'
+        foreach ($script in @('check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+        }
+    - name: Verify actual warehouse, print workflow and WebAudio settings in Windows Edge
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --prefix ui-tests --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'UI dependencies failed' }
+        $env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+        $env:KF_UI_SCREENSHOTS=Join-Path $env:GITHUB_WORKSPACE 'proof'
+        foreach ($script in @('filament-inventory.mjs','filament-warehouse.mjs','file-workflow.mjs','notification-sound.mjs','r126-profile-app.mjs','r126-files.mjs','r126-ui.mjs','updater.mjs')) {
+         node "ui-tests/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Windows Edge acceptance failed: $script" }
+        }
+        Remove-Item ui-tests/node_modules -Recurse -Force
+    - name: Compile frontend and freeze complete R127 source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm run build
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
+        node scripts/lock-v20-6-dist.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend source contract failed' }
+        node scripts/generate-release-manifests.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Manifest generation failed' }
+        node scripts/check-release-portability.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Source portability failed' }
+        $env:KF_ARCHIVE_ROOT='Klipper-Farm-R127'
+        $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'candidate/KF-R127-FULL.zip'
+        New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+        node scripts/build-reproducible-zip.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Complete R127 source archive failed' }
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+        components: clippy
+    - name: Build Windows installer and retain exact candidate
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        node scripts/build-and-install-windows.mjs --build-only
+        if ($LASTEXITCODE -ne 0) { throw 'Windows native checks and build failed' }
+        $release=Join-Path $PWD '.klipper-build-cache/target/release'
+        New-Item -ItemType Directory -Force ../../candidate/release,../../candidate/scripts | Out-Null
+        foreach ($file in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $file) ../../candidate/release/ }
+        foreach ($file in @('check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item "scripts/$file" ../../candidate/scripts/ }
+        Copy-Item ../../ci/r127-upgrade-data.py,../../ci/r127-check-installed-payload.mjs ../../candidate/scripts/
+        $setup=@(Get-ChildItem INSTALLER -Filter '*.exe')
+        if ($setup.Count -ne 1) { throw 'Expected exactly one R127 installer' }
+        Copy-Item $setup[0].FullName ../../candidate/Klipper-Farm-R127-setup.exe
+        Copy-Item ../../proof ../../candidate/proof -Recurse
+        $manifest=@{}
+        foreach ($name in @('Klipper-Farm-R127-setup.exe','KF-R127-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
+        @{release='R127';sequence=127;baselineSequence=126;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;checkpointSha256='605c951c250c8019336238b5d0846800f5db745d8dc618abdcc1fbbc06195fd3';patchSha256='4e60c17b7c17ee6d260c644e628f2559c4b8f79dc2d1dbb4709c0312cbc7b8e9';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r127-ota-candidate
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - name: Retain build evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r127-ota-build-evidence
+        path: |-
+          proof
+          work/app/.klipper-build-cache/*.log
+          work/app/.klipper-build-cache/target/*last.log
+          work/app/.klipper-build-cache/logs/*
+        retention-days: 14
+        include-hidden-files: true
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r127-ota-candidate
+        path: candidate
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+        if (-not (Test-Path $seven)) { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }
+        & $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R127-setup.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }
+        foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+          $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)
+          if ($items.Count -ne 1) { throw "Expected one extracted NSIS payload: $name" }
+          Write-Host "EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())"
+        }
+    - name: Install R127 over R126 and verify exact payload, data and desktop restart
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R127-upgrade'
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+        gh release download r126 --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R126-setup.exe --dir old
+        if ($LASTEXITCODE -ne 0) { throw 'R126 installer download failed' }
+        $old=(Resolve-Path old/Klipper-Farm-R126-setup.exe).Path
+        if ((Get-FileHash $old).Hash.ToLowerInvariant() -ne '519b7058c2330b687d0e93587f7e2392b064f3511796d6305f595a2eb7bb2479') { throw 'R126 installer differs' }
+        $process=Start-Process $old -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R126 install failed' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Published R126 actual WebView startup failed' }
+
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+        $marker=Join-Path $dataDir 'r127-preservation.txt'
+        [IO.File]::WriteAllText($marker,'preserve-existing-data')
+        python scripts/r127-upgrade-data.py seed --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-seed.json
+        if ($LASTEXITCODE -ne 0) { throw 'Legacy seed failed' }
+        $setup=(Resolve-Path Klipper-Farm-R127-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R127 install over R126 failed' }
+        node scripts/r127-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed bytes differ from exact NSIS bundle payload' }
+        if ((Get-Content $marker -Raw) -ne 'preserve-existing-data') { throw 'Existing app data lost' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed WebView main-window smoke failed' }
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe" --report "$PWD/proof/headless-runtime.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry regression failed' }
+        python scripts/r127-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-preserved.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer configuration, stocks, usage, reserves or spools changed during upgrade' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed R127 second actual WebView startup failed' }
+        python scripts/r127-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-after-restart.json
+        if ($LASTEXITCODE -ne 0) { throw 'Existing printer or filament data changed after installed app restart' }
+        node scripts/r127-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed exact payload changed after restart' }
+        @{release='R127';installedSequence=127;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=126;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;installedRestartVerified=$true} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+        Compress-Archive proof,smoke R127-UI-proof.zip
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r127-ota-validated
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r127-ota-installed-evidence
+        path: |-
+          candidate/proof
+          candidate/smoke
+        retention-days: 14
+  publish:
+    needs: validate
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r127-ota-validated
+        path: candidate
+    - name: Publish exact validated R127 installer as a prerelease
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $proof=Get-Content exact-validation.json -Raw | ConvertFrom-Json
+        $origin=Get-Content provenance.json -Raw | ConvertFrom-Json
+        if (-not $proof.passed -or $proof.installedSequence -ne 127 -or -not $proof.embeddedUpdateChannelVerified -or -not $proof.exactInstallerPayloadVerified -or $proof.runId -ne $env:GITHUB_RUN_ID -or $origin.headSha -ne $env:GITHUB_SHA -or $proof.headSha -ne $origin.headSha -or $origin.sequence -ne 127) { throw 'Validation provenance differs' }
+        foreach ($asset in $origin.assets.PSObject.Properties) { if ((Get-FileHash $asset.Name).Hash.ToLowerInvariant() -ne $asset.Value.sha256 -or (Get-Item $asset.Name).Length -ne $asset.Value.sizeBytes) { throw 'Validated bytes changed' } }
+        @'
+        R127: новый склад пластика с цветными катушками, остатками, резервом и расходом по дням. Дополнительное подтверждение запуска и проверка состояния без повторной команды печати. Звуки завершения, ошибки, окончания пластика и потери связи; громкость и выбор событий в «Система → Приложение».
+        Проверены Windows Edge, установка поверх R126, байты NSIS-пакета, сохранение конфигурации принтеров и пластика, телеметрия и повторный запуск установленного приложения. Физическая печать и звук в микшере Windows пользователя требуют проверки на его ПК. Кандидат R127 для обновления через приложение. Встроенный номер выпуска R127 проверяется в установленном клиенте; публикация в stable требует проверки подписи издателя.
+        '@ | Set-Content notes.md -Encoding utf8NoBOM
+        gh release create r127-ota Klipper-Farm-R127-setup.exe KF-R127-FULL.zip provenance.json exact-validation.json R127-UI-proof.zip --target $env:GITHUB_SHA --repo $env:GITHUB_REPOSITORY --prerelease --title 'Klipper Farm R127 — склад пластика, запуск и звуки' --notes-file notes.md
+        if ($LASTEXITCODE -ne 0) { throw 'R127 candidate publication failed' }
