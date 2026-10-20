@@ -1,0 +1,20 @@
+{
+  "release": "R127",
+  "buildId": "V20.6-R12.7-FILAMENT-SOUNDS-2026-10-20",
+  "buildRunId": "39403087712",
+  "buildHeadSha": "4822ee40806094db6cd7ba3e878ae354ac55395b",
+  "installerSha256": "f20a06ed6b5bf66bb98b69babe41a0d73a8be593fcad70541b4b9f594bda4078",
+  "installerBytes": 233752737,
+  "publicInstallerDownloadedAndHashVerified": true,
+  "windowsUpgradeFrom126Passed": true,
+  "installedExactNsisPayloadVerified": true,
+  "printerAndFilamentDataPreserved": true,
+  "installedRestartVerified": true,
+  "releaseKind": "prerelease",
+  "stableChannel": "R126",
+  "physicalUserPrinterTested": false,
+  "sourceArchive": {
+    "sha256": "19b7646e26b70e756db17f8289b0bdf3a5a7df1c3437d8d277d4aa268745a81c",
+    "sizeBytes": 582714089
+  }
+}
