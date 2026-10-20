@@ -3,6 +3,7 @@ name: Verify signed R127 and publish automatic update
   push:
     branches: [r127-filament-warehouse]
     paths:
+    - .gitattributes
     - r127-signed-update.json
     - r127-promotion-contract.json
     - .github/workflows/promote-r127.yml
