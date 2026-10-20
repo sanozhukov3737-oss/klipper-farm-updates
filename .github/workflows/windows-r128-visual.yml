@@ -1,4 +1,4 @@
-name: Build and validate R128 visual filament warehouse
+name: Build and validate R128 visual warehouse and live fleet
 'on':
   push:
     branches:
@@ -34,10 +34,10 @@ jobs:
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        if ((Get-FileHash KF-R128-VISUAL-checkpoint.zip).Hash.ToLowerInvariant() -ne 'ed9e3b10ffc291ad701db661963668dae1d6971917a3ecd9c99765774c564932') { throw 'Reviewed R128 checkpoint differs' }
+        if ((Get-FileHash KF-R128-VISUAL-checkpoint.zip).Hash.ToLowerInvariant() -ne 'faf406664f9aa04a930cea1a16a02fa79bfe6d9c2d02d83b4e5d191a99e765f4') { throw 'Reviewed R128 checkpoint differs' }
         Expand-Archive KF-R128-VISUAL-checkpoint.zip .r128-checkpoint
         Copy-Item .r128-checkpoint/r128-build ci -Recurse
-        if ((Get-FileHash .r128-checkpoint/r128-visual-patch.json).Hash.ToLowerInvariant() -ne '1e7a587ec594cebeaaf75f7689f4414fc0f07eaae7f6e7addb3669fe76ece682') { throw 'Reviewed R128 patch differs' }
+        if ((Get-FileHash .r128-checkpoint/r128-visual-patch.json).Hash.ToLowerInvariant() -ne '3a31e2453643f0cfe784a04fd79275e791b884c2411435cb0ac55e1fd05a6b57') { throw 'Reviewed R128 patch differs' }
         New-Item -ItemType Directory -Force incoming,proof | Out-Null
         gh release download r127-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R127-FULL.zip --dir incoming
         if ($LASTEXITCODE -ne 0) { throw 'Published R127 source download failed' }
@@ -57,14 +57,15 @@ jobs:
         if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
         node node_modules/typescript/bin/tsc --noEmit
         if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+        $env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r128-finish-core.json'
         $env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r128-print-start.json'
         $env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r128-sound-core.json'
         $env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r128-filament-core.json'
-        foreach ($script in @('check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs')) {
+        foreach ($script in @('check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs')) {
          node "scripts/$script"
          if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
         }
-    - name: Verify actual warehouse, print workflow and WebAudio settings in Windows Edge
+    - name: Verify live fleet, warehouse, print workflow and WebAudio in Windows Edge
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
@@ -73,7 +74,7 @@ jobs:
         if ($LASTEXITCODE -ne 0) { throw 'UI dependencies failed' }
         $env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
         $env:KF_UI_SCREENSHOTS=Join-Path $env:GITHUB_WORKSPACE 'proof'
-        foreach ($script in @('filament-inventory.mjs','filament-warehouse.mjs','file-workflow.mjs','notification-sound.mjs','r126-profile-app.mjs','r126-files.mjs','r126-ui.mjs','updater.mjs')) {
+        foreach ($script in @('fleet-live-r128.mjs','filament-inventory.mjs','filament-warehouse.mjs','file-workflow.mjs','notification-sound.mjs','r126-profile-app.mjs','r126-files.mjs','r126-ui.mjs','updater.mjs')) {
          node "ui-tests/$script"
          if ($LASTEXITCODE -ne 0) { throw "Windows Edge acceptance failed: $script" }
         }
@@ -118,7 +119,7 @@ jobs:
         Copy-Item ../../proof ../../candidate/proof -Recurse
         $manifest=@{}
         foreach ($name in @('Klipper-Farm-R128-setup.exe','KF-R128-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
-        @{release='R128';sequence=128;baselineSequence=127;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;checkpointSha256='ed9e3b10ffc291ad701db661963668dae1d6971917a3ecd9c99765774c564932';patchSha256='1e7a587ec594cebeaaf75f7689f4414fc0f07eaae7f6e7addb3669fe76ece682';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+        @{release='R128';sequence=128;baselineSequence=127;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;checkpointSha256='faf406664f9aa04a930cea1a16a02fa79bfe6d9c2d02d83b4e5d191a99e765f4';patchSha256='3a31e2453643f0cfe784a04fd79275e791b884c2411435cb0ac55e1fd05a6b57';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: r128-ota-candidate
@@ -247,7 +248,7 @@ jobs:
         if (-not $proof.passed -or $proof.installedSequence -ne 128 -or -not $proof.embeddedUpdateChannelVerified -or -not $proof.exactInstallerPayloadVerified -or $proof.runId -ne $env:GITHUB_RUN_ID -or $origin.headSha -ne $env:GITHUB_SHA -or $proof.headSha -ne $origin.headSha -or $origin.sequence -ne 128) { throw 'Validation provenance differs' }
         foreach ($asset in $origin.assets.PSObject.Properties) { if ((Get-FileHash $asset.Name).Hash.ToLowerInvariant() -ne $asset.Value.sha256 -or (Get-Item $asset.Name).Length -ne $asset.Value.sizeBytes) { throw 'Validated bytes changed' } }
         @'
-        R128: визуальный склад с отдельной объёмной катушкой для каждой записи. Намотка точно использует сохранённый цвет пластика. Выбор катушки открывает остаток, цвет, назначение принтеру и QR. Поиск, фильтры материалов и расположения, предпросмотр цвета, наглядный расход по дням. Все функции R127 сохранены.
+        R128: живые карточки всех принтеров и общая шкала окончания печати с периодами 4/12/24 ч. Прогноз скрывается при паузе и устаревших данных. Визуальный склад с отдельной объёмной катушкой для каждой записи. Намотка точно использует сохранённый цвет пластика. Выбор катушки открывает остаток, цвет, назначение принтеру и QR. Поиск, фильтры материалов и расположения, предпросмотр цвета, наглядный расход по дням. Все функции R127 сохранены.
         Проверены Windows Edge, установка поверх R127, байты NSIS-пакета, сохранение конфигурации принтеров и пластика, телеметрия и повторный запуск установленного приложения. Физическая печать и звук в микшере Windows пользователя требуют проверки на его ПК. Кандидат R128 для обновления через приложение. Встроенный номер выпуска R128 проверяется в установленном клиенте; публикация в stable требует проверки подписи издателя.
         '@ | Set-Content notes.md -Encoding utf8NoBOM
         gh release create r128-ota Klipper-Farm-R128-setup.exe KF-R128-FULL.zip provenance.json exact-validation.json R128-UI-proof.zip --target $env:GITHUB_SHA --repo $env:GITHUB_REPOSITORY --prerelease --title 'Klipper Farm R128 — цветные катушки и визуальный склад' --notes-file notes.md
