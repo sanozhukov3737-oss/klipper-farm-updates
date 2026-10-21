@@ -4,6 +4,7 @@ name: Build and validate R132 approved filament integration
     branches:
     - filament-approved-integration-20261021
     paths:
+    - .gitattributes
     - .github/workflows/windows-r132-filament.yml
     - r132-filament-patch.json
     - r132-filament-patch.sha256
@@ -63,7 +64,7 @@ jobs:
         '
     - name: Check R132 launch, sound, inventory and existing printer regressions
       shell: pwsh
-      run: "$ErrorActionPreference='Stop'\nSet-Location work/app\nnpm ci --no-audit --no-fund\nif ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }\nnode node_modules/typescript/bin/tsc --noEmit\nif ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }\n$env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-finish-core.json'\n$env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-print-start.json'\n$env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-sound-core.json'\n$env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-filament-core.json'\nforeach ($script in @('check-approved-filament.mjs','check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs'))\
+      run: "$ErrorActionPreference='Stop'\nSet-Location work/app\nnpm ci --no-audit --no-fund\nif ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }\nnode node_modules/typescript/bin/tsc --noEmit\nif ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }\n$env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-finish-core.json'\n$env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-print-start.json'\n$env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-sound-core.json'\n$env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r132-filament-core.json'\nnode scripts/check-approved-filament.mjs | Tee-Object -FilePath (Join-Path $env:GITHUB_WORKSPACE 'proof/r132-approved-accounting.json')\nif ($LASTEXITCODE -ne 0) { throw 'Approved filament accounting failed' }\nforeach ($script in @('check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs'))\
         \ {\n node \"scripts/$script\"\n if ($LASTEXITCODE -ne 0) { throw \"Regression failed: $script\" }\n}\n"
     - name: Verify live fleet, warehouse, print workflow and WebAudio in Windows Edge
       shell: pwsh
