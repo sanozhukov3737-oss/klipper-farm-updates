@@ -14,7 +14,7 @@ permissions:
   contents: read
 concurrency:
   group: windows-r132-ota
-  cancel-in-progress: false
+  cancel-in-progress: true
 env:
   PYTHONUTF8: '1'
 jobs:
@@ -68,8 +68,8 @@ jobs:
         \ {\n node \"scripts/$script\"\n if ($LASTEXITCODE -ne 0) { throw \"Regression failed: $script\" }\n}\n"
     - name: Verify live fleet, warehouse, print workflow and WebAudio in Windows Edge
       shell: pwsh
-      run: "$ErrorActionPreference='Stop'\nSet-Location work/app\nnpm ci --prefix ui-tests --no-audit --no-fund\nif ($LASTEXITCODE -ne 0) { throw 'UI dependencies failed' }\n$env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'\n$env:KF_UI_SCREENSHOTS=Join-Path $env:GITHUB_WORKSPACE 'proof'\nforeach ($script in @('approved-filament.mjs','printers-r130.mjs','farm-startup-r125.mjs','filament-replace-r129.mjs','fleet-live-r128.mjs','filament-inventory.mjs','filament-warehouse.mjs','file-workflow.mjs','notification-sound.mjs','r126-profile-app.mjs','r126-files.mjs','r126-ui.mjs','updater.mjs')) {\n Write-Host \"BEGIN_UI_SCRIPT=$script\"\n $testProcess=Start-Process -FilePath (Get-Command node.exe -ErrorAction Stop).Source -ArgumentList @(\"ui-tests/$script\") -NoNewWindow -PassThru\n if (-not $testProcess.WaitForExit(480000)) {\n   taskkill.exe /PID $testProcess.Id /T /F | Out-Host\n   throw \"Windows Edge acceptance timed out after eight minutes:\
-        \ $script\"\n }\n $testProcess.WaitForExit()\n if ($testProcess.ExitCode -ne 0) { throw \"Windows Edge acceptance failed ($($testProcess.ExitCode)): $script\" }\n Write-Host \"END_UI_SCRIPT=$script\"\n}\nRemove-Item ui-tests/node_modules -Recurse -Force\n"
+      run: "$ErrorActionPreference='Stop'\nSet-Location work/app\nnpm ci --prefix ui-tests --no-audit --no-fund\nif ($LASTEXITCODE -ne 0) { throw 'UI dependencies failed' }\n$env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'\n$env:KF_UI_SCREENSHOTS=Join-Path $env:GITHUB_WORKSPACE 'proof'\nforeach ($script in @('approved-filament.mjs','printers-r130.mjs','farm-startup-r125.mjs','filament-replace-r129.mjs','fleet-live-r128.mjs','filament-inventory.mjs','filament-warehouse.mjs','file-workflow.mjs','notification-sound.mjs','r126-profile-app.mjs','r126-files.mjs','r126-ui.mjs','updater.mjs')) {\n Write-Host \"BEGIN_UI_SCRIPT=$script\"\n node \"ui-tests/$script\"\n if ($LASTEXITCODE -ne 0) { throw \"Windows Edge acceptance failed: $script\" }\n Write-Host \"END_UI_SCRIPT=$script\"\n}\nRemove-Item ui-tests/node_modules -Recurse -Force\n"
+      timeout-minutes: 30
     - name: Compile frontend and freeze complete R132 source
       shell: pwsh
       run: '$ErrorActionPreference=''Stop''
