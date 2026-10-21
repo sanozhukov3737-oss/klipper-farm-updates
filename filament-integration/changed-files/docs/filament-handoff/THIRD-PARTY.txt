@@ -1,0 +1,6 @@
+Lucide 1.8.0
+Inlined into approved/preview.html for offline icon rendering.
+License: LUCIDE-LICENSE.txt (ISC + retained Feather/MIT notices).
+The portable renderer has no external runtime dependencies.
+The preview wrapper supplies local host styles and an offline tooltip helper.
+No remote font or CDN is required.
