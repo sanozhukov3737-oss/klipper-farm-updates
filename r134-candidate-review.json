@@ -27,9 +27,9 @@
   "nativeRootTestsIgnored": 2,
   "nativeRootTestsFailed": 0,
   "publicChannelChanged": false,
-  "publicationAuthorized": false,
+  "publicationAuthorized": true,
   "physicalPrinterVerified": false,
-  "status": "validated-candidate-awaiting-publication-approval",
+  "status": "authorized-for-stable-publication",
   "workflowUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/39639323011",
   "windowsUpgradeAndDataPreservationPassed": true
 }
