@@ -39,3 +39,9 @@ KF-R132-* -text
 r132-build/** -text
 .github/workflows/windows-r132-filament.yml -text
 .github/workflows/promote-r132.yml -text
+r133-* -text
+R133-* -text
+KF-R133-* -text
+r133-build/** -text
+.github/workflows/windows-r133-filament.yml -text
+.github/workflows/promote-r133.yml -text
