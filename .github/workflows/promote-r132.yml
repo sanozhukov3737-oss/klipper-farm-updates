@@ -1,0 +1,213 @@
+name: Verify signed R132 and publish automatic update
+'on':
+  push:
+    branches: [filament-approved-integration-20261021]
+    paths:
+    - .gitattributes
+    - r132-signed-update.json
+    - r132-promotion-contract.json
+    - r132-verify-promotion.mjs
+    - r132-verify-update-sequence.mjs
+    - r132-inspect-promotion.py
+    - .github/workflows/promote-r132.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+env:
+  PYTHONUTF8: '1'
+concurrency:
+  group: promote-r132
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+    - name: Download pinned candidate, source, build metadata and installed Windows proof
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ($env:GITHUB_REPOSITORY -ne 'sanozhukov3737-oss/klipper-farm-updates') { throw 'Wrong repository' }
+        New-Item -ItemType Directory -Force incoming,verified | Out-Null
+        Copy-Item r132-promotion-contract.json,r132-release-notes.md incoming/
+        Copy-Item r132-signed-update.json incoming/update-v20.json
+        $pins=Get-Content r132-promotion-contract.json -Raw | ConvertFrom-Json
+        function Save-Api([string]$endpoint,[string]$name) {
+          $body=gh api $endpoint
+          if ($LASTEXITCODE -ne 0) { throw "Metadata read failed: $name" }
+          [IO.File]::WriteAllText((Join-Path $PWD "incoming/$name"),($body -join "`n"),[Text.UTF8Encoding]::new($false))
+        }
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)" 'build-run.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)/jobs?per_page=100" 'build-jobs.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/releases/tags/r132-ota" 'release.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/releases/latest" 'previous-latest-release.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($pins.sourceArtifactId)" 'source-artifact.json'
+        $encoded=gh api "repos/$env:GITHUB_REPOSITORY/contents/.github/workflows/windows-r132-filament.yml?ref=$($pins.buildHeadSha)" --jq .content
+        if ($LASTEXITCODE -ne 0) { throw 'Exact build workflow retrieval failed' }
+        [IO.File]::WriteAllBytes((Join-Path $PWD 'incoming/build-workflow.yml'),[Convert]::FromBase64String(($encoded -join '')))
+        $tag=gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r132-ota" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw 'Release tag retrieval failed' }
+        $object=$tag.object
+        if ($object.type -eq 'tag') {
+          $annotated=gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Annotated tag retrieval failed' }
+          $object=$annotated.object
+        }
+        if ($object.type -ne 'commit') { throw 'Release tag must resolve to a commit' }
+        @{commitSha=$object.sha} | ConvertTo-Json | Set-Content incoming/tag-commit.json -Encoding utf8NoBOM
+        gh release download r132-ota --repo $env:GITHUB_REPOSITORY --dir incoming --pattern Klipper-Farm-R132-setup.exe --pattern KF-R132-FULL.zip --pattern R132-UI-proof.zip --pattern provenance.json --pattern exact-validation.json
+        if ($LASTEXITCODE -ne 0) { throw 'Exact public candidate download failed' }
+        gh release download r131-ota --repo $env:GITHUB_REPOSITORY --dir incoming --pattern KF-R131-FULL.zip
+        if ($LASTEXITCODE -ne 0) { throw 'Exact published R131 baseline download failed' }
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 90 --output incoming/previous-stable-update.json --url "https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download/update-v20.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Previous stable application endpoint unavailable' }
+        foreach ($asset in $pins.assets.PSObject.Properties) {
+          if ((Get-FileHash "incoming/$($asset.Name)").Hash.ToLowerInvariant() -ne $asset.Value.sha256 -or (Get-Item "incoming/$($asset.Name)").Length -ne $asset.Value.sizeBytes) { throw "Candidate bytes differ: $($asset.Name)" }
+        }
+        python r132-inspect-promotion.py incoming r132-filament-patch.json
+        if ($LASTEXITCODE -ne 0) { throw 'Exact source or installed Windows proof inspection failed' }
+    - name: Verify signed installer using the exact production Rust updater module
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $incoming=Join-Path $PWD 'incoming'
+        Expand-Archive incoming/KF-R132-FULL.zip native-source
+        $source=Join-Path $PWD 'native-source/Klipper-Farm-R132'
+        Set-Location $source
+        $env:KF_R127_CORE_PROOF=Join-Path $incoming 'r132-filament-core.json'
+        node scripts/check-r127-filament.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Exact packaged warehouse accounting failed' }
+        tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+        if ($LASTEXITCODE -ne 0) { throw 'Reviewed offline Rust dependencies extraction failed' }
+        $env:CARGO_TARGET_DIR=Join-Path $env:RUNNER_TEMP 'r132-update-native'
+        cargo test --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --lib
+        if ($LASTEXITCODE -ne 0) { throw 'Native updater integrity and anti-rollback tests failed' }
+        $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+        $output=cargo run --quiet --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --example verify_bundle -- "$incoming/update-v20.json" "$incoming/Klipper-Farm-R132-setup.exe" 28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb stable $now
+        if ($LASTEXITCODE -ne 0) { throw 'Production Rust updater rejected the signed R132 package' }
+        [IO.File]::WriteAllText((Join-Path $incoming 'native-bundle-verification.txt'),($output -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
+        Copy-Item (Join-Path $env:CARGO_TARGET_DIR 'debug/examples/verify_bundle.exe') (Join-Path $env:GITHUB_WORKSPACE 'verified/verify_bundle.exe')
+        Set-Location $env:GITHUB_WORKSPACE
+        node r132-verify-update-sequence.mjs incoming $source
+        if ($LASTEXITCODE -ne 0) { throw 'Installed updater sequence behavior differs' }
+        node r132-verify-promotion.mjs incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Pinned candidate or root signature verification failed' }
+        foreach ($name in @('Klipper-Farm-R132-setup.exe','update-v20.json','SHA256SUMS.txt','promotion-attestation.json','r132-promotion-contract.json','r132-release-notes.md','native-bundle-verification.txt','update-sequence-verification.json','r132-filament-core.json')) { Copy-Item "incoming/$name" verified/ }
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r132-verified-stable
+        path: verified
+        retention-days: 30
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r132-promotion-evidence
+        path: |
+          incoming/*.json
+          incoming/*.yml
+          incoming/SHA256SUMS.txt
+          incoming/native-bundle-verification.txt
+        retention-days: 30
+  promote:
+    needs: verify
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r132-verified-stable
+        path: verified
+    - name: Recheck candidate, publish stable and verify public application endpoint
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location verified
+        $proof=Get-Content promotion-attestation.json -Raw | ConvertFrom-Json
+        $pins=Get-Content r132-promotion-contract.json -Raw | ConvertFrom-Json
+        if (-not $proof.passed -or -not $proof.ed25519SignatureVerified -or -not $proof.nativeUpdaterModuleVerified -or -not $proof.embeddedInstalledSequenceVerified -or -not $proof.compiledArtifactBoundToInstalledValidation -or $proof.sequence -ne 132 -or $proof.promotionHeadSha -ne $env:GITHUB_SHA -or $proof.buildHeadSha -ne $pins.buildHeadSha -or $proof.buildRunId -ne $pins.buildRunId) { throw 'Verification provenance differs' }
+        function Check-Candidate {
+          $candidate=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r132-ota" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate metadata unavailable' }
+          if ($candidate.id -ne $pins.releaseId -or $candidate.draft -or -not $candidate.prerelease -or $candidate.target_commitish -ne $pins.buildHeadSha) { throw 'Candidate release changed' }
+          foreach ($asset in $pins.assets.PSObject.Properties) {
+            $actual=@($candidate.assets | Where-Object name -eq $asset.Name)
+            if ($actual.Count -ne 1 -or $actual[0].size -ne $asset.Value.sizeBytes -or $actual[0].digest -ne ('sha256:'+$asset.Value.sha256)) { throw "Candidate bytes changed: $($asset.Name)" }
+          }
+          $tag=gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r132-ota" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate tag unavailable' }
+          $object=$tag.object
+          if ($object.type -eq 'tag') {
+            $annotated=gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Annotated tag unavailable' }
+            $object=$annotated.object
+          }
+          if ($object.type -ne 'commit' -or $object.sha -ne $pins.buildHeadSha) { throw 'Candidate tag changed' }
+        }
+        function Check-PreviousStable {
+          $previous=gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $previous.id -ne 418867916 -or $previous.tag_name -ne 'r131-ota' -or $previous.prerelease -or $previous.draft) { throw 'Stable channel changed while R132 was being verified' }
+          $manifest=@($previous.assets | Where-Object name -eq 'update-v20.json')
+          if ($manifest.Count -ne 1 -or $manifest[0].digest -ne 'sha256:9268a4169475e0c29242a44d2eb947d2f5a88ddea96ad92c2223b5fc0e680e3a') { throw 'Previous stable manifest changed' }
+        }
+        Check-PreviousStable
+        Check-Candidate
+        foreach ($name in @('update-v20.json','Klipper-Farm-R132-setup.exe')) {
+          if ((Get-FileHash $name).Hash.ToLowerInvariant() -ne $proof.assets.$name.sha256 -or (Get-Item $name).Length -ne $proof.assets.$name.sizeBytes) { throw "Verified package changed: $name" }
+        }
+        $upload=@{}
+        $files=@('update-v20.json','SHA256SUMS.txt','promotion-attestation.json','r132-promotion-contract.json','native-bundle-verification.txt','update-sequence-verification.json','r132-filament-core.json')
+        foreach ($name in $files) { $upload[$name]=@{sha256=(Get-FileHash $name).Hash.ToLowerInvariant();sizeBytes=(Get-Item $name).Length} }
+        gh release upload r132-ota @files --repo $env:GITHUB_REPOSITORY --clobber
+        if ($LASTEXITCODE -ne 0) { throw 'Verified manifest upload failed' }
+        Check-Candidate
+        $candidate=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r132-ota" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw 'Uploaded metadata unavailable' }
+        foreach ($name in $upload.Keys) {
+          $asset=@($candidate.assets | Where-Object name -eq $name)
+          if ($asset.Count -ne 1 -or $asset[0].digest -ne ('sha256:'+$upload[$name].sha256) -or $asset[0].size -ne $upload[$name].sizeBytes) { throw "Uploaded verified asset differs: $name" }
+        }
+        Check-Candidate
+        Check-PreviousStable
+        gh release edit r132-ota --repo $env:GITHUB_REPOSITORY --prerelease=false --latest --title 'Klipper Farm R132 — компактные карточки принтеров' --notes-file r132-release-notes.md
+        if ($LASTEXITCODE -ne 0) { throw 'Stable R132 publication failed' }
+        $latest=gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or $latest.id -ne $pins.releaseId -or $latest.prerelease -or $latest.draft) { throw 'Stable latest release differs' }
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 90 --output public-update-v20.json --url "https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download/update-v20.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Public application update endpoint unavailable' }
+        if ((Get-FileHash public-update-v20.json).Hash.ToLowerInvariant() -ne $proof.assets.'update-v20.json'.sha256) { throw 'Public application update manifest differs' }
+        $manifest=Get-Content public-update-v20.json -Raw | ConvertFrom-Json
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 180 --output public-installer.exe --url $manifest.artifact.url
+        if ($LASTEXITCODE -ne 0) { throw 'Signed public installer URL unavailable' }
+        & ./verify_bundle.exe public-update-v20.json public-installer.exe 28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb stable ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
+        if ($LASTEXITCODE -ne 0) { throw 'Native updater rejected the actual public channel download' }
+        @{passed=$true;sequence=132;releaseId=$latest.id;manifestSha256=(Get-FileHash public-update-v20.json).Hash.ToLowerInvariant();installerSha256=(Get-FileHash public-installer.exe).Hash.ToLowerInvariant();publicApplicationEndpointVerified=$true;productionRustUpdaterVerified=$true;verifiedAt=[DateTimeOffset]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content public-channel-verification.json -Encoding utf8NoBOM
+        gh release upload r132-ota public-channel-verification.json --repo $env:GITHUB_REPOSITORY
+        if ($LASTEXITCODE -ne 0) { throw 'Public channel verification report upload failed' }
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r132-public-channel-verification
+        path: |
+          verified/public-update-v20.json
+          verified/public-channel-verification.json
+        retention-days: 30
