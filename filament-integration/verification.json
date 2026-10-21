@@ -1,0 +1,25 @@
+{
+  "baseRelease": "R131",
+  "releasePublished": false,
+  "installerBuilt": false,
+  "sourceFiles": 30,
+  "build": "npm run build: passed",
+  "typescript": "passed",
+  "rendererExactArchiveMatch": true,
+  "patchReconstruction": "all changed files byte-identical",
+  "conflictingLocalSource": "rejected before any write",
+  "checks": {
+    "accounting-approved.json": 7,
+    "approved-integration-report.json": 9,
+    "filament-inventory-r123-report.json": 17,
+    "warehouse-r128-report.json": 7,
+    "filament-replace-r129-report.json": 11,
+    "printers-r130-report.json": 24,
+    "fleet-r128-report.json": 7
+  },
+  "limitations": [
+    "Windows/WebView2 and the user GPU were not tested",
+    "Native SQLite/desktop boundary is emulated in browser tests",
+    "No physical printer or user database was accessed"
+  ]
+}

@@ -1,0 +1,3 @@
+38f847d7fdf26072c01f5b44635af067a57bcc2cd945e245505cda4fb0ffcf36  approved-filament-patch.json
+f4cb67f0f9b014d33302f7305dfcfe8f86acf2aae19a9c9f68feec0c47cfaacd  approved-filament-source.diff
+88aa1adf9450af64b619828b987a54cc74fb8e038b9af86c2776b45ea060c647  Klipper-Farm-Approved-Filament-Integration.zip
