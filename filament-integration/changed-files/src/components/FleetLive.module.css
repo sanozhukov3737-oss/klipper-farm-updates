@@ -1,0 +1,104 @@
+.dashboard { --fleet-blue: #6ca8f5; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+.filters button { display: flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid transparent; border-radius: 8px; color: var(--ui-muted); background: transparent; font: inherit; font-size: 11px; cursor: pointer; }
+.filters button[aria-pressed='true'] { color: var(--ui-text); background: var(--ui-surface); border-color: var(--ui-border); }
+.filters b { font-size: 10px; padding: 1px 5px; border-radius: 4px; background: var(--ui-surface-2); }
+.filters button:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+.emptyFilter { grid-column: 1 / -1; color: var(--ui-muted); font-size: 13px; padding: 24px; }
+/* Scoped rules override the fixed grid rows in older dashboard styles. */
+:global(:root[data-theme]) .dashboard .grid.grid { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; grid-template-rows: none !important; grid-auto-rows: minmax(262px, auto) !important; gap: 12px !important; align-items: stretch; }
+.printerCard { container-type: inline-size; --card-color: var(--fleet-blue); position: relative; display: flex; flex-direction: column; gap: 11px; min-width: 0; padding: 15px 15px 10px; overflow: hidden; color: var(--ui-text); text-align: left; border: 1px solid var(--ui-border); border-radius: 17px; background: var(--ui-surface); box-shadow: 0 4px 16px #0000000b; transition: border-color .18s, transform .18s, box-shadow .18s; }
+.printerCard::before { content: ''; position: absolute; top: 0; left: 20px; right: 20px; height: 2px; background: var(--card-color); opacity: .75; }
+.printerCard[data-tone='ready'] { --card-color: #54b6a0; }
+.printerCard[data-tone='warning'] { --card-color: #dfaa5c; }
+.printerCard[data-tone='danger'] { --card-color: #e37a88; }
+.printerCard:hover { border-color: var(--card-color); transform: translateY(-2px); box-shadow: 0 8px 22px #00000016; }
+.printerCard:has(.openCard:focus-visible) { outline: 3px solid var(--ui-accent); outline-offset: 3px; }
+.openCard { position: absolute; inset: 0; z-index: 1; padding: 0; margin: 0; border: 0; border-radius: inherit; background: transparent; cursor: pointer; }
+.openCard:focus { outline: none; }
+.cardHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; min-width: 0; }
+.identity { min-width: 0; }
+.name { display: block; color: var(--ui-text); font-size: 14px; font-weight: 800; line-height: 1.3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.host { display: block; color: var(--ui-muted); margin-top: 3px; font-size: 10px; font-weight: 500; }
+.state { display: inline-flex; align-items: center; gap: 4px; flex: none; max-width: 47%; color: var(--card-color); padding: 4px 6px; border-radius: 6px; background: color-mix(in srgb, var(--card-color) 10%, transparent); font-size: 9px; line-height: 1.3; font-weight: 700; }
+.state i, .footer i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex: none; }
+.stage { display: grid; grid-template-columns: 124px minmax(0, 1fr); align-items: center; gap: 11px; min-width: 0; flex: 1; }
+.visual { position: relative; width: 124px; height: 136px; display: grid; place-items: center; }
+.progressRing { position: absolute; top: 0; left: 0; width: 124px; height: 124px; overflow: visible; transform: rotate(-90deg); fill: none; stroke: color-mix(in srgb, var(--ui-muted) 14%, transparent); stroke-width: 3; }
+.progressRing .ringValue { stroke: var(--card-color); stroke-linecap: round; transition: stroke-dasharray .6s; }
+.artwork { width: 101px; height: 107px; object-fit: contain; margin-top: -10px; filter: drop-shadow(0 5px 5px #00000018); }
+.percent { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface); padding: 2px 9px; color: var(--ui-text); font-size: 17px; line-height: 1.35; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jobBody { min-width: 0; display: flex; flex-direction: column; gap: 11px; }
+.job { display: flex; align-items: center; gap: 5px; min-width: 0; color: var(--ui-muted); }
+.job svg { width: 12px; height: 12px; flex: none; }
+.job b { min-width: 0; font-size: 10px; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.finish { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.finish small { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ui-muted); }
+.finish svg { width: 12px; height: 12px; }
+.finish strong { font-size: 20px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.printerCard:not([data-tone='printing']) .finish strong { font-size: 14px; }
+.finish span { color: var(--ui-muted); font-size: 10px; }
+.layer { display: flex; align-items: center; gap: 5px; color: var(--ui-muted); font-size: 10px; }
+.layer svg { width: 12px; height: 12px; }
+.telemetry { display: grid; grid-template-columns: 1fr 1fr 1.12fr; gap: 5px; min-width: 0; }
+.telemetry > span, .telemetry > button { display: grid; grid-template-columns: 15px minmax(0, 1fr); align-content: center; column-gap: 4px; padding: 6px; min-width: 0; border-radius: 9px; background: var(--ui-surface-2); }
+.telemetry > span > svg, .telemetry > button > svg { width: 13px; height: 16px; grid-row: 1 / 3; align-self: center; color: var(--card-color); }
+.telemetry small { color: var(--ui-muted); font-size: 8px; line-height: 1.3; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.telemetry b { color: var(--ui-text); font-size: 12px; font-weight: 700; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.telemetry[data-freshness='stale'] b { color: var(--ui-warning); }
+.telemetry > .material { grid-template-columns: 25px minmax(0, 1fr); }
+.telemetry > .material > svg, .telemetry > .material > [data-spool-thumbnail] { width: 29px; height: 30px; max-width: none; grid-row: 1 / 3; align-self: center; }
+.telemetry > button.material { position: relative; z-index: 2; grid-template-columns: 25px minmax(0, 1fr) 12px; border: 1px solid transparent; font: inherit; text-align: left; cursor: pointer; }
+.telemetry > button.material:hover { border-color: var(--ui-accent); background: color-mix(in srgb, var(--ui-accent) 12%, var(--ui-surface-2)); }
+.telemetry > button.material:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+.telemetry > .material .replaceIcon { width: 12px; height: 12px; grid-column: 3; grid-row: 1 / 3; color: var(--ui-accent); }
+.material b { font-size: 10px; }
+.footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; min-width: 0; color: var(--ui-muted); font-size: 9px; }
+.footer > span { display: inline-flex; align-items: center; gap: 5px; min-width: 0; }
+.footer i { background: var(--ui-warning); }
+.footer i[data-live='true'] { background: var(--ui-success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-success) 10%, transparent); }
+.footer > svg { width: 14px; height: 14px; }
+:global(:root[data-theme='light']) .dashboard { --fleet-blue: #347ad1; }
+:global(:root[data-theme='light']) .printerCard[data-tone='ready'] { --card-color: #24816f; }
+:global(:root[data-theme='light']) .printerCard[data-tone='warning'] { --card-color: #a9721e; }
+:global(:root[data-theme='light']) .printerCard[data-tone='danger'] { --card-color: #c44c61; }
+@media (max-width: 1200px) { :global(:root[data-theme]) .dashboard .grid.grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+@media (max-width: 800px) { :global(:root[data-theme]) .dashboard .grid.grid { grid-template-columns: 1fr !important; } .stage { grid-template-columns: 130px minmax(0, 1fr); } }
+@media (max-width: 480px) {
+  .stage { grid-template-columns: 104px minmax(0, 1fr); gap: 9px; }
+  .visual { width: 104px; height: 117px; }
+  .progressRing { width: 104px; height: 104px; }
+  .artwork { width: 84px; height: 89px; }
+  .percent { font-size: 15px; }
+  .finish strong { font-size: 17px; }
+  .telemetry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .telemetry > .material { grid-column: 1 / -1; grid-template-columns: 25px 1fr auto; align-items: center; }
+  .telemetry > .material > svg, .telemetry > .material > [data-spool-thumbnail] { grid-row: auto; }
+  .telemetry > button.material { grid-template-columns: 25px 1fr auto 12px; }
+  .telemetry > .material .replaceIcon { grid-column: 4; grid-row: 1; }
+  .material b { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .printerCard, .progressRing .ringValue { transition: none; } .printerCard:hover { transform: none; } }
+
+.manager { display: flex; flex-direction: column; gap: 16px; padding-bottom: 18px; }
+.channel { display: inline-block; margin-left: 6px; color: var(--fleet-blue); font-size: 9px; font-style: normal; }
+.actions { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 1px; padding-top: 10px; border-top: 1px solid var(--ui-border); }
+.actions > button { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; min-height: 34px; padding: 7px 5px; border: 1px solid var(--ui-border); border-radius: 8px; background: var(--ui-surface-2); color: var(--ui-text); font: inherit; font-size: 10px; font-weight: 600; cursor: pointer; }
+.actions > button > svg { width: 13px; height: 13px; flex: none; }
+.actions > button > span { min-width: 0; white-space: nowrap; }
+.actions > button:hover { border-color: var(--fleet-blue); color: var(--fleet-blue); }
+.actions > button:focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 2px; }
+.actions > .removeAction { color: var(--ui-muted); }
+.actions > .removeAction:hover { color: #e37a88; border-color: #e37a88; }
+@media (max-width: 760px) { .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } .actions > button { min-height: 40px; } }
+/* Inventory values keep their own contrast, independent of legacy button text and telemetry age. */
+:global(:root[data-theme]) .dashboard .telemetry > .material b { color: var(--ui-text) !important; }
+
+@container (max-width: 330px) { .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 280px) {
+  .telemetry { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .telemetry > .material { grid-column: 1 / -1; grid-template-columns: 25px minmax(0, 1fr) auto; align-items: center; }
+  .telemetry > .material > svg, .telemetry > .material > [data-spool-thumbnail] { grid-row: auto; }
+  .telemetry > button.material { grid-template-columns: 25px minmax(0, 1fr) auto 12px; }
+  .telemetry > .material .replaceIcon { grid-column: 4; grid-row: 1; }
+}
