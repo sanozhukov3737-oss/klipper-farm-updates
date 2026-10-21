@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "sequence": 134,
+  "manifestSha256": "bcba3cbca1edbf8de32ec74b01280e19052ffe494ac1c148bc016b820d9ccc1d",
+  "installerSha256": "670ff8218d7d8146e8565b3e3192150aed1430dc790388f8457736474adcbe82",
+  "installerBytes": 233754545,
+  "ed25519SignatureVerified": true,
+  "actualPublicDownloadsVerified": true,
+  "productionRustUpdaterVerified": true,
+  "updateFromR133Verified": true,
+  "noRepeatedUpdateFromR134Verified": true,
+  "releaseId": 419878472,
+  "verifiedAt": "2026-10-21T17:59:13.500Z"
+}

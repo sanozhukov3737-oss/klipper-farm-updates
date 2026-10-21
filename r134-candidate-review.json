@@ -26,10 +26,20 @@
   "nativeRootTestsPassed": 199,
   "nativeRootTestsIgnored": 2,
   "nativeRootTestsFailed": 0,
-  "publicChannelChanged": false,
+  "publicChannelChanged": true,
   "publicationAuthorized": true,
   "physicalPrinterVerified": false,
-  "status": "authorized-for-stable-publication",
+  "status": "published-stable-and-public-downloads-verified",
   "workflowUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/39639323011",
-  "windowsUpgradeAndDataPreservationPassed": true
+  "windowsUpgradeAndDataPreservationPassed": true,
+  "releaseId": 419878472,
+  "releaseUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/tag/r134-ota",
+  "promotionRunId": 39647703023,
+  "promotionHeadSha": "88c166535859f1a1ee8f7cd0a9eccf8230abdc22",
+  "promotionWorkflowUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/39647703023",
+  "promotionConclusion": "success",
+  "publicManifestSha256": "bcba3cbca1edbf8de32ec74b01280e19052ffe494ac1c148bc016b820d9ccc1d",
+  "publicApplicationEndpointVerified": true,
+  "actualPublicDownloadsVerified": true,
+  "productionRustUpdaterVerified": true
 }
