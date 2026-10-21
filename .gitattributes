@@ -50,8 +50,3 @@ R134-* -text
 KF-R134-* -text
 r134-build/** -text
 .github/workflows/windows-r134-print.yml -text
-r134-* -text
-R134-* -text
-KF-R134-* -text
-r134-build/** -text
-.github/workflows/windows-r134-print.yml -text
