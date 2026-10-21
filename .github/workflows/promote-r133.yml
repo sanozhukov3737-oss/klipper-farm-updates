@@ -80,6 +80,10 @@ jobs:
 
         Set-Location $source
 
+        npm ci --ignore-scripts --no-audit --no-fund
+
+        if ($LASTEXITCODE -ne 0) { throw ''Locked verification dependencies failed'' }
+
         $env:KF_R127_CORE_PROOF=Join-Path $incoming ''r133-filament-core.json''
 
         node scripts/check-r127-filament.mjs
