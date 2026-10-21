@@ -31,7 +31,7 @@ for(const name of ['klipper-farm-client.exe','klipper-farmd.exe']){
   assert.ok(installed.includes(Buffer.from('V20.6-R13.4-PRINT-TRANSFER-FIX-2026-10-21')),'Installed desktop build identity differs');
   assert.ok(installed.includes(Buffer.from('28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb')),'Installed publisher public key differs');
   assert.ok(installed.includes(Buffer.from(JSON.stringify(expectedChannel,null,2)+'\n')),'Installed native updater does not embed the exact stable R134 channel');
-  report.installedSequence=133;
+  report.installedSequence=expectedChannel.installedSequence;
   report.embeddedUpdateChannelVerified=true;
  }
  report.binaries[name]=entry;
