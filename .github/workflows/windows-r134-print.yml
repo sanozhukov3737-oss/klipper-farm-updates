@@ -36,7 +36,7 @@ jobs:
       shell: pwsh
       run: '$ErrorActionPreference=''Stop''
 
-        if ((Get-FileHash r134-print-patch.json).Hash.ToLowerInvariant() -ne ''f91b6d5632cee29e33ec8468905c2f24a9648155278b3ef70823d9a319ff8136'')
+        if ((Get-FileHash r134-print-patch.json).Hash.ToLowerInvariant() -ne ''67f57cd6e77e53e1fef7b97ba09a302460a470956e31601abf78ab9395ab4d64'')
         { throw ''Reviewed R134 patch differs'' }
 
         Copy-Item r134-build ci -Recurse
@@ -163,7 +163,7 @@ jobs:
         foreach ($name in @(''Klipper-Farm-R134-setup.exe'',''KF-R134-FULL.zip'')) { $item=Get-Item "../../candidate/$name";
         $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
 
-        @{release=''R134'';sequence=134;baselineSequence=133;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256=''f91b6d5632cee29e33ec8468905c2f24a9648155278b3ef70823d9a319ff8136'';assets=$manifest}
+        @{release=''R134'';sequence=134;baselineSequence=133;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256=''67f57cd6e77e53e1fef7b97ba09a302460a470956e31601abf78ab9395ab4d64'';assets=$manifest}
         | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
 
         '
