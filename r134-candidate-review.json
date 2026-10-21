@@ -1,0 +1,35 @@
+{
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "branch": "r134-print-transfer",
+  "sequence": 134,
+  "baselineSequence": 133,
+  "runId": 39639323011,
+  "buildHeadSha": "863555626a6563c5a11a4ea575031d8b3df2f291",
+  "patchSha256": "67f57cd6e77e53e1fef7b97ba09a302460a470956e31601abf78ab9395ab4d64",
+  "sourceCommit": "2e8ced47366095391bcd25697a6df67230210170",
+  "buildId": "V20.6-R13.4-PRINT-TRANSFER-FIX-2026-10-21",
+  "assets": {
+    "Klipper-Farm-R134-setup.exe": {
+      "sizeBytes": 233754545,
+      "sha256": "670ff8218d7d8146e8565b3e3192150aed1430dc790388f8457736474adcbe82"
+    },
+    "KF-R134-FULL.zip": {
+      "sizeBytes": 582861134,
+      "sha256": "a70c218772e5b4a2e70419eca2fe76ebb657bcc5f268667d795c56c0f88b3f4a"
+    }
+  },
+  "installerArtifactId": 12365629020,
+  "validatedArtifactId": 12365948618,
+  "validatedArtifactDigest": "sha256:bd6baa851e8ea35e4e57e3107b003e6ff2a7104dd5ea54fea87b1eb1dc3d936c",
+  "installedEvidenceArtifactId": 12365788633,
+  "installedEvidenceArtifactDigest": "sha256:3913dc502a595ca50ad4324efaa58867a91ee9a1ca3d910e61ca97dc10804882",
+  "nativeRootTestsPassed": 199,
+  "nativeRootTestsIgnored": 2,
+  "nativeRootTestsFailed": 0,
+  "publicChannelChanged": false,
+  "publicationAuthorized": false,
+  "physicalPrinterVerified": false,
+  "status": "validated-candidate-awaiting-publication-approval",
+  "workflowUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/39639323011",
+  "windowsUpgradeAndDataPreservationPassed": true
+}
