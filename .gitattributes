@@ -33,3 +33,9 @@ KF-R131-* -text
 apply-r131.py -text
 .github/workflows/windows-r131-cleanup.yml -text
 .github/workflows/promote-r131.yml -text
+r132-* -text
+R132-* -text
+KF-R132-* -text
+r132-build/** -text
+.github/workflows/windows-r132-filament.yml -text
+.github/workflows/promote-r132.yml -text
