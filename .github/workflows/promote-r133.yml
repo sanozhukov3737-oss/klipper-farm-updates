@@ -1,0 +1,223 @@
+name: Verify signed R133 and publish automatic update
+'on':
+  push:
+    branches:
+    - r133-spool-auto-accounting
+    paths:
+    - .gitattributes
+    - r133-signed-update.json
+    - r133-promotion-contract.json
+    - r133-verify-promotion.mjs
+    - r133-verify-update-sequence.mjs
+    - r133-inspect-promotion.py
+    - .github/workflows/promote-r133.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+env:
+  PYTHONUTF8: '1'
+concurrency:
+  group: promote-r133
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+    - name: Download pinned candidate, source, build metadata and installed Windows proof
+      shell: pwsh
+      run: "$ErrorActionPreference='Stop'\nif ($env:GITHUB_REPOSITORY -ne 'sanozhukov3737-oss/klipper-farm-updates') { throw\
+        \ 'Wrong repository' }\nNew-Item -ItemType Directory -Force incoming,verified | Out-Null\nCopy-Item r133-promotion-contract.json,r133-release-notes.md\
+        \ incoming/\nCopy-Item r133-signed-update.json incoming/update-v20.json\n$pins=Get-Content r133-promotion-contract.json\
+        \ -Raw | ConvertFrom-Json\nfunction Save-Api([string]$endpoint,[string]$name) {\n  $body=gh api $endpoint\n  if ($LASTEXITCODE\
+        \ -ne 0) { throw \"Metadata read failed: $name\" }\n  [IO.File]::WriteAllText((Join-Path $PWD \"incoming/$name\"),($body\
+        \ -join \"`n\"),[Text.UTF8Encoding]::new($false))\n}\nSave-Api \"repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)\"\
+        \ 'build-run.json'\nSave-Api \"repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)/jobs?per_page=100\" 'build-jobs.json'\n\
+        Save-Api \"repos/$env:GITHUB_REPOSITORY/releases/tags/r133-ota\" 'release.json'\nSave-Api \"repos/$env:GITHUB_REPOSITORY/releases/latest\"\
+        \ 'previous-latest-release.json'\nSave-Api \"repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($pins.sourceArtifactId)\"\
+        \ 'source-artifact.json'\n$encoded=gh api \"repos/$env:GITHUB_REPOSITORY/contents/.github/workflows/windows-r133-filament.yml?ref=$($pins.buildHeadSha)\"\
+        \ --jq .content\nif ($LASTEXITCODE -ne 0) { throw 'Exact build workflow retrieval failed' }\n[IO.File]::WriteAllBytes((Join-Path\
+        \ $PWD 'incoming/build-workflow.yml'),[Convert]::FromBase64String(($encoded -join '')))\n$tag=gh api \"repos/$env:GITHUB_REPOSITORY/git/ref/tags/r133-ota\"\
+        \ | ConvertFrom-Json\nif ($LASTEXITCODE -ne 0) { throw 'Release tag retrieval failed' }\n$object=$tag.object\nif ($object.type\
+        \ -eq 'tag') {\n  $annotated=gh api \"repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)\" | ConvertFrom-Json\n\
+        \  if ($LASTEXITCODE -ne 0) { throw 'Annotated tag retrieval failed' }\n  $object=$annotated.object\n}\nif ($object.type\
+        \ -ne 'commit') { throw 'Release tag must resolve to a commit' }\n@{commitSha=$object.sha} | ConvertTo-Json | Set-Content\
+        \ incoming/tag-commit.json -Encoding utf8NoBOM\ngh release download r133-ota --repo $env:GITHUB_REPOSITORY --dir incoming\
+        \ --pattern Klipper-Farm-R133-setup.exe --pattern KF-R133-FULL.zip --pattern R133-UI-proof.zip --pattern provenance.json\
+        \ --pattern exact-validation.json\nif ($LASTEXITCODE -ne 0) { throw 'Exact public candidate download failed' }\ngh\
+        \ release download r132-ota --repo $env:GITHUB_REPOSITORY --dir incoming --pattern KF-R132-FULL.zip\nif ($LASTEXITCODE\
+        \ -ne 0) { throw 'Exact published R132 baseline download failed' }\ncurl.exe -q --fail --silent --show-error --location\
+        \ --proto '=https' --proto-redir '=https' --max-time 90 --output incoming/previous-stable-update.json --url \"https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download/update-v20.json\"\
+        \nif ($LASTEXITCODE -ne 0) { throw 'Previous stable application endpoint unavailable' }\nforeach ($asset in $pins.assets.PSObject.Properties)\
+        \ {\n  if ((Get-FileHash \"incoming/$($asset.Name)\").Hash.ToLowerInvariant() -ne $asset.Value.sha256 -or (Get-Item\
+        \ \"incoming/$($asset.Name)\").Length -ne $asset.Value.sizeBytes) { throw \"Candidate bytes differ: $($asset.Name)\"\
+        \ }\n}\npython r133-inspect-promotion.py incoming r133-filament-patch.json\nif ($LASTEXITCODE -ne 0) { throw 'Exact\
+        \ source or installed Windows proof inspection failed' }\n"
+    - name: Verify signed installer using the exact production Rust updater module
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        $incoming=Join-Path $PWD ''incoming''
+
+        Expand-Archive incoming/KF-R133-FULL.zip native-source
+
+        $source=Join-Path $PWD ''native-source/Klipper-Farm-R133''
+
+        Set-Location $source
+
+        $env:KF_R127_CORE_PROOF=Join-Path $incoming ''r133-filament-core.json''
+
+        node scripts/check-r127-filament.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Exact packaged warehouse accounting failed'' }
+
+        node scripts/check-filament-auto-retry.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Packaged automatic accounting failed'' }
+
+        node scripts/check-filament-history-policy.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Packaged native history permission failed'' }
+
+        tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+
+        if ($LASTEXITCODE -ne 0) { throw ''Reviewed offline Rust dependencies extraction failed'' }
+
+        $env:CARGO_TARGET_DIR=Join-Path $env:RUNNER_TEMP ''r133-update-native''
+
+        cargo test --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --lib
+
+        if ($LASTEXITCODE -ne 0) { throw ''Native updater integrity and anti-rollback tests failed'' }
+
+        $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+
+        $output=cargo run --quiet --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --example verify_bundle
+        -- "$incoming/update-v20.json" "$incoming/Klipper-Farm-R133-setup.exe" 28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb
+        stable $now
+
+        if ($LASTEXITCODE -ne 0) { throw ''Production Rust updater rejected the signed R133 package'' }
+
+        [IO.File]::WriteAllText((Join-Path $incoming ''native-bundle-verification.txt''),($output -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
+
+        Copy-Item (Join-Path $env:CARGO_TARGET_DIR ''debug/examples/verify_bundle.exe'') (Join-Path $env:GITHUB_WORKSPACE
+        ''verified/verify_bundle.exe'')
+
+        Set-Location $env:GITHUB_WORKSPACE
+
+        node r133-verify-update-sequence.mjs incoming $source
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed updater sequence behavior differs'' }
+
+        node r133-verify-promotion.mjs incoming
+
+        if ($LASTEXITCODE -ne 0) { throw ''Pinned candidate or root signature verification failed'' }
+
+        foreach ($name in @(''Klipper-Farm-R133-setup.exe'',''update-v20.json'',''SHA256SUMS.txt'',''promotion-attestation.json'',''r133-promotion-contract.json'',''r133-release-notes.md'',''native-bundle-verification.txt'',''update-sequence-verification.json'',''r133-filament-core.json''))
+        { Copy-Item "incoming/$name" verified/ }
+
+        '
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r133-verified-stable
+        path: verified
+        retention-days: 30
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r133-promotion-evidence
+        path: 'incoming/*.json
+
+          incoming/*.yml
+
+          incoming/SHA256SUMS.txt
+
+          incoming/native-bundle-verification.txt
+
+          '
+        retention-days: 30
+  promote:
+    needs: verify
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r133-verified-stable
+        path: verified
+    - name: Recheck candidate, publish stable and verify public application endpoint
+      shell: pwsh
+      run: "$ErrorActionPreference='Stop'\nSet-Location verified\n$proof=Get-Content promotion-attestation.json -Raw | ConvertFrom-Json\n\
+        $pins=Get-Content r133-promotion-contract.json -Raw | ConvertFrom-Json\nif (-not $proof.passed -or -not $proof.ed25519SignatureVerified\
+        \ -or -not $proof.nativeUpdaterModuleVerified -or -not $proof.embeddedInstalledSequenceVerified -or -not $proof.compiledArtifactBoundToInstalledValidation\
+        \ -or $proof.sequence -ne 133 -or $proof.promotionHeadSha -ne $env:GITHUB_SHA -or $proof.buildHeadSha -ne $pins.buildHeadSha\
+        \ -or $proof.buildRunId -ne $pins.buildRunId) { throw 'Verification provenance differs' }\nfunction Check-Candidate\
+        \ {\n  $candidate=gh api \"repos/$env:GITHUB_REPOSITORY/releases/tags/r133-ota\" | ConvertFrom-Json\n  if ($LASTEXITCODE\
+        \ -ne 0) { throw 'Candidate metadata unavailable' }\n  if ($candidate.id -ne $pins.releaseId -or $candidate.draft\
+        \ -or -not $candidate.prerelease -or $candidate.target_commitish -ne $pins.buildHeadSha) { throw 'Candidate release\
+        \ changed' }\n  foreach ($asset in $pins.assets.PSObject.Properties) {\n    $actual=@($candidate.assets | Where-Object\
+        \ name -eq $asset.Name)\n    if ($actual.Count -ne 1 -or $actual[0].size -ne $asset.Value.sizeBytes -or $actual[0].digest\
+        \ -ne ('sha256:'+$asset.Value.sha256)) { throw \"Candidate bytes changed: $($asset.Name)\" }\n  }\n  $tag=gh api \"\
+        repos/$env:GITHUB_REPOSITORY/git/ref/tags/r133-ota\" | ConvertFrom-Json\n  if ($LASTEXITCODE -ne 0) { throw 'Candidate\
+        \ tag unavailable' }\n  $object=$tag.object\n  if ($object.type -eq 'tag') {\n    $annotated=gh api \"repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)\"\
+        \ | ConvertFrom-Json\n    if ($LASTEXITCODE -ne 0) { throw 'Annotated tag unavailable' }\n    $object=$annotated.object\n\
+        \  }\n  if ($object.type -ne 'commit' -or $object.sha -ne $pins.buildHeadSha) { throw 'Candidate tag changed' }\n\
+        }\nfunction Check-PreviousStable {\n  $previous=gh api \"repos/$env:GITHUB_REPOSITORY/releases/latest\" | ConvertFrom-Json\n\
+        \  if ($LASTEXITCODE -ne 0 -or $previous.id -ne 419430286 -or $previous.tag_name -ne 'r132-ota' -or $previous.prerelease\
+        \ -or $previous.draft) { throw 'Stable channel changed while R133 was being verified' }\n  $manifest=@($previous.assets\
+        \ | Where-Object name -eq 'update-v20.json')\n  if ($manifest.Count -ne 1 -or $manifest[0].digest -ne 'sha256:93bfc05c1f2e1388630a7be6c4db998272ad3de91a56af15cf07b2625d960c02')\
+        \ { throw 'Previous stable manifest changed' }\n}\nCheck-PreviousStable\nCheck-Candidate\nforeach ($name in @('update-v20.json','Klipper-Farm-R133-setup.exe'))\
+        \ {\n  if ((Get-FileHash $name).Hash.ToLowerInvariant() -ne $proof.assets.$name.sha256 -or (Get-Item $name).Length\
+        \ -ne $proof.assets.$name.sizeBytes) { throw \"Verified package changed: $name\" }\n}\n$upload=@{}\n$files=@('update-v20.json','SHA256SUMS.txt','promotion-attestation.json','r133-promotion-contract.json','native-bundle-verification.txt','update-sequence-verification.json','r133-filament-core.json')\n\
+        foreach ($name in $files) { $upload[$name]=@{sha256=(Get-FileHash $name).Hash.ToLowerInvariant();sizeBytes=(Get-Item\
+        \ $name).Length} }\ngh release upload r133-ota @files --repo $env:GITHUB_REPOSITORY --clobber\nif ($LASTEXITCODE -ne\
+        \ 0) { throw 'Verified manifest upload failed' }\nCheck-Candidate\n$candidate=gh api \"repos/$env:GITHUB_REPOSITORY/releases/tags/r133-ota\"\
+        \ | ConvertFrom-Json\nif ($LASTEXITCODE -ne 0) { throw 'Uploaded metadata unavailable' }\nforeach ($name in $upload.Keys)\
+        \ {\n  $asset=@($candidate.assets | Where-Object name -eq $name)\n  if ($asset.Count -ne 1 -or $asset[0].digest -ne\
+        \ ('sha256:'+$upload[$name].sha256) -or $asset[0].size -ne $upload[$name].sizeBytes) { throw \"Uploaded verified asset\
+        \ differs: $name\" }\n}\nCheck-Candidate\nCheck-PreviousStable\ngh release edit r133-ota --repo $env:GITHUB_REPOSITORY\
+        \ --prerelease=false --latest --title 'Klipper Farm R133 — одна катушка и автоматический учёт' --notes-file r133-release-notes.md\n\
+        if ($LASTEXITCODE -ne 0) { throw 'Stable R133 publication failed' }\n$latest=gh api \"repos/$env:GITHUB_REPOSITORY/releases/latest\"\
+        \ | ConvertFrom-Json\nif ($LASTEXITCODE -ne 0 -or $latest.id -ne $pins.releaseId -or $latest.prerelease -or $latest.draft)\
+        \ { throw 'Stable latest release differs' }\ncurl.exe -q --fail --silent --show-error --location --proto '=https'\
+        \ --proto-redir '=https' --max-time 90 --output public-update-v20.json --url \"https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download/update-v20.json\"\
+        \nif ($LASTEXITCODE -ne 0) { throw 'Public application update endpoint unavailable' }\nif ((Get-FileHash public-update-v20.json).Hash.ToLowerInvariant()\
+        \ -ne $proof.assets.'update-v20.json'.sha256) { throw 'Public application update manifest differs' }\n$manifest=Get-Content\
+        \ public-update-v20.json -Raw | ConvertFrom-Json\ncurl.exe -q --fail --silent --show-error --location --proto '=https'\
+        \ --proto-redir '=https' --max-time 180 --output public-installer.exe --url $manifest.artifact.url\nif ($LASTEXITCODE\
+        \ -ne 0) { throw 'Signed public installer URL unavailable' }\n& ./verify_bundle.exe public-update-v20.json public-installer.exe\
+        \ 28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb stable ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())\n\
+        if ($LASTEXITCODE -ne 0) { throw 'Native updater rejected the actual public channel download' }\n@{passed=$true;sequence=133;releaseId=$latest.id;manifestSha256=(Get-FileHash\
+        \ public-update-v20.json).Hash.ToLowerInvariant();installerSha256=(Get-FileHash public-installer.exe).Hash.ToLowerInvariant();publicApplicationEndpointVerified=$true;productionRustUpdaterVerified=$true;verifiedAt=[DateTimeOffset]::UtcNow.ToString('o')}\
+        \ | ConvertTo-Json | Set-Content public-channel-verification.json -Encoding utf8NoBOM\ngh release upload r133-ota\
+        \ public-channel-verification.json --repo $env:GITHUB_REPOSITORY\nif ($LASTEXITCODE -ne 0) { throw 'Public channel\
+        \ verification report upload failed' }\n"
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r133-public-channel-verification
+        path: 'verified/public-update-v20.json
+
+          verified/public-channel-verification.json
+
+          '
+        retention-days: 30
