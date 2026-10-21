@@ -1,0 +1,124 @@
+{
+  "passed": 7,
+  "report": [
+    {
+      "case": "production-warehouse",
+      "theme": "dark",
+      "width": 1366,
+      "durableDailyHistory": true,
+      "periods": [
+        7,
+        30
+      ],
+      "keyboardDaySelection": true,
+      "noReadOnlyWrite": true,
+      "noHorizontalOverflow": true,
+      "everySpoolUsesOwnColor": true,
+      "keyboardSpoolSelection": true,
+      "colorSearch": true,
+      "materialAndLocationFilters": true,
+      "spoolGraphicLoaded": true
+    },
+    {
+      "case": "production-warehouse",
+      "theme": "dark",
+      "width": 910,
+      "durableDailyHistory": true,
+      "periods": [
+        7,
+        30
+      ],
+      "keyboardDaySelection": true,
+      "noReadOnlyWrite": true,
+      "noHorizontalOverflow": true,
+      "everySpoolUsesOwnColor": true,
+      "keyboardSpoolSelection": true,
+      "colorSearch": true,
+      "materialAndLocationFilters": true,
+      "spoolGraphicLoaded": true
+    },
+    {
+      "case": "production-warehouse",
+      "theme": "dark",
+      "width": 390,
+      "durableDailyHistory": true,
+      "periods": [
+        7,
+        30
+      ],
+      "keyboardDaySelection": true,
+      "noReadOnlyWrite": true,
+      "noHorizontalOverflow": true,
+      "everySpoolUsesOwnColor": true,
+      "keyboardSpoolSelection": true,
+      "colorSearch": true,
+      "materialAndLocationFilters": true,
+      "spoolGraphicLoaded": true
+    },
+    {
+      "case": "production-warehouse",
+      "theme": "light",
+      "width": 1366,
+      "durableDailyHistory": true,
+      "periods": [
+        7,
+        30
+      ],
+      "keyboardDaySelection": true,
+      "noReadOnlyWrite": true,
+      "noHorizontalOverflow": true,
+      "everySpoolUsesOwnColor": true,
+      "keyboardSpoolSelection": true,
+      "colorSearch": true,
+      "materialAndLocationFilters": true,
+      "spoolGraphicLoaded": true
+    },
+    {
+      "case": "production-warehouse",
+      "theme": "light",
+      "width": 910,
+      "durableDailyHistory": true,
+      "periods": [
+        7,
+        30
+      ],
+      "keyboardDaySelection": true,
+      "noReadOnlyWrite": true,
+      "noHorizontalOverflow": true,
+      "everySpoolUsesOwnColor": true,
+      "keyboardSpoolSelection": true,
+      "colorSearch": true,
+      "materialAndLocationFilters": true,
+      "spoolGraphicLoaded": true
+    },
+    {
+      "case": "production-warehouse",
+      "theme": "light",
+      "width": 390,
+      "durableDailyHistory": true,
+      "periods": [
+        7,
+        30
+      ],
+      "keyboardDaySelection": true,
+      "noReadOnlyWrite": true,
+      "noHorizontalOverflow": true,
+      "everySpoolUsesOwnColor": true,
+      "keyboardSpoolSelection": true,
+      "colorSearch": true,
+      "materialAndLocationFilters": true,
+      "spoolGraphicLoaded": true
+    },
+    {
+      "case": "color-and-daily-write-rollback",
+      "passed": true,
+      "livePreview": true,
+      "paletteColorPersisted": true,
+      "physicalSpoolAssignment": true,
+      "reopenPreserved": true,
+      "retryDebitedOnce": true
+    }
+  ],
+  "runtimeErrors": [],
+  "scope": "Actual production components; native database boundary is emulated; no physical printer used."
+}

@@ -1,0 +1,50 @@
+{
+  "passed": 11,
+  "cases": [
+    {
+      "name": "dark-1536: card click, actual colors, disabled occupied/empty spools, atomic replacement, weights and history preserved, immediate card refresh",
+      "passed": true
+    },
+    {
+      "name": "dark-910: card click, actual colors, disabled occupied/empty spools, atomic replacement, weights and history preserved, immediate card refresh",
+      "passed": true
+    },
+    {
+      "name": "dark-390: card click, actual colors, disabled occupied/empty spools, atomic replacement, weights and history preserved, immediate card refresh",
+      "passed": true
+    },
+    {
+      "name": "light-1536: card click, actual colors, disabled occupied/empty spools, atomic replacement, weights and history preserved, immediate card refresh",
+      "passed": true
+    },
+    {
+      "name": "light-910: card click, actual colors, disabled occupied/empty spools, atomic replacement, weights and history preserved, immediate card refresh",
+      "passed": true
+    },
+    {
+      "name": "light-390: card click, actual colors, disabled occupied/empty spools, atomic replacement, weights and history preserved, immediate card refresh",
+      "passed": true
+    },
+    {
+      "name": "failed SQLite transaction preserves exact inventory, retry succeeds once, saving prevents duplicate submit and premature close",
+      "passed": true
+    },
+    {
+      "name": "Escape/cancel restores keyboard focus without mutation; permission downgrade removes editing immediately",
+      "passed": true
+    },
+    {
+      "name": "concurrent spool assignment refreshes availability and preserves another printer binding",
+      "passed": true
+    },
+    {
+      "name": "previously unbound printer can use existing loose stock without creating a spool or changing quantities",
+      "passed": true
+    },
+    {
+      "name": "storage failure is recoverable without blanking data; warehouse shortcut closes picker without mutation",
+      "passed": true
+    }
+  ],
+  "runtimeErrors": []
+}

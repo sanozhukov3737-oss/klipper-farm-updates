@@ -1,0 +1,34 @@
+{
+  "passed": 7,
+  "cases": [
+    {
+      "name": "dark-1536: seven cards, actual spool colors, uncertain states, filters, mouse and keyboard, no writes or overflow",
+      "passed": true
+    },
+    {
+      "name": "live layer and inventory updates, anchored clock, stale forecast suppression, recovery, pause and empty farm",
+      "passed": true
+    },
+    {
+      "name": "dark-910: seven cards, actual spool colors, uncertain states, filters, mouse and keyboard, no writes or overflow",
+      "passed": true
+    },
+    {
+      "name": "dark-390: seven cards, actual spool colors, uncertain states, filters, mouse and keyboard, no writes or overflow",
+      "passed": true
+    },
+    {
+      "name": "light-1536: seven cards, actual spool colors, uncertain states, filters, mouse and keyboard, no writes or overflow",
+      "passed": true
+    },
+    {
+      "name": "light-910: seven cards, actual spool colors, uncertain states, filters, mouse and keyboard, no writes or overflow",
+      "passed": true
+    },
+    {
+      "name": "light-390: seven cards, actual spool colors, uncertain states, filters, mouse and keyboard, no writes or overflow",
+      "passed": true
+    }
+  ],
+  "runtimeErrors": []
+}

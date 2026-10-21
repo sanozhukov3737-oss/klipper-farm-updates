@@ -1,0 +1,1732 @@
+{
+  "passed": 17,
+  "report": [
+    {
+      "case": "production-discoverability",
+      "passed": true,
+      "actualProductionPanel": true,
+      "actualInventoryPanel": true
+    },
+    {
+      "case": "material-stock-and-reserve",
+      "passed": true,
+      "stockGrams": 15000,
+      "reserveGrams": 5000,
+      "invalidValuesBlocked": true
+    },
+    {
+      "case": "spool-transfer-and-purchase",
+      "passed": true,
+      "existingStockZeroNet": true,
+      "purchaseAddedGrams": 500,
+      "commaDecimals": true
+    },
+    {
+      "case": "printer-binding-and-material-writeoff",
+      "passed": true,
+      "perPrinterSeparated": true,
+      "perMaterialSeparated": true,
+      "manualLabeled": true
+    },
+    {
+      "case": "milestone-and-reserve-notices",
+      "passed": true,
+      "perPrinterMilestone": true,
+      "bulkNoticeCombined": true,
+      "reserveCrossing": true,
+      "reserveDeduplicated": true,
+      "rearmedAfterReplenishment": true,
+      "reopenDoesNotNotify": true,
+      "actualToastHost": true,
+      "actualNotificationCenter": true
+    },
+    {
+      "case": "save-failure-preserves-form",
+      "passed": true,
+      "failedSavePreserved": true,
+      "formValuesPreserved": true,
+      "noStateOrNoticeWrite": true,
+      "retrySaved": true
+    },
+    {
+      "case": "reopen-persistence",
+      "passed": true,
+      "stockAndPrinterCountersRestored": true,
+      "noticesUnchanged": true,
+      "noReadOnlyCommit": true
+    },
+    {
+      "case": "legacy-migration",
+      "passed": true,
+      "migrationPreserved": true,
+      "originalLegacyKeyUnchanged": true,
+      "legacyAssignmentPreserved": true,
+      "reopenPreserved": true
+    },
+    {
+      "case": "read-failure-no-overwrite",
+      "passed": true,
+      "noOverwrite": true,
+      "noCommit": true,
+      "explicitRetryRetainsLegacy": true
+    },
+    {
+      "case": "malformed-state-no-overwrite",
+      "passed": true,
+      "malformedStateRetained": true,
+      "noCommit": true
+    },
+    {
+      "case": "viewer-read-only",
+      "passed": true,
+      "viewerBlocked": true,
+      "readOnlyMigration": true
+    },
+    {
+      "case": "responsive-layout",
+      "passed": true,
+      "theme": "light",
+      "width": 390,
+      "noHorizontalOverflow": true,
+      "formControlsReachable": true,
+      "actualProductionParentVerified": true,
+      "themedFieldsVerified": true,
+      "stockAndSpoolFormsVerified": true,
+      "focusVisibleVerified": true,
+      "computedFields": [
+        {
+          "form": "stock",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(255, 255, 255)",
+            "text": "rgb(17, 24, 39)",
+            "borderStrong": "rgb(158, 171, 188)",
+            "accent": "rgb(22, 116, 232)",
+            "subtle": "rgb(89, 102, 121)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "",
+              "placeholder": "Например, 15",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-reserve",
+              "value": "",
+              "placeholder": "Например, 5",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        },
+        {
+          "form": "spools",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(255, 255, 255)",
+            "text": "rgb(17, 24, 39)",
+            "borderStrong": "rgb(158, 171, 188)",
+            "accent": "rgb(22, 116, 232)",
+            "subtle": "rgb(89, 102, 121)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "1",
+              "placeholder": "Например, 0,25",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-color",
+              "value": "#9299a4",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-finish",
+              "value": "normal",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-count",
+              "value": "1",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-name",
+              "value": "",
+              "placeholder": "Например, PLA чёрный",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-source",
+              "value": "existing-stock",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-spool-printer",
+              "value": "",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-price",
+              "value": "",
+              "placeholder": "Для себестоимости",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        }
+      ],
+      "keyboardFocus": [
+        {
+          "form": "stock",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "15",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(22, 116, 232)",
+          "borderColor": "rgb(22, 116, 232)",
+          "expectedAccent": "rgb(22, 116, 232)"
+        },
+        {
+          "form": "spools",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "0,75",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(22, 116, 232)",
+          "borderColor": "rgb(22, 116, 232)",
+          "expectedAccent": "rgb(22, 116, 232)"
+        }
+      ],
+      "formSaveReachability": [
+        {
+          "form": "stock",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 42,
+            "y": 404.40625,
+            "width": 150,
+            "height": 36
+          }
+        },
+        {
+          "form": "spools",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 42,
+            "y": 404.21875,
+            "width": 150,
+            "height": 36
+          }
+        }
+      ]
+    },
+    {
+      "case": "responsive-layout",
+      "passed": true,
+      "theme": "light",
+      "width": 910,
+      "noHorizontalOverflow": true,
+      "formControlsReachable": true,
+      "actualProductionParentVerified": true,
+      "themedFieldsVerified": true,
+      "stockAndSpoolFormsVerified": true,
+      "focusVisibleVerified": true,
+      "computedFields": [
+        {
+          "form": "stock",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(255, 255, 255)",
+            "text": "rgb(17, 24, 39)",
+            "borderStrong": "rgb(158, 171, 188)",
+            "accent": "rgb(22, 116, 232)",
+            "subtle": "rgb(89, 102, 121)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "",
+              "placeholder": "Например, 15",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-reserve",
+              "value": "",
+              "placeholder": "Например, 5",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        },
+        {
+          "form": "spools",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(255, 255, 255)",
+            "text": "rgb(17, 24, 39)",
+            "borderStrong": "rgb(158, 171, 188)",
+            "accent": "rgb(22, 116, 232)",
+            "subtle": "rgb(89, 102, 121)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "1",
+              "placeholder": "Например, 0,25",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-color",
+              "value": "#9299a4",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-finish",
+              "value": "normal",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-count",
+              "value": "1",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-name",
+              "value": "",
+              "placeholder": "Например, PLA чёрный",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-source",
+              "value": "existing-stock",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-spool-printer",
+              "value": "",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-price",
+              "value": "",
+              "placeholder": "Для себестоимости",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        }
+      ],
+      "keyboardFocus": [
+        {
+          "form": "stock",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "15",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(22, 116, 232)",
+          "borderColor": "rgb(22, 116, 232)",
+          "expectedAccent": "rgb(22, 116, 232)"
+        },
+        {
+          "form": "spools",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "0,75",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(22, 116, 232)",
+          "borderColor": "rgb(22, 116, 232)",
+          "expectedAccent": "rgb(22, 116, 232)"
+        }
+      ],
+      "formSaveReachability": [
+        {
+          "form": "stock",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 60,
+            "y": 652.0625,
+            "width": 119.734375,
+            "height": 36
+          }
+        },
+        {
+          "form": "spools",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 60,
+            "y": 482.375,
+            "width": 119.734375,
+            "height": 36
+          }
+        }
+      ]
+    },
+    {
+      "case": "responsive-layout",
+      "passed": true,
+      "theme": "light",
+      "width": 1536,
+      "noHorizontalOverflow": true,
+      "formControlsReachable": true,
+      "actualProductionParentVerified": true,
+      "themedFieldsVerified": true,
+      "stockAndSpoolFormsVerified": true,
+      "focusVisibleVerified": true,
+      "computedFields": [
+        {
+          "form": "stock",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(255, 255, 255)",
+            "text": "rgb(17, 24, 39)",
+            "borderStrong": "rgb(158, 171, 188)",
+            "accent": "rgb(22, 116, 232)",
+            "subtle": "rgb(89, 102, 121)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "",
+              "placeholder": "Например, 15",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-reserve",
+              "value": "",
+              "placeholder": "Например, 5",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        },
+        {
+          "form": "spools",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(255, 255, 255)",
+            "text": "rgb(17, 24, 39)",
+            "borderStrong": "rgb(158, 171, 188)",
+            "accent": "rgb(22, 116, 232)",
+            "subtle": "rgb(89, 102, 121)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "1",
+              "placeholder": "Например, 0,25",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-color",
+              "value": "#9299a4",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-finish",
+              "value": "normal",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-count",
+              "value": "1",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-name",
+              "value": "",
+              "placeholder": "Например, PLA чёрный",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-source",
+              "value": "existing-stock",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-spool-printer",
+              "value": "",
+              "placeholder": "",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-price",
+              "value": "",
+              "placeholder": "Для себестоимости",
+              "background": "rgb(255, 255, 255)",
+              "text": "rgb(17, 24, 39)",
+              "border": [
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)",
+                "rgb(158, 171, 188)"
+              ],
+              "placeholderColor": "rgb(89, 102, 121)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        }
+      ],
+      "keyboardFocus": [
+        {
+          "form": "stock",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "15",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(22, 116, 232)",
+          "borderColor": "rgb(22, 116, 232)",
+          "expectedAccent": "rgb(22, 116, 232)"
+        },
+        {
+          "form": "spools",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "0,75",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(22, 116, 232)",
+          "borderColor": "rgb(22, 116, 232)",
+          "expectedAccent": "rgb(22, 116, 232)"
+        }
+      ],
+      "formSaveReachability": [
+        {
+          "form": "stock",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 184,
+            "y": 652.0625,
+            "width": 119.734375,
+            "height": 36
+          }
+        },
+        {
+          "form": "spools",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 184,
+            "y": 482.375,
+            "width": 119.734375,
+            "height": 36
+          }
+        }
+      ]
+    },
+    {
+      "case": "responsive-layout",
+      "passed": true,
+      "theme": "dark",
+      "width": 390,
+      "noHorizontalOverflow": true,
+      "formControlsReachable": true,
+      "actualProductionParentVerified": true,
+      "themedFieldsVerified": true,
+      "stockAndSpoolFormsVerified": true,
+      "focusVisibleVerified": true,
+      "computedFields": [
+        {
+          "form": "stock",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(26, 29, 35)",
+            "text": "rgb(244, 246, 249)",
+            "borderStrong": "rgb(66, 74, 87)",
+            "accent": "rgb(109, 157, 255)",
+            "subtle": "rgb(127, 137, 152)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "",
+              "placeholder": "Например, 15",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-reserve",
+              "value": "",
+              "placeholder": "Например, 5",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        },
+        {
+          "form": "spools",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(26, 29, 35)",
+            "text": "rgb(244, 246, 249)",
+            "borderStrong": "rgb(66, 74, 87)",
+            "accent": "rgb(109, 157, 255)",
+            "subtle": "rgb(127, 137, 152)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "1",
+              "placeholder": "Например, 0,25",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-color",
+              "value": "#9299a4",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-finish",
+              "value": "normal",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-count",
+              "value": "1",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-name",
+              "value": "",
+              "placeholder": "Например, PLA чёрный",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-source",
+              "value": "existing-stock",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-spool-printer",
+              "value": "",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-price",
+              "value": "",
+              "placeholder": "Для себестоимости",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        }
+      ],
+      "keyboardFocus": [
+        {
+          "form": "stock",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "15",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(109, 157, 255)",
+          "borderColor": "rgb(109, 157, 255)",
+          "expectedAccent": "rgb(109, 157, 255)"
+        },
+        {
+          "form": "spools",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "0,75",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(109, 157, 255)",
+          "borderColor": "rgb(109, 157, 255)",
+          "expectedAccent": "rgb(109, 157, 255)"
+        }
+      ],
+      "formSaveReachability": [
+        {
+          "form": "stock",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 42,
+            "y": 404.40625,
+            "width": 150,
+            "height": 36
+          }
+        },
+        {
+          "form": "spools",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 42,
+            "y": 404.21875,
+            "width": 150,
+            "height": 36
+          }
+        }
+      ]
+    },
+    {
+      "case": "responsive-layout",
+      "passed": true,
+      "theme": "dark",
+      "width": 910,
+      "noHorizontalOverflow": true,
+      "formControlsReachable": true,
+      "actualProductionParentVerified": true,
+      "themedFieldsVerified": true,
+      "stockAndSpoolFormsVerified": true,
+      "focusVisibleVerified": true,
+      "computedFields": [
+        {
+          "form": "stock",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(26, 29, 35)",
+            "text": "rgb(244, 246, 249)",
+            "borderStrong": "rgb(66, 74, 87)",
+            "accent": "rgb(109, 157, 255)",
+            "subtle": "rgb(127, 137, 152)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "",
+              "placeholder": "Например, 15",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-reserve",
+              "value": "",
+              "placeholder": "Например, 5",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        },
+        {
+          "form": "spools",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(26, 29, 35)",
+            "text": "rgb(244, 246, 249)",
+            "borderStrong": "rgb(66, 74, 87)",
+            "accent": "rgb(109, 157, 255)",
+            "subtle": "rgb(127, 137, 152)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "1",
+              "placeholder": "Например, 0,25",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-color",
+              "value": "#9299a4",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-finish",
+              "value": "normal",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-count",
+              "value": "1",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-name",
+              "value": "",
+              "placeholder": "Например, PLA чёрный",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-source",
+              "value": "existing-stock",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-spool-printer",
+              "value": "",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-price",
+              "value": "",
+              "placeholder": "Для себестоимости",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        }
+      ],
+      "keyboardFocus": [
+        {
+          "form": "stock",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "15",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(109, 157, 255)",
+          "borderColor": "rgb(109, 157, 255)",
+          "expectedAccent": "rgb(109, 157, 255)"
+        },
+        {
+          "form": "spools",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "0,75",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(109, 157, 255)",
+          "borderColor": "rgb(109, 157, 255)",
+          "expectedAccent": "rgb(109, 157, 255)"
+        }
+      ],
+      "formSaveReachability": [
+        {
+          "form": "stock",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 60,
+            "y": 646.0625,
+            "width": 119.734375,
+            "height": 36
+          }
+        },
+        {
+          "form": "spools",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 60,
+            "y": 482.375,
+            "width": 119.734375,
+            "height": 36
+          }
+        }
+      ]
+    },
+    {
+      "case": "responsive-layout",
+      "passed": true,
+      "theme": "dark",
+      "width": 1536,
+      "noHorizontalOverflow": true,
+      "formControlsReachable": true,
+      "actualProductionParentVerified": true,
+      "themedFieldsVerified": true,
+      "stockAndSpoolFormsVerified": true,
+      "focusVisibleVerified": true,
+      "computedFields": [
+        {
+          "form": "stock",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(26, 29, 35)",
+            "text": "rgb(244, 246, 249)",
+            "borderStrong": "rgb(66, 74, 87)",
+            "accent": "rgb(109, 157, 255)",
+            "subtle": "rgb(127, 137, 152)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "",
+              "placeholder": "Например, 15",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-reserve",
+              "value": "",
+              "placeholder": "Например, 5",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        },
+        {
+          "form": "spools",
+          "parentClasses": "panel productionPanel",
+          "expected": {
+            "surface": "rgb(26, 29, 35)",
+            "text": "rgb(244, 246, 249)",
+            "borderStrong": "rgb(66, 74, 87)",
+            "accent": "rgb(109, 157, 255)",
+            "subtle": "rgb(127, 137, 152)"
+          },
+          "fields": [
+            {
+              "tag": "select",
+              "id": ":r0:-material",
+              "value": "PLA",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-quantity",
+              "value": "1",
+              "placeholder": "Например, 0,25",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-color",
+              "value": "#9299a4",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-finish",
+              "value": "normal",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-count",
+              "value": "1",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-name",
+              "value": "",
+              "placeholder": "Например, PLA чёрный",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-source",
+              "value": "existing-stock",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "select",
+              "id": ":r0:-spool-printer",
+              "value": "",
+              "placeholder": "",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ]
+            },
+            {
+              "tag": "input",
+              "id": ":r0:-price",
+              "value": "",
+              "placeholder": "Для себестоимости",
+              "background": "rgb(26, 29, 35)",
+              "text": "rgb(244, 246, 249)",
+              "border": [
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)",
+                "rgb(66, 74, 87)"
+              ],
+              "placeholderColor": "rgb(127, 137, 152)",
+              "placeholderOpacity": "1"
+            }
+          ]
+        }
+      ],
+      "keyboardFocus": [
+        {
+          "form": "stock",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "15",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(109, 157, 255)",
+          "borderColor": "rgb(109, 157, 255)",
+          "expectedAccent": "rgb(109, 157, 255)"
+        },
+        {
+          "form": "spools",
+          "tag": "input",
+          "id": ":r0:-quantity",
+          "value": "0,75",
+          "active": true,
+          "focusVisible": true,
+          "outlineStyle": "solid",
+          "outlineWidth": 2,
+          "outlineColor": "rgb(109, 157, 255)",
+          "borderColor": "rgb(109, 157, 255)",
+          "expectedAccent": "rgb(109, 157, 255)"
+        }
+      ],
+      "formSaveReachability": [
+        {
+          "form": "stock",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 184,
+            "y": 646.0625,
+            "width": 119.734375,
+            "height": 36
+          }
+        },
+        {
+          "form": "spools",
+          "visible": true,
+          "insideViewport": true,
+          "unobscured": true,
+          "box": {
+            "x": 184,
+            "y": 482.375,
+            "width": 119.734375,
+            "height": 36
+          }
+        }
+      ]
+    }
+  ],
+  "runtimeErrors": [],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "viewports": [
+    390,
+    910,
+    1536
+  ],
+  "nativeBoundaryOnly": true,
+  "migrationPreserved": true,
+  "failedSavePreserved": true,
+  "notes": "Actual ProductionPanel/FilamentInventoryPanel, reducer and serialized persistence store. SQLite/desktop native boundary is deterministic; Rust tests validate the real atomic transaction. No physical printer consumption claim."
+}

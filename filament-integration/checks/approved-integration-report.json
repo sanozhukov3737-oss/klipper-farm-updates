@@ -1,0 +1,105 @@
+{
+  "passed": 9,
+  "report": [
+    {
+      "case": "actual-card",
+      "theme": "light",
+      "width": 1366,
+      "realTotals": true,
+      "approvedVertices": true,
+      "keyboard": true,
+      "inspect": true,
+      "capacity2000": true,
+      "noOverflow": true,
+      "maxContexts": 2
+    },
+    {
+      "case": "actual-card",
+      "theme": "light",
+      "width": 910,
+      "realTotals": true,
+      "approvedVertices": true,
+      "keyboard": true,
+      "inspect": true,
+      "capacity2000": true,
+      "noOverflow": true,
+      "maxContexts": 2
+    },
+    {
+      "case": "actual-card",
+      "theme": "light",
+      "width": 390,
+      "realTotals": true,
+      "approvedVertices": true,
+      "keyboard": true,
+      "inspect": true,
+      "capacity2000": true,
+      "noOverflow": true,
+      "maxContexts": 2
+    },
+    {
+      "case": "actual-card",
+      "theme": "dark",
+      "width": 1366,
+      "realTotals": true,
+      "approvedVertices": true,
+      "keyboard": true,
+      "inspect": true,
+      "capacity2000": true,
+      "noOverflow": true,
+      "maxContexts": 2
+    },
+    {
+      "case": "actual-card",
+      "theme": "dark",
+      "width": 910,
+      "realTotals": true,
+      "approvedVertices": true,
+      "keyboard": true,
+      "inspect": true,
+      "capacity2000": true,
+      "noOverflow": true,
+      "maxContexts": 2
+    },
+    {
+      "case": "actual-card",
+      "theme": "dark",
+      "width": 390,
+      "realTotals": true,
+      "approvedVertices": true,
+      "keyboard": true,
+      "inspect": true,
+      "capacity2000": true,
+      "noOverflow": true,
+      "maxContexts": 2
+    },
+    {
+      "case": "persistence-swap-conflict",
+      "appearance": true,
+      "manualCorrection": true,
+      "restart": true,
+      "cancel": true,
+      "rollback": true,
+      "staleAssignmentRejected": true,
+      "emptyFullGeometry": true
+    },
+    {
+      "case": "gpu-lifecycle",
+      "contextLossFallback": true,
+      "retry": true,
+      "repeatedUnmounts": true,
+      "resize": true,
+      "boundedCache": true,
+      "maxContexts": 2
+    },
+    {
+      "case": "no-webgl-viewer",
+      "correctColor": true,
+      "readableMass": true,
+      "noWrites": true,
+      "roleEnforced": true
+    }
+  ],
+  "runtimeErrors": [],
+  "scope": "Real React components/reducer/store; native SQLite boundary emulated. Chromium software WebGL. Windows/GPU and installer not tested."
+}

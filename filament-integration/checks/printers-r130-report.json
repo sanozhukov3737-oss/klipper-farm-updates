@@ -1,0 +1,102 @@
+{
+  "passed": 24,
+  "cases": [
+    {
+      "name": "dark-1536: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "dark-1536: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "dark-1201: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "dark-1201: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "dark-910: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "dark-910: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "dark-801: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "dark-801: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "dark-601: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "dark-601: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "dark-390: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "dark-390: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "light-1536: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "light-1536: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "light-1201: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "light-1201: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "light-910: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "light-910: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "light-801: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "light-801: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "light-601: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "light-601: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    },
+    {
+      "name": "light-390: seven shared cards, images, actual colors, finish/layer, actions target, atomic replacement, cross-page sync, keyboard, filters, no overflow",
+      "passed": true
+    },
+    {
+      "name": "light-390: viewer keeps monitoring/files while edits and printer commands disappear",
+      "passed": true
+    }
+  ],
+  "runtimeErrors": []
+}

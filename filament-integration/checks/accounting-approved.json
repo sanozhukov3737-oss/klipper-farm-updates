@@ -1,0 +1,33 @@
+{
+  "passed": 7,
+  "cases": [
+    {
+      "name": "actual-spools-and-loose-stock-summed-once",
+      "passed": true
+    },
+    {
+      "name": "swap-keeps-mass-and-counters-returns-old-spool",
+      "passed": true
+    },
+    {
+      "name": "empty-occupied-and-stale-assignments-fail-without-partial-state",
+      "passed": true
+    },
+    {
+      "name": "appearance-command-cannot-undo-a-concurrent-debit",
+      "passed": true
+    },
+    {
+      "name": "old-data-preserved-without-inventing-finish-or-label-identifiers",
+      "passed": true
+    },
+    {
+      "name": "real-label-fields-preserved-only-valid-ean8-drawn",
+      "passed": true
+    },
+    {
+      "name": "invalid-appearance-rejected-and-mass-above-capacity-preserved",
+      "passed": true
+    }
+  ]
+}
