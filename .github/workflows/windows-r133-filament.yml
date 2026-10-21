@@ -1,0 +1,368 @@
+name: Build and validate R133 compact spool and automatic accounting
+'on':
+  push:
+    branches:
+    - r133-spool-auto-accounting
+    paths:
+    - .gitattributes
+    - .github/workflows/windows-r133-filament.yml
+    - r133-filament-patch.json
+    - r133-filament-patch.sha256
+    - r133-build/**
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: windows-r133-ota
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Restore exact published R132 and apply reviewed R133 source
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        if ((Get-FileHash r133-filament-patch.json).Hash.ToLowerInvariant() -ne ''a16315a78ed0e15ebb72feb9981fa7f5c4a24f4d16982767e0d31a9e6da0188c'')
+        { throw ''Reviewed R133 patch differs'' }
+
+        Copy-Item r133-build ci -Recurse
+
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+
+        gh release download r132-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R132-FULL.zip --dir incoming
+
+        if ($LASTEXITCODE -ne 0) { throw ''Published R132 source download failed'' }
+
+        if ((Get-Item incoming/KF-R132-FULL.zip).Length -ne 582836395 -or (Get-FileHash incoming/KF-R132-FULL.zip).Hash.ToLowerInvariant()
+        -ne ''ce74c5b76e5a5873836587830b80719b5b22cfc7798851cdd810d3d55109ab5e'') { throw ''Published R132 archive differs''
+        }
+
+        Expand-Archive incoming/KF-R132-FULL.zip work
+
+        Rename-Item work/Klipper-Farm-R132 app
+
+        python ci/apply.py work/app r133-filament-patch.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''R133 patch application failed'' }
+
+        python ci/verify-source.py work/app r133-filament-patch.json incoming/KF-R132-FULL.zip proof/source-delta.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Unreviewed source changed'' }
+
+        '
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+        components: clippy
+    - name: Check R133 launch, sound, inventory and existing printer regressions
+      shell: pwsh
+      run: "$ErrorActionPreference='Stop'\nSet-Location work/app\nnpm ci --no-audit --no-fund\nif ($LASTEXITCODE -ne 0) {\
+        \ throw 'Locked dependencies failed' }\nnode node_modules/typescript/bin/tsc --noEmit\nif ($LASTEXITCODE -ne 0) {\
+        \ throw 'TypeScript failed' }\n$env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r133-finish-core.json'\n\
+        $env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r133-print-start.json'\n$env:KF_R127_SOUND_PROOF=Join-Path\
+        \ $env:GITHUB_WORKSPACE 'proof/r133-sound-core.json'\n$env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r133-filament-core.json'\n\
+        node scripts/check-approved-filament.mjs | Tee-Object -FilePath (Join-Path $env:GITHUB_WORKSPACE 'proof/r133-approved-accounting.json')\n\
+        if ($LASTEXITCODE -ne 0) { throw 'Approved filament accounting failed' }\nforeach ($script in @('check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs'))\
+        \ {\n node \"scripts/$script\"\n if ($LASTEXITCODE -ne 0) { throw \"Regression failed: $script\" }\n}\n\n$env:KF_AUTO_RETRY_PROOF=Join-Path\
+        \ $env:GITHUB_WORKSPACE 'proof/r133-auto-retry-core.json'\nnode scripts/check-filament-auto-retry.mjs\nif ($LASTEXITCODE\
+        \ -ne 0) { throw 'Automatic late-data accounting failed' }\n$env:KF_NATIVE_POLICY_PROOF=Join-Path $env:GITHUB_WORKSPACE\
+        \ 'proof/r133-native-history-policy.json'\nnode scripts/check-filament-history-policy.mjs\nif ($LASTEXITCODE -ne 0)\
+        \ { throw 'Native single-job history permission checks failed' }\n"
+    - name: Verify live fleet, warehouse, print workflow and WebAudio in Windows Edge
+      shell: pwsh
+      run: "$ErrorActionPreference='Stop'\nSet-Location work/app\nnpm ci --prefix ui-tests --no-audit --no-fund\nif ($LASTEXITCODE\
+        \ -ne 0) { throw 'UI dependencies failed' }\n$env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'\n\
+        $env:KF_UI_SCREENSHOTS=Join-Path $env:GITHUB_WORKSPACE 'proof'\nforeach ($script in @('single-spool-page.mjs','filament-auto-accounting.mjs','approved-filament.mjs','printers-r130.mjs','farm-startup-r125.mjs','filament-replace-r129.mjs','fleet-live-r128.mjs','filament-inventory.mjs','filament-warehouse.mjs','file-workflow.mjs','notification-sound.mjs','r126-profile-app.mjs','r126-files.mjs','r126-ui.mjs','updater.mjs'))\
+        \ {\n Write-Host \"BEGIN_UI_SCRIPT=$script\"\n node \"ui-tests/$script\"\n if ($LASTEXITCODE -ne 0) { throw \"Windows\
+        \ Edge acceptance failed: $script\" }\n Write-Host \"END_UI_SCRIPT=$script\"\n}\nRemove-Item ui-tests/node_modules\
+        \ -Recurse -Force\n"
+      timeout-minutes: 30
+    - name: Compile frontend and freeze complete R133 source
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        Set-Location work/app
+
+        npm run build
+
+        if ($LASTEXITCODE -ne 0) { throw ''Frontend build failed'' }
+
+        node scripts/lock-v20-6-dist.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Frontend source contract failed'' }
+
+        node scripts/generate-release-manifests.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Manifest generation failed'' }
+
+        node scripts/check-release-portability.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Source portability failed'' }
+
+        $env:KF_ARCHIVE_ROOT=''Klipper-Farm-R133''
+
+        $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE ''candidate/KF-R133-FULL.zip''
+
+        New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+
+        node scripts/build-reproducible-zip.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Complete R133 source archive failed'' }
+
+        '
+    - name: Build Windows installer and retain exact candidate
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        Set-Location work/app
+
+        node scripts/build-and-install-windows.mjs --build-only
+
+        if ($LASTEXITCODE -ne 0) { throw ''Windows native checks and build failed'' }
+
+        $release=Join-Path $PWD ''.klipper-build-cache/target/release''
+
+        New-Item -ItemType Directory -Force ../../candidate/release,../../candidate/scripts | Out-Null
+
+        foreach ($file in @(''klipper-farm-client.exe'',''klipper-farmd.exe'',''klipper-farm-ipc-probe.exe'')) { Copy-Item
+        (Join-Path $release $file) ../../candidate/release/ }
+
+        foreach ($file in @(''check-desktop-startup-smoke.mjs'',''check-headless-telemetry-runtime.mjs'',''hardware-emulator.mjs''))
+        { Copy-Item "scripts/$file" ../../candidate/scripts/ }
+
+        Copy-Item ../../ci/r133-upgrade-data.py,../../ci/r133-check-installed-payload.mjs ../../candidate/scripts/
+
+        $setup=@(Get-ChildItem INSTALLER -Filter ''*.exe'')
+
+        if ($setup.Count -ne 1) { throw ''Expected exactly one R133 installer'' }
+
+        Copy-Item $setup[0].FullName ../../candidate/Klipper-Farm-R133-setup.exe
+
+        Copy-Item ../../proof ../../candidate/proof -Recurse
+
+        $manifest=@{}
+
+        foreach ($name in @(''Klipper-Farm-R133-setup.exe'',''KF-R133-FULL.zip'')) { $item=Get-Item "../../candidate/$name";
+        $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
+
+        @{release=''R133'';sequence=133;baselineSequence=132;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256=''a16315a78ed0e15ebb72feb9981fa7f5c4a24f4d16982767e0d31a9e6da0188c'';assets=$manifest}
+        | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+
+        '
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r133-ota-candidate
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - name: Retain build evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r133-ota-build-evidence
+        path: 'proof
+
+          work/app/.klipper-build-cache/*.log
+
+          work/app/.klipper-build-cache/target/*last.log
+
+          work/app/.klipper-build-cache/logs/*'
+        retention-days: 14
+        include-hidden-files: true
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r133-ota-candidate
+        path: candidate
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: "$ErrorActionPreference='Stop'\n$seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'\nif (-not (Test-Path $seven))\
+        \ { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }\n& $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R133-setup.exe\n\
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }\nforeach ($name in @('klipper-farm-client.exe','klipper-farmd.exe'))\
+        \ {\n  $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)\n  if ($items.Count -ne 1) {\
+        \ throw \"Expected one extracted NSIS payload: $name\" }\n  Write-Host \"EXTRACTED $name size=$($items[0].Length)\
+        \ sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())\"\n}\n"
+    - name: Install R133 over R132 and verify exact payload, data and desktop restart
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        Set-Location candidate
+
+        $installDir=Join-Path $env:RUNNER_TEMP ''KF-R133-upgrade''
+
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+
+        gh release download r132-ota --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R132-setup.exe --dir old
+
+        if ($LASTEXITCODE -ne 0) { throw ''R132 installer download failed'' }
+
+        $old=(Resolve-Path old/Klipper-Farm-R132-setup.exe).Path
+
+        if ((Get-FileHash $old).Hash.ToLowerInvariant() -ne ''ec66d940cebea0cfffe738be5309a9279d18a618a97bcbe1a8d7b7df9b4ac31e'')
+        { throw ''R132 installer differs'' }
+
+        $process=Start-Process $old -ArgumentList (''/S /D=''+$installDir) -Wait -PassThru
+
+        if ($process.ExitCode -ne 0) { throw ''R132 install failed'' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe"
+        smoke
+
+        if ($LASTEXITCODE -ne 0) { throw ''Published R132 actual WebView startup failed'' }
+
+
+        $dataDir=Join-Path $env:APPDATA ''app.klipper.farm''
+
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+
+        $marker=Join-Path $dataDir ''r133-preservation.txt''
+
+        [IO.File]::WriteAllText($marker,''preserve-existing-data'')
+
+        python scripts/r133-upgrade-data.py seed --database (Join-Path $dataDir ''farm.sqlite3'') --proof proof/upgrade-data-seed.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Legacy seed failed'' }
+
+        $setup=(Resolve-Path Klipper-Farm-R133-setup.exe).Path
+
+        $process=Start-Process $setup -ArgumentList (''/S /D=''+$installDir) -Wait -PassThru
+
+        if ($process.ExitCode -ne 0) { throw ''R133 install over R132 failed'' }
+
+        node scripts/r133-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed bytes differ from exact NSIS bundle payload'' }
+
+        if ((Get-Content $marker -Raw) -ne ''preserve-existing-data'') { throw ''Existing app data lost'' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe"
+        smoke
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed WebView main-window smoke failed'' }
+
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe"
+        --report "$PWD/proof/headless-runtime.json"
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed telemetry regression failed'' }
+
+        python scripts/r133-upgrade-data.py verify --database (Join-Path $dataDir ''farm.sqlite3'') --proof proof/upgrade-data-preserved.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Printer configuration, stocks, usage, reserves or spools changed during upgrade''
+        }
+
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe"
+        smoke
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed R133 second actual WebView startup failed'' }
+
+        python scripts/r133-upgrade-data.py verify --database (Join-Path $dataDir ''farm.sqlite3'') --proof proof/upgrade-data-after-restart.json
+
+        if ($LASTEXITCODE -ne 0) { throw ''Existing printer or filament data changed after installed app restart'' }
+
+        node scripts/r133-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+
+        if ($LASTEXITCODE -ne 0) { throw ''Installed exact payload changed after restart'' }
+
+        @{release=''R133'';installedSequence=133;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=132;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;installedRestartVerified=$true}
+        | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+
+        Compress-Archive proof,smoke R133-UI-proof.zip
+
+        '
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r133-ota-validated
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r133-ota-installed-evidence
+        path: 'candidate/proof
+
+          candidate/smoke'
+        retention-days: 14
+  publish:
+    needs: validate
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r133-ota-validated
+        path: candidate
+    - name: Publish exact validated R133 installer as a prerelease
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        Set-Location candidate
+
+        $proof=Get-Content exact-validation.json -Raw | ConvertFrom-Json
+
+        $origin=Get-Content provenance.json -Raw | ConvertFrom-Json
+
+        if (-not $proof.passed -or $proof.installedSequence -ne 133 -or -not $proof.embeddedUpdateChannelVerified -or -not
+        $proof.exactInstallerPayloadVerified -or $proof.runId -ne $env:GITHUB_RUN_ID -or $origin.headSha -ne $env:GITHUB_SHA
+        -or $proof.headSha -ne $origin.headSha -or $origin.sequence -ne 133) { throw ''Validation provenance differs'' }
+
+        foreach ($asset in $origin.assets.PSObject.Properties) { if ((Get-FileHash $asset.Name).Hash.ToLowerInvariant() -ne
+        $asset.Value.sha256 -or (Get-Item $asset.Name).Length -ne $asset.Value.sizeBytes) { throw ''Validated bytes changed''
+        } }
+
+        @''
+
+        R133 — одна большая катушка и автоматический учёт пластика.
+
+
+        Раздел открывается в рабочей области на весь экран, с компактными настройками и общим запасом снизу. Катушка размещена
+        на общем фоне.
+
+
+        Поздние данные о фактическом расходе обрабатываются в фоне; повторное списание исключено. Для отменённых печатей используется
+        переданная частичная экструзия. Пока данных нет, показано «Ожидаем данные».
+
+
+        Неизвестный расход не подменяется полным весом файла. Ручная корректировка остаётся добровольной.
+
+        ''@ | Set-Content notes.md -Encoding utf8NoBOM
+
+        gh release create r133-ota Klipper-Farm-R133-setup.exe KF-R133-FULL.zip provenance.json exact-validation.json R133-UI-proof.zip
+        --target $env:GITHUB_SHA --repo $env:GITHUB_REPOSITORY --prerelease --title ''Klipper Farm R133 — одна катушка и автоматический
+        учёт'' --notes-file notes.md
+
+        if ($LASTEXITCODE -ne 0) { throw ''R133 candidate publication failed'' }
+
+        '
