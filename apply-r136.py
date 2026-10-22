@@ -1,7 +1,7 @@
-"""Restore the reviewed R136 review working source from the exact published R135 ZIP.
+"""Restore the reviewed R136 working source from the exact published R135 ZIP.
 
-Usage: python apply-r135.py KF-R135-FULL.zip NEW_DIRECTORY
-       python apply-r135.py --verify EXISTING_SOURCE_DIRECTORY
+Usage: python apply-r136.py KF-R135-FULL.zip NEW_DIRECTORY
+       python apply-r136.py --verify EXISTING_SOURCE_DIRECTORY
 Does not build, install, publish, or modify the update channel.
 """
 from pathlib import Path, PurePosixPath
