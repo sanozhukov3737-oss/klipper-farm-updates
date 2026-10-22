@@ -1,0 +1,286 @@
+name: Build and validate reviewed R136 cost, photos and blue interface (candidate only)
+'on':
+  push:
+    branches:
+    - r135-graphite-start
+    paths:
+    - .github/workflows/windows-r136-reviewed.yml
+    - r136-build/**
+    - r136-release-identity.json
+    - r136-release-identity.sha256
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: windows-r136-reviewed-candidate
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Restore exact published R135 and apply approved R136 plus release identity
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ((Get-FileHash r136-window-photos-patch.json).Hash.ToLowerInvariant() -ne 'c1590be23656c77d00169f849e84daf169d1285d68df0c740929c130f024693f') { throw 'Approved R136 feature patch differs' }
+        if ((Get-FileHash r136-release-identity.json).Hash.ToLowerInvariant() -ne '96608e58b1b031b874c5cb8903283dc8563ef99ec3b1c6062a77754f0b3d6727') { throw 'Approved R136 release identity differs' }
+        Copy-Item r136-build ci -Recurse
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+        gh release download r135-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R135-FULL.zip --dir incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Published R135 source download failed' }
+        if ((Get-Item incoming/KF-R135-FULL.zip).Length -ne 582884837 -or (Get-FileHash incoming/KF-R135-FULL.zip).Hash.ToLowerInvariant() -ne 'd31f6ecd3fb1efdc0acceed0e794d7b8a24dd10d5cd34b7cc35f258e342b08f7') { throw 'Published R135 archive differs' }
+        python ci/apply.py incoming/KF-R135-FULL.zip work/app
+        if ($LASTEXITCODE -ne 0) { throw 'Approved R136 application failed' }
+        python ci/verify-source.py work/app incoming/KF-R135-FULL.zip proof/source-delta.json
+        if ($LASTEXITCODE -ne 0) { throw 'Unreviewed source changed' }
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+        components: clippy
+    - name: Check approved accounting, automatic launch recovery and existing regressions
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+        node node_modules/typescript/bin/tsc --noEmit
+        if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+        $env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r136-finish-core.json'
+        $env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r136-print-start.json'
+        $env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r136-sound-core.json'
+        $env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r136-filament-core.json'
+        node scripts/check-approved-filament.mjs | Tee-Object -FilePath (Join-Path $env:GITHUB_WORKSPACE 'proof/r136-approved-accounting.json')
+        if ($LASTEXITCODE -ne 0) { throw 'Approved filament accounting failed' }
+        foreach ($script in @('check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-search-art.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+        }
+
+        $env:KF_AUTO_RETRY_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r136-auto-retry-core.json'
+        node scripts/check-filament-auto-retry.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Automatic late-data accounting failed' }
+        $env:KF_NATIVE_POLICY_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r136-native-history-policy.json'
+        node scripts/check-filament-history-policy.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Native single-job history permission checks failed' }
+
+        foreach ($script in @('check-legacy-library-routing.mjs','check-upload-actor-identity.mjs','check-local-library-print-target.mjs','check-printer-files-start-recovery.mjs','check-print-filename-preservation.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Print transfer regression failed: $script" }
+        }
+
+        $env:KF_R135_CLIENT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r136-client-start-runtime.json'
+        foreach ($script in @('check-launch-auto-recovery.mjs','check-r135-print-start-runtime.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "R136 launch regression failed: $script" }
+        }
+    - name: Verify existing workflows plus reviewed cost, photo and blue styling in Windows Edge
+      shell: pwsh
+      run: |+
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --prefix ui-tests --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'UI dependencies failed' }
+        $env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+        $env:KF_UI_SCREENSHOTS=Join-Path $env:GITHUB_WORKSPACE 'proof'
+        foreach ($script in @('file-workflow.mjs','r126-profile-app.mjs','r126-files.mjs','single-spool-page.mjs','filament-auto-accounting.mjs','r135-graphite-layout.mjs','updater.mjs')) {
+         Write-Host "BEGIN_UI_SCRIPT=$script"
+         node "ui-tests/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Windows Edge acceptance failed: $script" }
+         Write-Host "END_UI_SCRIPT=$script"
+        }
+        Copy-Item ../../ci/r136-review-fixture.tsx ui-tests/r136-review-fixture.tsx
+        Copy-Item ../../ci/r136-review.html ui-tests/r136-review.html
+        $env:PLAYWRIGHT_MODULE_PATH=(Resolve-Path ui-tests/node_modules/playwright/index.mjs).Path
+        $env:KF_R136_UI_PROOF_DIR=Join-Path $env:GITHUB_WORKSPACE 'proof'
+        try {
+         node ../../ci/review-ui.mjs
+         if ($LASTEXITCODE -ne 0) { throw 'R136 cost/photo/blue acceptance failed' }
+         $review=Get-Content (Join-Path $env:GITHUB_WORKSPACE 'proof/r136-review-report.json') -Raw | ConvertFrom-Json
+         if ($review.passed -ne 29 -or $review.runtimeErrors.Count -ne 0 -or $review.blueAccentsVerified -ne $true) { throw 'R136 UI review case count or runtime errors differ' }
+        } finally {
+         Remove-Item ui-tests/r136-review-fixture.tsx,ui-tests/r136-review.html -Force
+         Remove-Item ui-tests/node_modules -Recurse -Force
+        }
+
+      timeout-minutes: 20
+      env:
+        KF_FILE_WORKFLOW_ONLY: '1'
+    - name: Compile frontend and freeze complete R136 source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm run build
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
+        node scripts/lock-v20-6-dist.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend source contract failed' }
+        node scripts/generate-release-manifests.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Manifest generation failed' }
+        node scripts/check-release-portability.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Source portability failed' }
+        $env:KF_ARCHIVE_ROOT='Klipper-Farm-R136'
+        $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'candidate/KF-R136-FULL.zip'
+        New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+        node scripts/build-reproducible-zip.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Complete R136 source archive failed' }
+    - name: Build Windows installer and retain exact candidate
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        node scripts/build-and-install-windows.mjs --build-only
+        if ($LASTEXITCODE -ne 0) { throw 'Windows native checks and build failed' }
+        $nativeLog=Join-Path $PWD '.klipper-build-cache/target/v20-rust-tests-last.log'
+        $nativeText=Get-Content $nativeLog -Raw
+        foreach ($test in @('acknowledged_start_recovers_observation_over_rest_after_ws_failure','preadmission_disconnected_ws_dispatches_exactly_one_rest_start','admitted_or_ambiguous_ws_start_is_never_dispatched_again_over_rest','expired_queued_print_start_never_reaches_the_websocket_wire')) {
+         if ($nativeText -notmatch ([regex]::Escape($test)+' \.\.\. ok')) { throw "Native wire regression was not executed: $test" }
+        }
+        if ($nativeText -notmatch 'test result: ok\. 203 passed; 0 failed; 2 ignored;') { throw 'R136 native root tests differ' }
+        Copy-Item $nativeLog ../../proof/r136-native-tests.log
+        $release=Join-Path $PWD '.klipper-build-cache/target/release'
+        New-Item -ItemType Directory -Force ../../candidate/release,../../candidate/scripts | Out-Null
+        foreach ($file in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $file) ../../candidate/release/ }
+        foreach ($file in @('check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item "scripts/$file" ../../candidate/scripts/ }
+        Copy-Item ../../ci/r136-upgrade-data.py,../../ci/r136-check-installed-payload.mjs ../../candidate/scripts/
+        $setup=@(Get-ChildItem INSTALLER -Filter '*.exe')
+        if ($setup.Count -ne 1) { throw 'Expected exactly one R136 installer' }
+        Copy-Item $setup[0].FullName ../../candidate/Klipper-Farm-R136-setup.exe
+        Copy-Item ../../proof ../../candidate/proof -Recurse
+        $manifest=@{}
+        foreach ($name in @('Klipper-Farm-R136-setup.exe','KF-R136-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
+        @{release='R136';sequence=136;baselineSequence=135;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='c1590be23656c77d00169f849e84daf169d1285d68df0c740929c130f024693f';releaseIdentitySha256='96608e58b1b031b874c5cb8903283dc8563ef99ec3b1c6062a77754f0b3d6727';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r136-ota-candidate
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - name: Retain build evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r136-ota-build-evidence
+        path: |-
+          proof
+          work/app/.klipper-build-cache/*.log
+          work/app/.klipper-build-cache/target/*last.log
+          work/app/.klipper-build-cache/logs/*
+        retention-days: 14
+        include-hidden-files: true
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r136-ota-candidate
+        path: candidate
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+        if (-not (Test-Path $seven)) { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }
+        & $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R136-setup.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }
+        foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+          $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)
+          if ($items.Count -ne 1) { throw "Expected one extracted NSIS payload: $name" }
+          Write-Host "EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())"
+        }
+    - name: Install R136 over R135 and verify exact payload, data and desktop restart
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R136-upgrade'
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+        gh release download r135-ota --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R135-setup.exe --dir old
+        if ($LASTEXITCODE -ne 0) { throw 'R135 installer download failed' }
+        $old=(Resolve-Path old/Klipper-Farm-R135-setup.exe).Path
+        if ((Get-FileHash $old).Hash.ToLowerInvariant() -ne 'e77b1f3c154354735a85e523aebf1f0b747d1ef05cb68d9b2f4b7e9f56febea3') { throw 'R135 installer differs' }
+        $process=Start-Process $old -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R135 install failed' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Published R135 actual WebView startup failed' }
+
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+        $marker=Join-Path $dataDir 'r136-preservation.txt'
+        [IO.File]::WriteAllText($marker,'preserve-existing-data')
+        python scripts/r136-upgrade-data.py seed --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-seed.json
+        if ($LASTEXITCODE -ne 0) { throw 'Legacy seed failed' }
+        $setup=(Resolve-Path Klipper-Farm-R136-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R136 install over R135 failed' }
+        node scripts/r136-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed bytes differ from exact NSIS bundle payload' }
+        if ((Get-Content $marker -Raw) -ne 'preserve-existing-data') { throw 'Existing app data lost' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed WebView main-window smoke failed' }
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe" --report "$PWD/proof/headless-runtime.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry regression failed' }
+        python scripts/r136-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-preserved.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer configuration, stocks, usage, reserves or spools changed during upgrade' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed R136 second actual WebView startup failed' }
+        python scripts/r136-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-after-restart.json
+        if ($LASTEXITCODE -ne 0) { throw 'Existing printer or filament data changed after installed app restart' }
+        node scripts/r136-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed exact payload changed after restart' }
+        @{release='R136';installedSequence=136;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=135;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;costSettingsPreserved=$true;installedRestartVerified=$true} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+        Compress-Archive proof,smoke R136-UI-proof.zip
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r136-ota-validated
+        path: |-
+          candidate/Klipper-Farm-R136-setup.exe
+          candidate/KF-R136-FULL.zip
+          candidate/provenance.json
+          candidate/exact-validation.json
+          candidate/R136-UI-proof.zip
+        retention-days: 14
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r136-ota-installed-evidence
+        path: |-
+          candidate/proof
+          candidate/smoke
+        retention-days: 14
+    - name: Retain reviewed installer separately
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r136-reviewed-installer
+        path: |-
+          candidate/Klipper-Farm-R136-setup.exe
+          candidate/provenance.json
+          candidate/exact-validation.json
+        retention-days: 14
+        compression-level: 0
