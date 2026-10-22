@@ -51,3 +51,7 @@ KF-R134-* -text
 r134-build/** -text
 .github/workflows/windows-r134-print.yml -text
 .github/workflows/promote-r134.yml -text
+
+r135-* -text
+R135-* -text
+.github/workflows/native-r135-review.yml -text
