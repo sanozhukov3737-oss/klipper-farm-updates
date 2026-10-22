@@ -1,0 +1,250 @@
+#!/usr/bin/env python3
+"""Bind R135 publication to approved source overlays and the exact Windows candidate."""
+import base64
+import hashlib
+import json
+import re
+import sys
+import zipfile
+from pathlib import Path, PurePosixPath
+
+FEATURE_SHA = '624b525f9f7afcfe36d5f3a23a9c770b53a25af2face834a7da8cef5df39db5f'
+IDENTITY_SHA = 'f0948ba05afdc6abe0fedf07213cb142cf8763b5c66aba5d2b7ae32d21524416'
+BASE_SHA = 'a70c218772e5b4a2e70419eca2fe76ebb657bcc5f268667d795c56c0f88b3f4a'
+BUILD_ID = 'V20.6-R13.5-FRAMES-AUTO-PRINT-2026-10-22'
+IDENTITY_PATHS = {'RELEASE-BUILD-ID.txt', 'UPDATE-CHANNEL.json',
+                  'scripts/build-and-install-windows.mjs', 'scripts/check-r9-clean-installer.mjs',
+                  'scripts/check-release-portability.mjs'}
+PUBLIC_KEY = '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb'
+
+
+def digest(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+def file_digest(path):
+    with path.open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
+
+
+def load_json(path):
+    return json.loads(path.read_text(encoding='utf-8-sig'))
+
+
+def archive_bytes(archive, name):
+    matches = [p for p in archive.namelist()
+               if p.replace('\\', '/').endswith('/' + name) or p == name]
+    assert len(matches) == 1, (name, matches)
+    return archive.read(matches[0])
+
+
+def report(archive, name):
+    return json.loads(archive_bytes(archive, name).decode('utf-8-sig'))
+
+
+def check_build_reports(evidence, feature, identity):
+    delta = report(evidence, 'source-delta.json')
+    expected = {'release': 'R135', 'baseline': 'R134', 'baseArchiveSha256': BASE_SHA,
+                'featurePatchSha256': FEATURE_SHA, 'releaseIdentitySha256': IDENTITY_SHA,
+                'buildId': BUILD_ID, 'baselineFiles': 1783, 'verifiedFiles': 1786,
+                'reviewedFeatureFiles': 24, 'releaseIdentityFiles': 5, 'extraSourceFiles': 0}
+    for key, value in expected.items():
+        assert delta[key] == value, key
+    assert delta['passed'] is True and delta['allOtherSourceBytesPreserved'] is True
+    clean = lambda rows: [{k: v for k, v in row.items() if k != 'contentBase64'} for row in rows]
+    assert delta['featureFiles'] == clean(feature['files'])
+    assert delta['identityFiles'] == clean(identity['files'])
+    counts = {}
+    for name, count in [('r135-print-start.json', 12), ('r135-sound-core.json', 12),
+                        ('r135-auto-retry-core.json', 14), ('r135-native-history-policy.json', 7),
+                        ('r135-approved-accounting.json', 7), ('auto-accounting-browser-report.json', 15),
+                        ('single-spool-page-report.json', 7), ('r135-graphite-layout-report.json', 24)]:
+        value = report(evidence, name)
+        assert type(value['passed']) is int and value['passed'] == count, name
+        cases = value.get('report', value.get('cases'))
+        assert isinstance(cases, list) and len(cases) == count, name
+        assert all(case.get('passed', True) is True if isinstance(case, dict)
+                   else isinstance(case, str) and bool(case) for case in cases), name
+        assert not value.get('runtimeErrors'), name
+        counts[name] = count
+    for name, count in [('r135-finish-core.json', 8), ('r135-filament-core.json', 9)]:
+        value = report(evidence, name)
+        assert len(value['cases']) == count and all(case['passed'] is True for case in value['cases']), name
+        counts[name] = count
+    client = report(evidence, 'r135-client-start-runtime.json')
+    assert client['caseCount'] == 38 and client['failures'] == 0
+    assert client['nativeBoundaryEmulated'] is True
+    assert len(client['cases']) == 38 and all(case['passed'] is True for case in client['cases'])
+    counts['r135-client-start-runtime.json'] = 38
+    return counts, delta
+
+
+def check_native_evidence(path, contract, feature, identity):
+    assert path.stat().st_size == contract['buildEvidenceArtifactSizeBytes']
+    assert 'sha256:' + file_digest(path) == contract['buildEvidenceArtifactDigest']
+    with zipfile.ZipFile(path) as evidence:
+        native = archive_bytes(evidence, 'r135-native-tests.log').decode('utf-8-sig')
+        native = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', native)
+        results = re.findall(r'test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;', native)
+        assert results and all(status == 'ok' and failed == '0' for status, _, failed, _ in results)
+        assert results.count(('ok', '203', '0', '2')) == 1
+        for marker in ['acknowledged_start_recovers_observation_over_rest_after_ws_failure',
+                       'preadmission_disconnected_ws_dispatches_exactly_one_rest_start',
+                       'admitted_or_ambiguous_ws_start_is_never_dispatched_again_over_rest',
+                       'expired_queued_print_start_never_reaches_the_websocket_wire']:
+            assert re.search(re.escape(marker) + r' \.\.\. ok', native), marker
+        counts, delta = check_build_reports(evidence, feature, identity)
+    return {'passed': 203, 'failed': 0, 'ignored': 2,
+            'fourNativeStartWireRegressionsVerified': True}, counts, delta
+
+
+def inventory(archive, prefix):
+    files = {}
+    for entry in archive.infolist():
+        assert entry.filename.startswith(prefix), entry.filename
+        name = entry.filename.removeprefix(prefix)
+        if not name or entry.is_dir():
+            continue
+        parts = PurePosixPath(name).parts
+        assert not PurePosixPath(name).is_absolute() and '..' not in parts
+        assert '\\' not in name and ':' not in name and name not in files
+        assert (entry.external_attr >> 16) & 0o170000 != 0o120000
+        files[name] = entry
+    return files
+
+
+def main():
+    incoming, feature_path, identity_path = map(Path, sys.argv[1:])
+    contract = load_json(incoming / 'r135-promotion-contract.json')
+    assert contract['schemaVersion'] == 1 and contract['sequence'] == 135
+    assert contract['tag'] == 'r135-ota'
+    assert contract['repository'] == 'sanozhukov3737-oss/klipper-farm-updates'
+    assert contract['patchSha256'] == FEATURE_SHA
+    assert contract['releaseIdentitySha256'] == IDENTITY_SHA
+    assert contract['baselineSourceSha256'] == BASE_SHA
+    assert file_digest(feature_path) == FEATURE_SHA and file_digest(identity_path) == IDENTITY_SHA
+    feature, identity = load_json(feature_path), load_json(identity_path)
+    assert feature['format'] == 'klipper-farm-reviewed-source-v1'
+    assert feature['baseArchiveSha256'] == BASE_SHA and feature['baseArchiveSize'] == 582861134
+    assert feature['archivePrefix'] == 'Klipper-Farm-R134/'
+    assert len(feature['baselineFiles']) == 1783 and len(feature['files']) == 24
+    assert len({row['path'] for row in feature['files']}) == 24
+    assert identity['release'] == 'R135' and identity['baseline'] == 'R134'
+    assert identity['sequence'] == 135 and identity['buildId'] == BUILD_ID
+    assert identity['featurePatchSha256'] == FEATURE_SHA and len(identity['files']) == 5
+    assert {row['path'] for row in identity['files']} == IDENTITY_PATHS
+    assert not IDENTITY_PATHS.intersection(row['path'] for row in feature['files'])
+    provenance = load_json(incoming / 'provenance.json')
+    for key, expected in {'release': 'R135', 'sequence': 135, 'baselineSequence': 134,
+                          'buildId': BUILD_ID, 'headSha': contract['buildHeadSha'],
+                          'patchSha256': FEATURE_SHA, 'releaseIdentitySha256': IDENTITY_SHA}.items():
+        assert provenance[key] == expected, key
+    assert str(provenance['runId']) == str(contract['buildRunId'])
+    assert provenance['assets'] == contract['assets']
+    validation = load_json(incoming / 'exact-validation.json')
+    for key, expected in {'release': 'R135', 'installedSequence': 135, 'upgradeFrom': 134,
+                          'headSha': contract['buildHeadSha']}.items():
+        assert validation[key] == expected, key
+    assert str(validation['runId']) == str(contract['buildRunId'])
+    for flag in ['passed', 'embeddedUpdateChannelVerified', 'exactInstallerPayloadVerified',
+                 'installedBinaryHashesMatch', 'desktopWebViewLoaded', 'legacyDataPreserved',
+                 'printerConfigurationPreserved', 'filamentInventoryPreserved', 'installedRestartVerified']:
+        assert validation[flag] is True, flag
+    assert set(contract['assets']) == {'Klipper-Farm-R135-setup.exe', 'KF-R135-FULL.zip'}
+    for name, expected in contract['assets'].items():
+        target = incoming / name
+        assert target.stat().st_size == expected['sizeBytes'] and file_digest(target) == expected['sha256'], name
+    baseline = incoming / 'KF-R134-FULL.zip'
+    assert baseline.stat().st_size == 582861134 and file_digest(baseline) == BASE_SHA
+    native, build_counts, build_delta = check_native_evidence(incoming / 'build-evidence.zip', contract, feature, identity)
+    with zipfile.ZipFile(incoming / 'KF-R135-FULL.zip') as source, zipfile.ZipFile(baseline) as original:
+        prefix = 'Klipper-Farm-R135/'
+        current, before = inventory(source, prefix), inventory(original, 'Klipper-Farm-R134/')
+        source_bytes = lambda name: source.read(prefix + name)
+        assert set(before) == set(feature['baselineFiles'])
+        for name, entry in before.items():
+            assert digest(original.read(entry)) == feature['baselineFiles'][name], name
+        expected = dict(feature['baselineFiles'])
+        for rows in [feature['files'], identity['files']]:
+            for row in rows:
+                name = row['path']
+                assert row['beforeSha256'] == expected.get(name), name
+                data = base64.b64decode(row['contentBase64'], validate=True)
+                assert digest(data) == row['sha256'] and source_bytes(name) == data, name
+                expected[name] = row['sha256']
+        generated = {'DIST-V20-LOCK.json', 'MANIFEST-SHA256.txt', 'OFFLINE-PAYLOAD-SHA256.txt'}
+        regenerated = lambda name: name.startswith('dist/') or name in generated
+        assert {name for name in current if not regenerated(name)} == {name for name in expected if not regenerated(name)}
+        unchanged = 0
+        changed = {row['path'] for row in feature['files'] + identity['files']}
+        for name, wanted in expected.items():
+            if regenerated(name):
+                continue
+            assert digest(source_bytes(name)) == wanted, name
+            unchanged += name not in changed
+        manifest = {}
+        for line in source_bytes('MANIFEST-SHA256.txt').decode().splitlines():
+            if not line.strip() or line.startswith('#'):
+                continue
+            wanted, name = line.split(' *', 1)
+            assert name not in manifest and name in current
+            assert digest(source_bytes(name)) == wanted, name
+            manifest[name] = wanted
+        assert set(manifest) == set(current) - {'MANIFEST-SHA256.txt'}
+        assert json.loads(source_bytes('UPDATE-CHANNEL.json')) == {
+            'endpoint': 'https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json',
+            'publicKeyHex': PUBLIC_KEY, 'channel': 'stable', 'installedSequence': 135}
+        assert source_bytes('RELEASE-BUILD-ID.txt').decode().strip() == BUILD_ID
+        assert digest(source_bytes('src/lib/spool-viewer.mjs')) == feature['baselineFiles']['src/lib/spool-viewer.mjs']
+    with zipfile.ZipFile(incoming / 'R135-UI-proof.zip') as evidence:
+        counts, delta = check_build_reports(evidence, feature, identity)
+        assert counts == build_counts and delta == build_delta
+        seed = report(evidence, 'upgrade-data-seed.json')
+        assert seed['passed'] is True and seed['mode'] == 'seed'
+        for name in ['upgrade-data-preserved.json', 'upgrade-data-after-restart.json']:
+            value = report(evidence, name)
+            assert value['passed'] is True and value['mode'] == 'verify'
+            assert value['printerCount'] == 7 and value['spoolCount'] == 2
+            assert value['sqliteIntegrity'] == 'ok' and value['rows'] == seed['rows']
+            for flag in ['printerConfigurationBytesPreserved', 'legacySpoolBytesPreserved',
+                         'filamentInventoryBytesPreserved', 'materialReserveAndUsagePreserved']:
+                assert value[flag] is True, flag
+        runtime = report(evidence, 'headless-runtime.json')
+        assert runtime['passed'] is True and runtime['registeredPrinters'] == 7
+        for flag in ['staleCommandRejected', 'offlineMemberIsolation', 'freshTelemetryAllHealthy']:
+            assert runtime[flag] is True, flag
+        payload = report(evidence, 'installed-payload.json')
+        assert payload == report(evidence, 'installed-payload-after-restart.json')
+        assert payload['passed'] is True and payload['comparison'] == 'nsis-extracted-exact-v1'
+        assert payload['installedSequence'] == 135 and payload['embeddedUpdateChannelVerified'] is True
+        assert set(payload['binaries']) == {'klipper-farm-client.exe', 'klipper-farmd.exe'}
+        for binary in payload['binaries'].values():
+            assert binary['expectedInstalledSha256'] == binary['installedSha256'] == binary['packagedSha256']
+        markers = [name for name in evidence.namelist() if '/smoke/' in '/' + name.replace('\\', '/')
+                   and PurePosixPath(name.replace('\\', '/')).name.startswith('desktop-startup-smoke-client-') and name.endswith('.json')]
+        assert len(markers) >= 3
+        for name in markers:
+            marker = json.loads(evidence.read(name).decode('utf-8-sig'))
+            assert marker['schemaVersion'] == 1 and marker['binary'] == 'klipper-farm-client'
+            assert marker['windowLabel'] == 'main' and marker['pageLoad'] == 'finished'
+            assert marker['executableFile'].lower() == 'klipper-farm-client.exe'
+            assert marker['pid'] > 0 and marker['createdAtMs'] > 0
+    result = {'passed': True, 'release': 'R135', 'reviewedFileCount': 24, 'releaseIdentityFileCount': 5,
+              'runId': str(contract['buildRunId']), 'headSha': contract['buildHeadSha'],
+              'patchSha256': FEATURE_SHA, 'releaseIdentitySha256': IDENTITY_SHA,
+              'exactPublishedSourceMatchesReviewedPatch': True,
+              'unreviewedSourcePreservationVerifiedBeforeAndAfterBuild': True,
+              'unchangedSourceFiles': unchanged, 'completeSourceManifestVerified': True,
+              'installedSequence': 135, 'embeddedUpdateChannelVerified': True,
+              'buildId': BUILD_ID, 'acceptanceCases': counts, 'nativeTests': native,
+              'realSQLitePrinterConfigurations': 7, 'legacySpools': 2,
+              'installedUpgradeAndRestartDataPreserved': True, 'desktopWebViewMarkers': len(markers),
+              'nativeRuntimeEmulatorVerified': True, 'exactInstalledNsisPayloadVerified': True,
+              'installedBinaries': payload['binaries'], 'physicalPrinterTested': False,
+              'scope': 'Windows runner; production Edge UI, native processes and local printer emulators. Physical printers were not tested.'}
+    (incoming / 'source-inspection.json').write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps(result))
+
+
+if __name__ == '__main__':
+    main()
