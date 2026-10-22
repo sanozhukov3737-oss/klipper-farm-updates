@@ -55,3 +55,11 @@ r134-build/** -text
 r135-* -text
 R135-* -text
 .github/workflows/native-r135-review.yml -text
+
+r136-* -text
+R136-* -text
+KF-R136-* -text
+apply-r136.py -text
+r136-build/** -text
+.github/workflows/windows-r136-reviewed.yml -text
+.github/workflows/promote-r136.yml -text
