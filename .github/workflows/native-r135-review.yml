@@ -1,0 +1,92 @@
+name: Verify reviewed R135 native start recovery (no installer)
+'on':
+  push:
+    branches:
+    - r135-graphite-start
+    paths:
+    - .github/workflows/native-r135-review.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: native-r135-review
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+    - name: Restore exact R134 and apply only reviewed native changes
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+
+        gh release download r134-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R134-FULL.zip --dir incoming
+
+        if ($LASTEXITCODE -ne 0) { throw ''Published source download failed'' }
+
+        python r135-native-review.py
+
+        if ($LASTEXITCODE -ne 0) { throw ''Native source provenance failed'' }
+
+        '
+    - name: Execute actual native Windows tests and wire regressions
+      shell: pwsh
+      run: '$ErrorActionPreference=''Stop''
+
+        Set-Location work/Klipper-Farm-R134
+
+        tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+
+        if ($LASTEXITCODE -ne 0) { throw ''Offline Rust dependency extraction failed'' }
+
+        $env:CARGO_TARGET_DIR=Join-Path $env:RUNNER_TEMP ''r135-native-tests''
+
+        $env:CARGO_TERM_COLOR=''never''
+
+        node scripts/run-rust-tests.mjs
+
+        if ($LASTEXITCODE -ne 0) { throw ''Native regression suite failed'' }
+
+        Copy-Item (Join-Path $env:CARGO_TARGET_DIR ''v20-rust-tests-last.log'') ../../proof/
+
+        Copy-Item (Join-Path $env:CARGO_TARGET_DIR ''v20-windows-test-artifacts.jsonl'') ../../proof/
+
+        $log=Get-Content (Join-Path $env:CARGO_TARGET_DIR ''v20-rust-tests-last.log'') -Raw
+
+        $required=@(''acknowledged_start_recovers_observation_over_rest_after_ws_failure'',''preadmission_disconnected_ws_dispatches_exactly_one_rest_start'',''admitted_or_ambiguous_ws_start_is_never_dispatched_again_over_rest'',''expired_queued_print_start_never_reaches_the_websocket_wire'')
+
+        foreach ($name in $required) { if ($log -notmatch ([regex]::Escape($name)+'' \.\.\. ok'')) { throw "Missing executed
+        native regression: $name" } }
+
+        if ($log -notmatch ''test result: ok\. 203 passed; 0 failed; 2 ignored;'') { throw ''Native root test count differs''
+        }
+
+        '
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r135-native-review-evidence
+        path: 'proof
+
+          ${{ runner.temp }}/r135-native-tests/v20-rust-tests-last.log
+
+          ${{ runner.temp }}/r135-native-tests/v20-windows-test-artifacts.jsonl'
+        retention-days: 30
