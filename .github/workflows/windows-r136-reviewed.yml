@@ -1,4 +1,5 @@
 name: Build and validate reviewed R136 cost, photos and blue interface (candidate only)
+# Release input hashes are preserved byte for byte by the R136 .gitattributes rules.
 'on':
   push:
     branches:
