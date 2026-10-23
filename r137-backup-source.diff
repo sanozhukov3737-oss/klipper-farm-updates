@@ -412,7 +412,7 @@
      }
      Ok(removed)
  }
-@@ -309,6 +560,348 @@
+@@ -309,6 +560,346 @@
  mod tests {
      use super::*;
      use crate::transactional_core::migrations;
@@ -740,28 +740,26 @@
 +
 +    #[cfg(windows)]
 +    #[test]
-+    fn retention_continues_after_an_old_read_only_file_cannot_be_removed() {
++    fn retention_continues_after_an_old_locked_file_cannot_be_removed() {
++        use std::os::windows::fs::OpenOptionsExt;
 +        let root = test_directory("locked-retention");
 +        let owned = (1..=10).map(|number| root.join(format!("farm-v20-{number}.sqlite3"))).collect::<Vec<_>>();
 +        for path in &owned { fs::write(path, b"owned").unwrap(); }
 +        let oldest = &owned[0];
-+        let mut permissions = fs::metadata(oldest).unwrap().permissions();
-+        permissions.set_readonly(true);
-+        fs::set_permissions(oldest, permissions).unwrap();
++        // Permit reading/writing, but retain a real Windows sharing violation for deletion.
++        let locked = OpenOptions::new().read(true).share_mode(0x1 | 0x2).open(oldest).unwrap();
 +        assert!(fs::remove_file(oldest).is_err());
 +        assert_eq!(rotate_backups(&root, &owned[9]).unwrap(), 3);
 +        assert_eq!(owned.iter().filter(|path| path.exists()).count(), MAX_BACKUPS);
 +        assert!(oldest.exists());
 +        assert!(owned[9].exists());
-+        let mut permissions = fs::metadata(oldest).unwrap().permissions();
-+        permissions.set_readonly(false);
-+        fs::set_permissions(oldest, permissions).unwrap();
++        drop(locked);
 +        fs::remove_dir_all(root).unwrap();
 +    }
  
      #[test]
      fn online_backup_is_verified_and_rotated() {
-@@ -361,10 +954,13 @@
+@@ -361,10 +952,13 @@
          drop(connection);
          let journal = crate::transactional_core::Journal::new(&database).unwrap();
          let backup = create_on_demand(&database, 1).unwrap();

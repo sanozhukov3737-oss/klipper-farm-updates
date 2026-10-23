@@ -15,6 +15,6 @@
     "restore_failure_removes_temporary_copy_without_touching_live_data",
     "retention_preserves_current_snapshot_and_ignores_foreign_files_and_directories",
     "backup_cleanup_and_schedule_work_through_windows_directory_junction",
-    "retention_continues_after_an_old_read_only_file_cannot_be_removed"
+    "retention_continues_after_an_old_locked_file_cannot_be_removed"
   ]
 }
