@@ -1,0 +1,201 @@
+name: Validate exact existing R137 installer over published R136 (no rebuild)
+'on':
+  push:
+    branches:
+    - r137-backup-retention
+    paths:
+    - .github/workflows/validate-r137-exact.yml
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: validate-r137-exact
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  validate:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Download and bind the exact successful original R137 build candidate
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ($env:GITHUB_REPOSITORY -ne 'sanozhukov3737-oss/klipper-farm-updates') { throw 'Wrong repository' }
+        New-Item -ItemType Directory -Force incoming,validation-metadata | Out-Null
+        function Save-Api([string]$endpoint,[string]$name) {
+         $body=gh api $endpoint
+         if ($LASTEXITCODE -ne 0) { throw "Metadata read failed: $name" }
+         [IO.File]::WriteAllText((Join-Path $PWD "validation-metadata/$name"),($body -join "`n"),[Text.UTF8Encoding]::new($false))
+        }
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/39974599528" 'original-build-run.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/39974599528/jobs?per_page=100" 'original-build-jobs.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/12512078966" 'original-candidate-artifact.json'
+        $run=Get-Content validation-metadata/original-build-run.json -Raw | ConvertFrom-Json
+        if ([string]$run.id -ne '39974599528' -or $run.head_sha -ne 'be1e4820abcfb781b9785020370001ddb41378b2' -or $run.head_branch -ne 'r137-backup-retention' -or $run.path -ne '.github/workflows/windows-r137-reviewed.yml' -or $run.status -ne 'completed' -or $run.conclusion -ne 'failure') { throw 'Original completed build run differs' }
+        $jobs=(Get-Content validation-metadata/original-build-jobs.json -Raw | ConvertFrom-Json).jobs
+        $build=@($jobs | Where-Object { [string]$_.id -eq '120485787116' })
+        if ($build.Count -ne 1 -or $build[0].name -ne 'build' -or $build[0].status -ne 'completed' -or $build[0].conclusion -ne 'success' -or [string]$build[0].run_id -ne '39974599528') { throw 'Exact original build job was not successful' }
+        $artifact=Get-Content validation-metadata/original-candidate-artifact.json -Raw | ConvertFrom-Json
+        if ([string]$artifact.id -ne '12512078966' -or $artifact.name -ne 'r137-ota-candidate' -or $artifact.size_in_bytes -ne 1075932029 -or $artifact.digest -ne 'sha256:7316fbdab7e17f0070c6a8d43004f7e55f90bfa64d14f60cde20aa9f6b17c41b' -or $artifact.expired -or [string]$artifact.workflow_run.id -ne '39974599528' -or $artifact.workflow_run.head_sha -ne 'be1e4820abcfb781b9785020370001ddb41378b2') { throw 'Exact original candidate artifact differs' }
+        $encoded=gh api "repos/$env:GITHUB_REPOSITORY/contents/.github/workflows/windows-r137-reviewed.yml?ref=be1e4820abcfb781b9785020370001ddb41378b2" --jq .content
+        if ($LASTEXITCODE -ne 0) { throw 'Exact original build workflow retrieval failed' }
+        [IO.File]::WriteAllBytes((Join-Path $PWD 'validation-metadata/original-build-workflow.yml'),[Convert]::FromBase64String(($encoded -join '')))
+        if ((Get-FileHash validation-metadata/original-build-workflow.yml).Hash.ToLowerInvariant() -ne '1ea1ae446f645078d996aa40f11eb757e45ce01ad1be05c2ce71473db0d55129') { throw 'Exact original build workflow differs' }
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 300 --header "Authorization: Bearer $env:GH_TOKEN" --output incoming/original-candidate.zip --url "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/artifacts/12512078966/zip"
+        if ($LASTEXITCODE -ne 0) { throw 'Exact original candidate download failed' }
+        if ((Get-Item incoming/original-candidate.zip).Length -ne 1075932029 -or (Get-FileHash incoming/original-candidate.zip).Hash.ToLowerInvariant() -ne '7316fbdab7e17f0070c6a8d43004f7e55f90bfa64d14f60cde20aa9f6b17c41b') { throw 'Exact original candidate ZIP bytes differ' }
+        @'
+        import hashlib,json,shutil,zipfile
+        from pathlib import Path,PurePosixPath
+        archive=Path('incoming/original-candidate.zip')
+        assert archive.stat().st_size==1075932029
+        with archive.open('rb') as stream:
+         assert hashlib.file_digest(stream,'sha256').hexdigest()=='7316fbdab7e17f0070c6a8d43004f7e55f90bfa64d14f60cde20aa9f6b17c41b'
+        root=Path('candidate')
+        assert not root.exists(),'Candidate destination must be new'
+        with zipfile.ZipFile(archive) as bundle:
+         members={}
+         for entry in bundle.infolist():
+          name=entry.filename.rstrip('/')
+          pure=PurePosixPath(name)
+          assert name and not pure.is_absolute() and '..' not in pure.parts and '\\' not in name and ':' not in name,name
+          assert all(part not in ('','.','..') for part in name.split('/')),name
+          assert (entry.external_attr>>16)&0o170000 !=0o120000,'Candidate symlink rejected'
+          if entry.is_dir():continue
+          assert name not in members,'Duplicate candidate entry: '+name
+          assert name in {'Klipper-Farm-R137-setup.exe','KF-R137-FULL.zip','provenance.json'} or pure.parts[0] in {'release','scripts','proof'},name
+          members[name]=entry
+         assert {'Klipper-Farm-R137-setup.exe','KF-R137-FULL.zip','provenance.json'}.issubset(members)
+         root.mkdir()
+         for name,entry in members.items():
+          target=root/name
+          target.parent.mkdir(parents=True,exist_ok=True)
+          with bundle.open(entry) as source,target.open('wb') as destination:shutil.copyfileobj(source,destination)
+        origin=json.loads((root/'provenance.json').read_text(encoding='utf-8-sig'))
+        assert str(origin['runId'])=='39974599528' and origin['headSha']=='be1e4820abcfb781b9785020370001ddb41378b2'
+        assert origin['release']=='R137' and origin['sequence']==137 and origin['baselineSequence']==136
+        assert origin['buildId']=='V20.6-R13.7-BACKUP-RETENTION-2026-10-23'
+        assert origin['patchSha256']=='3a78d401483a3ab5b0c6f9f9f3262bc12ebbfb019551a9bf49b83c9c5dfc20d5'
+        assert origin['releaseIdentitySha256']=='c4dc52f44ef0853c45712ffd9d787d05e6f5af7b7a1d72445c749470fa9edf41'
+        assert set(origin['assets'])=={'Klipper-Farm-R137-setup.exe','KF-R137-FULL.zip'}
+        for name,pin in origin['assets'].items():
+         target=root/name
+         assert target.stat().st_size==pin['sizeBytes'],name
+         with target.open('rb') as stream:assert hashlib.file_digest(stream,'sha256').hexdigest()==pin['sha256'],name
+        delta=json.loads((root/'proof/source-delta.json').read_text(encoding='utf-8-sig'))
+        assert delta['passed'] and delta['verifiedFiles']==delta['baselineFiles']==1786 and delta['extraSourceFiles']==0
+        assert delta['reviewedFeatureFiles']==2 and delta['releaseIdentityFiles']==5 and delta['allOtherSourceBytesPreserved']
+        print('Exact original successful-build candidate safely restored; original provenance preserved.')
+        '@ | python -
+        if ($LASTEXITCODE -ne 0) { throw 'Pinned candidate safety, source or original provenance verification failed' }
+        Copy-Item validation-metadata/* candidate/proof/
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+        if (-not (Test-Path $seven)) { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }
+        & $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R137-setup.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }
+        foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+          $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)
+          if ($items.Count -ne 1) { throw "Expected one extracted NSIS payload: $name" }
+          Write-Host "EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())"
+        }
+    - name: Install R137 over R136 and verify exact payload, data and desktop restart
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R137-upgrade'
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+        gh release download r136-ota --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R136-setup.exe --dir old
+        if ($LASTEXITCODE -ne 0) { throw 'R136 installer download failed' }
+        $old=(Resolve-Path old/Klipper-Farm-R136-setup.exe).Path
+        if ((Get-FileHash $old).Hash.ToLowerInvariant() -ne '2c8f2b5c94a2fe3525c256dd739dc57e83e9450474d9a27b29ec6ad1759f6f8f') { throw 'R136 installer differs' }
+        $process=Start-Process $old -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R136 install failed' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Published R136 actual WebView startup failed' }
+
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+        $marker=Join-Path $dataDir 'r137-preservation.txt'
+        [IO.File]::WriteAllText($marker,'preserve-existing-data')
+        python scripts/r137-upgrade-data.py seed --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-seed.json
+        if ($LASTEXITCODE -ne 0) { throw 'Legacy seed failed' }
+        $setup=(Resolve-Path Klipper-Farm-R137-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R137 install over R136 failed' }
+        node scripts/r137-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed bytes differ from exact NSIS bundle payload' }
+        if ((Get-Content $marker -Raw) -ne 'preserve-existing-data') { throw 'Existing app data lost' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed WebView main-window smoke failed' }
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe" --report "$PWD/proof/headless-runtime.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry regression failed' }
+        python scripts/r137-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-preserved.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer configuration, stocks, usage, reserves or spools changed during upgrade' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed R137 second actual WebView startup failed' }
+        python scripts/r137-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-after-restart.json
+        if ($LASTEXITCODE -ne 0) { throw 'Existing printer or filament data changed after installed app restart' }
+        node scripts/r137-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed exact payload changed after restart' }
+        @{release='R137';installedSequence=137;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRunId='39974599528';buildHeadSha='be1e4820abcfb781b9785020370001ddb41378b2';upgradeFrom=136;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;costSettingsPreserved=$true;installedRestartVerified=$true} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+        Compress-Archive proof,smoke R137-UI-proof.zip
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r137-ota-validated
+        path: |-
+          candidate/Klipper-Farm-R137-setup.exe
+          candidate/KF-R137-FULL.zip
+          candidate/provenance.json
+          candidate/exact-validation.json
+          candidate/R137-UI-proof.zip
+        retention-days: 14
+        compression-level: 0
+    - name: Retain APPDATA startup diagnostics for the exact validation attempt
+      if: always()
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $destination=Join-Path $env:GITHUB_WORKSPACE 'candidate/proof/startup-logs'
+        New-Item -ItemType Directory -Force $destination | Out-Null
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        foreach ($relative in @('startup.log','klipper-farmd.startup.log','logs/desktop-startup.log')) {
+         $source=Join-Path $dataDir $relative
+         if (Test-Path -LiteralPath $source -PathType Leaf) { Copy-Item -LiteralPath $source -Destination (Join-Path $destination (Split-Path $source -Leaf)) }
+        }
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r137-ota-installed-evidence
+        path: |-
+          candidate/proof
+          candidate/smoke
+        retention-days: 14
+    - name: Retain reviewed installer separately
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r137-reviewed-installer
+        path: |-
+          candidate/Klipper-Farm-R137-setup.exe
+          candidate/provenance.json
+          candidate/exact-validation.json
+        retention-days: 14
+        compression-level: 0
