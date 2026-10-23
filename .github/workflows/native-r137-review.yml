@@ -1,0 +1,106 @@
+name: Verify reviewed R137 backup retention on Windows (native only)
+'on':
+  push:
+    branches:
+    - r137-backup-retention
+    paths:
+    - .github/workflows/native-r137-review.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: native-r137-review
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+    - name: Restore exact R136 and verify the two reviewed backup changes
+      id: restore
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ($env:GITHUB_REPOSITORY -ne 'sanozhukov3737-oss/klipper-farm-updates') { throw 'Wrong repository' }
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+        foreach ($stem in @('r137-backup-patch','r137-required-tests')) {
+         $wanted=((Get-Content "$stem.sha256" -Raw).Trim() -split '\s+')[0]
+         if ($wanted -notmatch '^[a-f0-9]{64}$' -or (Get-FileHash "$stem.json").Hash.ToLowerInvariant() -ne $wanted) { throw "Reviewed input checksum differs: $stem" }
+         Copy-Item "$stem.json","$stem.sha256" proof/
+        }
+        Copy-Item apply-r137.py proof/
+        gh release download r136-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R136-FULL.zip --dir incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Exact published R136 source download failed' }
+        python apply-r137.py incoming/KF-R136-FULL.zip work/Klipper-Farm-R136 --proof proof/source-before-native.json
+        if ($LASTEXITCODE -ne 0) { throw 'Reviewed source or complete published inventory differs' }
+        @{schemaVersion=1;release='R137';baseline='R136';runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;nativeReviewOnly=$true;installerBuilt=$false;releasePublished=$false} | ConvertTo-Json | Set-Content proof/review-provenance.json -Encoding utf8NoBOM
+    - name: Execute the complete actual Windows native suite and required regressions
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $required=Get-Content r137-required-tests.json -Raw | ConvertFrom-Json
+        if ($required.schemaVersion -ne 1 -or $required.release -ne 'R137' -or $required.baseline -ne 'R136' -or $required.expectedRootIgnored -ne 2 -or $required.expectedRootPassed -le 203) { throw 'Required test contract differs' }
+        if ($required.tests -isnot [array] -or $required.tests.Count -lt 1 -or @($required.tests | Select-Object -Unique).Count -ne $required.tests.Count) { throw 'Missing or duplicate required test names' }
+        foreach ($name in $required.tests) { if ($name -isnot [string] -or $name -notmatch '^[A-Za-z_][A-Za-z0-9_:]*$') { throw 'Invalid required test name' } }
+        Set-Location work/Klipper-Farm-R136
+        tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+        if ($LASTEXITCODE -ne 0) { throw 'Reviewed offline Rust dependency extraction failed' }
+        $env:CARGO_TARGET_DIR=Join-Path $env:RUNNER_TEMP 'r137-native-tests'
+        $env:CARGO_NET_OFFLINE='true'
+        $env:CARGO_TERM_COLOR='never'
+        node scripts/run-rust-tests.mjs 2>&1 | Tee-Object -FilePath ../../proof/native-console.log
+        if ($LASTEXITCODE -ne 0) { throw 'Complete actual Windows native suite failed' }
+        $logPath=Join-Path $env:CARGO_TARGET_DIR 'v20-rust-tests-last.log'
+        Copy-Item $logPath ../../proof/r137-native-tests.log
+        Copy-Item (Join-Path $env:CARGO_TARGET_DIR 'v20-windows-test-artifacts.jsonl') ../../proof/
+        $log=Get-Content $logPath -Raw
+        $results=[regex]::Matches($log,'test result: (ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored;')
+        if ($results.Count -eq 0) { throw 'Native result evidence is missing' }
+        foreach ($result in $results) {
+         if ($result.Groups[1].Value -ne 'ok' -or $result.Groups[3].Value -ne '0') { throw 'Native suite contains a failed result' }
+        }
+        $ignoredTotal=0
+        foreach ($result in $results) { $ignoredTotal += [int]$result.Groups[4].Value }
+        if ($ignoredTotal -ne 2) { throw 'Native suite ignored-test total differs from the two existing skips' }
+        $rootResults=@($results | Where-Object { [int]$_.Groups[2].Value -eq $required.expectedRootPassed -and [int]$_.Groups[4].Value -eq 2 })
+        if ($rootResults.Count -ne 1) { throw 'Exact native root passed/ignored count differs' }
+        $wire=@('acknowledged_start_recovers_observation_over_rest_after_ws_failure','preadmission_disconnected_ws_dispatches_exactly_one_rest_start','admitted_or_ambiguous_ws_start_is_never_dispatched_again_over_rest','expired_queued_print_start_never_reaches_the_websocket_wire')
+        foreach ($name in @($wire)+@($required.tests)) {
+         if ($log -notmatch ('(?m)^test (?:[A-Za-z0-9_]+::)*'+[regex]::Escape($name)+' \.\.\. ok\s*$')) { throw "Required native regression was not executed successfully: $name" }
+        }
+        @{schemaVersion=1;passed=$true;release='R137';baseline='R136';rootPassed=$required.expectedRootPassed;rootFailed=0;rootIgnored=2;fourNativeWireRegressionsVerified=$true;requiredTests=$required.tests;nativeReviewOnly=$true;installerBuilt=$false;releasePublished=$false} | ConvertTo-Json -Depth 5 | Set-Content ../../proof/native-regressions.json -Encoding utf8NoBOM
+    - name: Verify all reviewed source bytes after native execution
+      if: ${{ always() && steps.restore.outcome == 'success' }}
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        # Only the reviewed offline vendor archive was extracted into the source.
+        # Compilation outputs and complete logs live outside the source tree.
+        if (Test-Path work/Klipper-Farm-R136/rv) { Remove-Item work/Klipper-Farm-R136/rv -Recurse -Force }
+        python apply-r137.py --verify work/Klipper-Farm-R136 --proof proof/source-after-native.json
+        if ($LASTEXITCODE -ne 0) { throw 'Reviewed source changed during native verification' }
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r137-native-review-evidence
+        path: |
+          proof
+          ${{ runner.temp }}/r137-native-tests/v20-rust-tests-last.log
+          ${{ runner.temp }}/r137-native-tests/v20-windows-test-artifacts.jsonl
+        retention-days: 30
