@@ -137,6 +137,11 @@ def main():
     assert contract['patchSha256'] == FEATURE_SHA
     assert contract['releaseIdentitySha256'] == IDENTITY_SHA
     assert contract['baselineSourceSha256'] == BASE_SHA
+    assert str(contract['buildRunId']) == '39974599528'
+    assert contract['buildHeadSha'] == 'be1e4820abcfb781b9785020370001ddb41378b2'
+    assert str(contract['jobs']['build']) == '120485787116'
+    assert str(contract['validationRunId']) != str(contract['buildRunId'])
+    assert re.fullmatch('[a-f0-9]{40}', contract['validationHeadSha'])
     assert file_digest(feature_path) == FEATURE_SHA and file_digest(identity_path) == IDENTITY_SHA
     feature, identity = load_json(feature_path), load_json(identity_path)
     assert feature['schemaVersion'] == 1 and feature['release'] == 'R137'
@@ -159,9 +164,11 @@ def main():
     assert provenance['assets'] == contract['assets']
     validation = load_json(incoming / 'exact-validation.json')
     for key, expected in {'release': 'R137', 'installedSequence': 137, 'upgradeFrom': 136,
-                          'headSha': contract['buildHeadSha']}.items():
+                          'headSha': contract['validationHeadSha'],
+                          'buildHeadSha': contract['buildHeadSha']}.items():
         assert validation[key] == expected, key
-    assert str(validation['runId']) == str(contract['buildRunId'])
+    assert str(validation['runId']) == str(contract['validationRunId'])
+    assert str(validation['buildRunId']) == str(contract['buildRunId'])
     for flag in ['passed', 'embeddedUpdateChannelVerified', 'exactInstallerPayloadVerified',
                  'installedBinaryHashesMatch', 'desktopWebViewLoaded', 'legacyDataPreserved',
                  'printerConfigurationPreserved', 'filamentInventoryPreserved', 'costSettingsPreserved', 'installedRestartVerified']:
@@ -247,6 +254,7 @@ def main():
             assert marker['pid'] > 0 and marker['createdAtMs'] > 0
     result = {'passed': True, 'release': 'R137', 'reviewedFileCount': 2, 'releaseIdentityFileCount': 5,
               'runId': str(contract['buildRunId']), 'headSha': contract['buildHeadSha'],
+              'validationRunId': str(contract['validationRunId']), 'validationHeadSha': contract['validationHeadSha'],
               'patchSha256': FEATURE_SHA, 'releaseIdentitySha256': IDENTITY_SHA,
               'exactPublishedSourceMatchesReviewedPatch': True,
               'unreviewedSourcePreservationVerifiedBeforeAndAfterBuild': True,

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "sequence": 137,
+  "tag": "r137-ota",
+  "buildRunId": "39974599528",
+  "buildHeadSha": "be1e4820abcfb781b9785020370001ddb41378b2",
+  "buildWorkflowSha256": "__EXACT_BUILD_WORKFLOW_SHA256__",
+  "jobs": {
+    "build": "120485787116",
+    "validate": "__ACTUAL_VALIDATE_JOB_ID__"
+  },
+  "sourceArtifactId": "__ACTUAL_VALIDATED_ARTIFACT_ID__",
+  "sourceArtifactDigest": "__ACTUAL_SHA256_PREFIXED_DIGEST__",
+  "sourceArtifactSizeBytes": "__ACTUAL_VALIDATED_ZIP_BYTES__",
+  "buildEvidenceArtifactId": "__ACTUAL_BUILD_EVIDENCE_ARTIFACT_ID__",
+  "buildEvidenceArtifactDigest": "__ACTUAL_SHA256_PREFIXED_DIGEST__",
+  "buildEvidenceArtifactSizeBytes": "__ACTUAL_EVIDENCE_ZIP_BYTES__",
+  "patchSha256": "3a78d401483a3ab5b0c6f9f9f3262bc12ebbfb019551a9bf49b83c9c5dfc20d5",
+  "releaseIdentitySha256": "c4dc52f44ef0853c45712ffd9d787d05e6f5af7b7a1d72445c749470fa9edf41",
+  "baselineSourceSha256": "78a89704a083466a863085c0bc6a9c5317041212327c8e7e1393b7e914e9fd3f",
+  "assets": {
+    "KF-R137-FULL.zip": {
+      "sha256": "__EXACT_COMPILED_ASSET_SHA256__",
+      "sizeBytes": "__EXACT_COMPILED_ASSET_BYTES__"
+    },
+    "Klipper-Farm-R137-setup.exe": {
+      "sha256": "__EXACT_COMPILED_ASSET_SHA256__",
+      "sizeBytes": "__EXACT_COMPILED_ASSET_BYTES__"
+    }
+  },
+  "metadata": {
+    "provenance.json": {
+      "sha256": "__EXACT_METADATA_FILE_SHA256__",
+      "sizeBytes": "__EXACT_METADATA_FILE_BYTES__"
+    },
+    "exact-validation.json": {
+      "sha256": "__EXACT_METADATA_FILE_SHA256__",
+      "sizeBytes": "__EXACT_METADATA_FILE_BYTES__"
+    }
+  },
+  "validationRunId": "__ACTUAL_SUCCESSFUL_VALIDATION_RUN_ID__",
+  "validationHeadSha": "__ACTUAL_VALIDATION_WORKFLOW_COMMIT__",
+  "validationWorkflowSha256": "__EXACT_VALIDATION_WORKFLOW_SHA256__"
+}

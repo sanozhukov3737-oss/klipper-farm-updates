@@ -73,3 +73,4 @@ KF-R137-* -text
 apply-r137-release.py -text
 .github/workflows/windows-r137-reviewed.yml -text
 .github/workflows/promote-r137.yml -text
+.github/workflows/validate-r137-exact.yml -text

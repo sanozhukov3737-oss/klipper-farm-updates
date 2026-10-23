@@ -7,6 +7,7 @@ const root=path.resolve(process.argv[2]);
 const json=name=>JSON.parse(fs.readFileSync(path.join(root,name),'utf8').replace(/^\uFEFF/,''));
 const hash=async name=>{const h=crypto.createHash('sha256');for await(const b of fs.createReadStream(path.join(root,name)))h.update(b);return h.digest('hex')};
 const contract=json('r137-promotion-contract.json'),run=json('build-run.json'),jobs=json('build-jobs.json').jobs;
+const validationRun=json('validation-run.json'),validationJobs=json('validation-jobs.json').jobs;
 const origin=json('provenance.json'),validation=json('exact-validation.json');
 const artifact=json('source-artifact.json'),inspection=json('source-inspection.json'),archiveProof=json('artifact-archive-verification.json'),buildEvidence=json('build-evidence-artifact.json');
 const manifest=json('update-v20.json');
@@ -23,20 +24,28 @@ assert.ok(manifest.sequence>previousManifest.sequence,'Stable update must advanc
 assert.match(contract.buildHeadSha,/^[a-f0-9]{40}$/);assert.match(String(contract.buildRunId),/^[1-9][0-9]*$/);
 assert.equal(contract.patchSha256,patchSha);assert.equal(contract.releaseIdentitySha256,identitySha);assert.equal(contract.baselineSourceSha256,baselineSha);
 assert.match(contract.buildWorkflowSha256,/^[a-f0-9]{64}$/);
+assert.equal(String(contract.buildRunId),'39974599528');assert.equal(contract.buildHeadSha,'be1e4820abcfb781b9785020370001ddb41378b2');assert.equal(String(contract.jobs.build),'120485787116');
 assert.equal(String(run.id),String(contract.buildRunId));assert.equal(run.head_sha,contract.buildHeadSha);
 assert.equal(run.head_branch,'r137-backup-retention');assert.equal(run.event,'push');
-assert.equal(run.status,'completed');assert.equal(run.conclusion,'success');assert.equal(run.path,'.github/workflows/windows-r137-reviewed.yml');
+assert.equal(run.status,'completed');assert.equal(run.conclusion,'failure');assert.equal(run.path,'.github/workflows/windows-r137-reviewed.yml');
 assert.equal(await hash('build-workflow.yml'),contract.buildWorkflowSha256);
+assert.match(String(contract.validationRunId),/^[1-9][0-9]*$/);assert.match(contract.validationHeadSha,/^[a-f0-9]{40}$/);assert.match(contract.validationWorkflowSha256,/^[a-f0-9]{64}$/);
+assert.notEqual(String(validationRun.id),String(run.id));assert.equal(String(validationRun.id),String(contract.validationRunId));assert.equal(validationRun.head_sha,contract.validationHeadSha);
+assert.equal(validationRun.head_branch,'r137-backup-retention');assert.equal(validationRun.event,'push');
+assert.equal(validationRun.status,'completed');assert.equal(validationRun.conclusion,'success');assert.equal(validationRun.path,'.github/workflows/validate-r137-exact.yml');
+assert.equal(await hash('validation-workflow.yml'),contract.validationWorkflowSha256);
 for(const name of ['build','validate']){
- const matches=jobs.filter(job=>job.name===name);assert.equal(matches.length,1,name);
+ const sourceJobs=name==='build'?jobs:validationJobs;
+ const matches=sourceJobs.filter(job=>job.name===name);assert.equal(matches.length,1,name);
  assert.equal(String(matches[0].id),String(contract.jobs[name]),name);
+ assert.equal(String(matches[0].run_id),String(name==='build'?run.id:validationRun.id),name);assert.equal(matches[0].head_sha,name==='build'?run.head_sha:validationRun.head_sha,name);
  assert.equal(matches[0].status,'completed',name);assert.equal(matches[0].conclusion,'success',name);
  assert.ok(matches[0].steps.length>2,name);
  assert.ok(matches[0].steps.filter(s=>!s.name.startsWith('Post ')).every(s=>s.conclusion==='success'),name);
 }
 assert.equal(String(artifact.id),String(contract.sourceArtifactId));assert.equal(artifact.name,'r137-ota-validated');
 assert.equal(artifact.digest,contract.sourceArtifactDigest);assert.equal(artifact.expired,false);
-assert.equal(String(artifact.workflow_run.id),String(run.id));assert.equal(artifact.workflow_run.head_sha,run.head_sha);
+assert.equal(String(artifact.workflow_run.id),String(validationRun.id));assert.equal(artifact.workflow_run.head_sha,validationRun.head_sha);
 assert.equal(archiveProof.passed,true);assert.equal(archiveProof.artifactDigest,contract.sourceArtifactDigest);
 assert.equal(archiveProof.sizeBytes,contract.sourceArtifactSizeBytes);
 assert.deepEqual(archiveProof.files.sort(),['KF-R137-FULL.zip','Klipper-Farm-R137-setup.exe','R137-UI-proof.zip','exact-validation.json','provenance.json'].sort());
@@ -47,10 +56,12 @@ assert.equal(origin.release,'R137');assert.equal(origin.sequence,137);assert.equ
 assert.equal(String(origin.runId),String(run.id));assert.equal(origin.headSha,run.head_sha);
 assert.equal(origin.patchSha256,patchSha);assert.equal(origin.releaseIdentitySha256,identitySha);
 assert.equal(origin.buildId,'V20.6-R13.7-BACKUP-RETENTION-2026-10-23');
-assert.equal(String(validation.runId),String(run.id));assert.equal(validation.headSha,run.head_sha);assert.equal(validation.upgradeFrom,136);
+assert.equal(String(validation.runId),String(validationRun.id));assert.equal(validation.headSha,validationRun.head_sha);assert.equal(validation.upgradeFrom,136);
+assert.equal(String(validation.buildRunId),String(run.id));assert.equal(validation.buildHeadSha,run.head_sha);
 assert.equal(validation.release,'R137');assert.equal(validation.installedSequence,137);
 for(const flag of ['passed','exactInstallerPayloadVerified','installedBinaryHashesMatch','desktopWebViewLoaded','legacyDataPreserved','printerConfigurationPreserved','filamentInventoryPreserved','costSettingsPreserved','installedRestartVerified','embeddedUpdateChannelVerified'])assert.equal(validation[flag],true,flag);
 assert.equal(inspection.reviewedFileCount,2);assert.equal(inspection.releaseIdentityFileCount,5);assert.equal(inspection.releaseIdentitySha256,identitySha);assert.equal(inspection.installedSequence,137);
+assert.equal(inspection.validationRunId,String(validationRun.id));assert.equal(inspection.validationHeadSha,validationRun.head_sha);
 assert.equal(inspection.nativeTests.passed,214);assert.equal(inspection.nativeTests.failed,0);assert.equal(inspection.nativeTests.ignored,2);
 assert.equal(inspection.nativeTests.backupRetentionRegressionsVerified,true);assert.equal(inspection.nativeTests.requiredBackupTests.length,11);
 assert.equal(inspection.nativeTests.requiredBackupTestsSha256,'d4f5077a0573aa5060ed584b4310fae0f801b757cd05d58d900530dd66af8050');
@@ -64,7 +75,7 @@ assert.equal(manifest.schemaVersion,1);assert.equal(manifest.channel,'stable');a
 assert.equal(manifest.artifact.url,`https://github.com/${repo}/releases/download/r137-ota/Klipper-Farm-R137-setup.exe`);
 assert.equal(manifest.artifact.sha256,contract.assets['Klipper-Farm-R137-setup.exe'].sha256);
 assert.equal(manifest.artifact.sizeBytes,contract.assets['Klipper-Farm-R137-setup.exe'].sizeBytes);
-assert.ok(Number.isSafeInteger(manifest.publishedAt)&&manifest.publishedAt>=Date.parse(run.created_at)&&manifest.publishedAt<Date.now()+300000);
+assert.ok(Number.isSafeInteger(manifest.publishedAt)&&manifest.publishedAt>=Math.max(Date.parse(run.created_at),Date.parse(validationRun.created_at))&&manifest.publishedAt<Date.now()+300000);
 assert.equal(manifest.releaseNotes,fs.readFileSync(path.join(root,'r137-release-notes.md'),'utf8'));
 const keyId=crypto.createHash('sha256').update(Buffer.from(publicHex,'hex')).digest('hex').slice(0,32);
 assert.equal(manifest.signerKeyId,keyId);assert.match(manifest.signatureHex,/^[a-f0-9]{128}$/);
@@ -78,7 +89,7 @@ assert.equal(channelProof.passed,true);assert.equal(channelProof.availableFromR1
 assert.deepEqual(Object.keys(contract.metadata).sort(),['exact-validation.json','provenance.json']);
 for(const [name,pin] of Object.entries(contract.metadata)){assert.equal(await hash(name),pin.sha256,name);assert.equal(fs.statSync(path.join(root,name)).size,pin.sizeBytes,name);}
 const assets={};for(const name of [...archiveProof.files,'update-v20.json'])assets[name]={sha256:await hash(name),sizeBytes:fs.statSync(path.join(root,name)).size};
-const attestation={schemaVersion:1,release:'R137',sequence:137,tag:'r137-ota',passed:true,repository:repo,buildRunId:String(run.id),buildHeadSha:run.head_sha,buildWorkflowSha256:contract.buildWorkflowSha256,jobs:contract.jobs,sourceArtifactId:String(artifact.id),sourceArtifactDigest:artifact.digest,patchSha256:patchSha,releaseIdentitySha256:identitySha,baselineSourceSha256:baselineSha,compiledArtifactBoundToInstalledValidation:true,embeddedInstalledSequenceVerified:true,ed25519SignatureVerified:true,nativeUpdaterModuleVerified:true,nativeVerificationSha256:await hash('native-bundle-verification.txt'),signerKeyId:keyId,promotionHeadSha:process.env.GITHUB_SHA??null,inspection,channelProof,assets,verifiedAt:new Date().toISOString(),physicalPrinterTested:false};
+const attestation={schemaVersion:1,release:'R137',sequence:137,tag:'r137-ota',passed:true,repository:repo,buildRunId:String(run.id),buildHeadSha:run.head_sha,buildWorkflowSha256:contract.buildWorkflowSha256,buildRunConclusion:run.conclusion,validationRunId:String(validationRun.id),validationHeadSha:validationRun.head_sha,validationWorkflowSha256:contract.validationWorkflowSha256,validationRunConclusion:validationRun.conclusion,separateValidationRunVerified:true,jobs:contract.jobs,sourceArtifactId:String(artifact.id),sourceArtifactDigest:artifact.digest,patchSha256:patchSha,releaseIdentitySha256:identitySha,baselineSourceSha256:baselineSha,compiledArtifactBoundToInstalledValidation:true,embeddedInstalledSequenceVerified:true,ed25519SignatureVerified:true,nativeUpdaterModuleVerified:true,nativeVerificationSha256:await hash('native-bundle-verification.txt'),signerKeyId:keyId,promotionHeadSha:process.env.GITHUB_SHA??null,inspection,channelProof,assets,verifiedAt:new Date().toISOString(),physicalPrinterTested:false};
 fs.writeFileSync(path.join(root,'promotion-attestation.json'),JSON.stringify(attestation,null,2)+'\n');
 const sums=[];for(const name of [...Object.keys(assets),'promotion-attestation.json','r137-promotion-contract.json','native-bundle-verification.txt','update-sequence-verification.json'])sums.push(`${await hash(name)}  ${name}`);
 fs.writeFileSync(path.join(root,'SHA256SUMS.txt'),sums.join('\n')+'\n');
