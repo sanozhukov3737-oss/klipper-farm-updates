@@ -1,4 +1,5 @@
 name: Verify reviewed R137 backup retention on Windows (native only)
+# The Windows retention regression holds a handle without FILE_SHARE_DELETE.
 'on':
   push:
     branches:
