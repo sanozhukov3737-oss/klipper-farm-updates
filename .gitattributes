@@ -63,3 +63,8 @@ apply-r136.py -text
 r136-build/** -text
 .github/workflows/windows-r136-reviewed.yml -text
 .github/workflows/promote-r136.yml -text
+
+r137-* -text
+R137-* -text
+apply-r137.py -text
+.github/workflows/native-r137-review.yml -text

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "release": "R137",
+  "baseline": "R136",
+  "expectedRootPassed": 214,
+  "expectedRootIgnored": 2,
+  "tests": [
+    "automatic_backup_survives_restarts_and_obeys_daily_boundary",
+    "automatic_backup_ignores_future_empty_corrupt_truncated_and_foreign_files",
+    "schedule_inspection_and_restore_use_immutable_paths_with_spaces_unicode_and_uri_characters",
+    "abandoned_temporary_cleanup_removes_only_owned_regular_files_and_orphan_sidecars",
+    "concurrent_automatic_requests_publish_one_copy_and_manual_wal_backup_stays_available",
+    "temporary_guards_remove_base_wal_shm_and_journal_after_failure_or_commit",
+    "missing_or_wrong_schema_live_database_never_publishes_or_rotates_backups",
+    "restore_failure_removes_temporary_copy_without_touching_live_data",
+    "retention_preserves_current_snapshot_and_ignores_foreign_files_and_directories",
+    "backup_cleanup_and_schedule_work_through_windows_directory_junction",
+    "retention_continues_after_an_old_read_only_file_cannot_be_removed"
+  ]
+}
