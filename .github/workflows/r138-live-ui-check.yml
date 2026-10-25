@@ -1,0 +1,64 @@
+name: Verify R138 live cards on exact R137 source
+on:
+  push:
+    branches: [r138-live-cards]
+    paths: [.github/workflows/r138-live-ui-check.yml]
+permissions:
+  contents: read
+jobs:
+  ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Restore exact published R137 and apply only reviewed visual changes
+        shell: python
+        run: |
+          import pathlib,shutil,subprocess,sys,urllib.request,zipfile
+          archive=pathlib.Path('KF-R137-FULL.zip')
+          with urllib.request.urlopen('https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r137-ota/KF-R137-FULL.zip',timeout=120) as response,archive.open('wb') as target:shutil.copyfileobj(response,target)
+          subprocess.run([sys.executable,'apply-r138.py',str(archive),'source'],check=True)
+          with zipfile.ZipFile(archive) as bundle:
+              for entry in bundle.infolist():
+                  relative=entry.filename.removeprefix('Klipper-Farm-R137/')
+                  if entry.is_dir() or not (relative.startswith('src/') or relative=='package.json'):continue
+                  target=pathlib.Path('baseline')/relative;target.parent.mkdir(parents=True,exist_ok=True)
+                  with bundle.open(entry) as response,target.open('wb') as output:shutil.copyfileobj(response,output)
+      - name: Install locked frontend dependencies
+        working-directory: source
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Build frontend and check visual data and existing sound behavior
+        working-directory: source
+        run: |
+          npm run build > ../r138-frontend-build.log 2>&1
+          tail -n 6 ../r138-frontend-build.log
+          node scripts/check-r138-visual-activity.mjs
+          node scripts/check-r127-notification-sound.mjs
+      - name: Prepare isolated browser test runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/r138-browser" --no-save --package-lock=false --ignore-scripts playwright@1.62.1
+          ln -s "$GITHUB_WORKSPACE/source/node_modules" baseline/node_modules
+          echo "PLAYWRIGHT_MODULE_PATH=$RUNNER_TEMP/r138-browser/node_modules/playwright/index.mjs" >> "$GITHUB_ENV"
+          echo "KF_R138_BASELINE=$GITHUB_WORKSPACE/baseline" >> "$GITHUB_ENV"
+          echo "KF_UI_SCREENSHOTS=$GITHUB_WORKSPACE/r138-ui-proof" >> "$GITHUB_ENV"
+          if command -v google-chrome >/dev/null; then
+            echo "CHROMIUM_EXECUTABLE=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          else
+            node "$RUNNER_TEMP/r138-browser/node_modules/playwright/cli.js" install --with-deps chromium
+          fi
+      - name: Check all seven printer cards and detail opening in both themes
+        working-directory: source
+        run: node ui-tests/live-cards-r138.mjs
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r138-ui-review
+          path: |
+            r138-ui-proof
+            r138-frontend-build.log
+          retention-days: 14
