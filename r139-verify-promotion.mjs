@@ -13,8 +13,8 @@ const artifact=json('source-artifact.json'),inspection=json('source-inspection.j
 const manifest=json('update-v20.json');
 const previousRelease=json('previous-latest-release.json'),previousManifest=json('previous-stable-update.json');
 const repo='sanozhukov3737-oss/klipper-farm-updates',publicHex='28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb';
-const patchSha='5777b34ba86b476a5afb28a85dab8e0a4104f55007085e5013727a5aaf1cd0a3';
-const identitySha='24ab1c0753556e4d2ac83cfec68241c8ffb5abab50793c83491a46f8e8c31e55';
+const patchSha='ebeaf8aa2a09b50d747dcfa1b6d970d50e3397378d3a66b756ea8f74153aa2c0';
+const identitySha='940d05adf5d0667b532a35e23284133f2df195b1962922de810d94176980cb0c';
 const baselineSha='6ca02e8bfd959c42044d6335e9df521d4a9a31d02452f47907c000a1176ca2aa';
 const requiredSha='a90a901d5211fd53d9e526380766ef3a6b8461f9ef96d0a0d550eda5036322eb';
 const requirementsBytes=fs.readFileSync(new URL('./r139-required-tests.json',import.meta.url));
