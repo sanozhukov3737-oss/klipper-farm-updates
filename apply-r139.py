@@ -9,7 +9,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parent
-FEATURE_SHA = '13f3ba23222b5acaa4fcc0023803240cf04d797762a9e90052e441a3e6267e53'
+FEATURE_SHA = '5777b34ba86b476a5afb28a85dab8e0a4104f55007085e5013727a5aaf1cd0a3'
 BASE_SHA = '6ca02e8bfd959c42044d6335e9df521d4a9a31d02452f47907c000a1176ca2aa'
 BASE_SIZE = 582302630
 

@@ -13,10 +13,10 @@ const artifact=json('source-artifact.json'),inspection=json('source-inspection.j
 const manifest=json('update-v20.json');
 const previousRelease=json('previous-latest-release.json'),previousManifest=json('previous-stable-update.json');
 const repo='sanozhukov3737-oss/klipper-farm-updates',publicHex='28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb';
-const patchSha='13f3ba23222b5acaa4fcc0023803240cf04d797762a9e90052e441a3e6267e53';
-const identitySha='c3ac2ba7feb5262f4aac356ae2e3a0e650b030b2d4b56f11702ff8d688a5f92e';
+const patchSha='5777b34ba86b476a5afb28a85dab8e0a4104f55007085e5013727a5aaf1cd0a3';
+const identitySha='24ab1c0753556e4d2ac83cfec68241c8ffb5abab50793c83491a46f8e8c31e55';
 const baselineSha='6ca02e8bfd959c42044d6335e9df521d4a9a31d02452f47907c000a1176ca2aa';
-const requiredSha='2ecfb899a84ea63bdcecb1e354606d8186ae330100b3a6f970090a0c800b1124';
+const requiredSha='a90a901d5211fd53d9e526380766ef3a6b8461f9ef96d0a0d550eda5036322eb';
 const requirementsBytes=fs.readFileSync(new URL('./r139-required-tests.json',import.meta.url));
 assert.equal(crypto.createHash('sha256').update(requirementsBytes).digest('hex'),requiredSha);
 const requirements=JSON.parse(requirementsBytes.toString('utf8'));
@@ -24,7 +24,7 @@ assert.equal(requirements.schemaVersion,1);assert.equal(requirements.release,'R1
 assert.ok(Number.isInteger(requirements.expectedRootPassed)&&requirements.expectedRootPassed>=214);
 assert.equal(requirements.expectedRootIgnored,2);assert.ok(requirements.tests.length>0);
 assert.ok(requirements.acceptanceReports.length>0);
-const featureCount=Number('22');assert.ok(Number.isInteger(featureCount)&&featureCount>0);
+const featureCount=Number('24');assert.ok(Number.isInteger(featureCount)&&featureCount>0);
 assert.equal(contract.schemaVersion,1);assert.equal(contract.repository,repo);assert.equal(contract.sequence,139);assert.equal(contract.tag,'r139-ota');
 assert.equal(previousRelease.id,423245705);assert.equal(previousRelease.tag_name,'r138-ota');assert.equal(previousRelease.prerelease,false);assert.equal(previousRelease.draft,false);
 assert.equal(previousManifest.sequence,138);assert.equal(previousManifest.channel,'stable');
