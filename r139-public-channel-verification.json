@@ -1,0 +1,10 @@
+{
+  "verifiedAt": "2026-10-25T12:13:33.7977276+00:00",
+  "manifestSha256": "a45d7541426f1d4a9880354ba9d34490e5cfca0e4cfb22641ac37454b2278ade",
+  "productionRustUpdaterVerified": true,
+  "passed": true,
+  "installerSha256": "82a3bb544c47bd6d1acc2e2fbbd542f7b6a3fe6b9da5c834539ba346da1ed14c",
+  "releaseId": 423380237,
+  "publicApplicationEndpointVerified": true,
+  "sequence": 139
+}

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "release": "R139",
+  "releasePublished": true,
+  "version": "1.14.5-r139",
+  "sequence": 139,
+  "buildId": "V20.6-R13.9-FAN-ADDRESS-2026-10-25",
+  "releaseUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/tag/r139-ota",
+  "releaseId": 423380237,
+  "stableTag": "r139-ota",
+  "tagCommit": "bc9a190b9d07e8b42058d221a5d5d0b445760f6c",
+  "branch": "r139-fan-address-recovery",
+  "buildRunId": "40189758376",
+  "buildJobs": {
+    "build": "121158043063",
+    "validate": "121162707047"
+  },
+  "promotionRunId": "40191890359",
+  "promotionHeadSha": "540c338349f047ff4c2eaa924a96cb37459127f9",
+  "promotionJobs": [
+    {
+      "id": "121164440046",
+      "name": "verify",
+      "conclusion": "success"
+    },
+    {
+      "id": "121164970664",
+      "name": "promote",
+      "conclusion": "success"
+    }
+  ],
+  "native": {
+    "passed": 223,
+    "failed": 0,
+    "ignored": 2
+  },
+  "newAcceptance": {
+    "fanRuntime": 34,
+    "addressPlanner": 19,
+    "filesUI": 18,
+    "fanUI": 12,
+    "actualFarmAppUI": 5,
+    "total": 88
+  },
+  "validation": {
+    "cleanInstall": true,
+    "upgradeFromR138": true,
+    "exactInstalledPayload": true,
+    "realWindowsWebView": true,
+    "printerDataPreserved": true,
+    "filamentDataPreserved": true,
+    "costSettingsPreserved": true,
+    "restartVerified": true,
+    "duplicatePhysicalAddressRejected": true,
+    "productionRustSignatureVerified": true,
+    "installedSequenceBehaviorVerified": true,
+    "publicApplicationEndpointVerified": true,
+    "publicManifestMatchesLocalSignedBytes": true,
+    "privateWorkingKeyRemoved": true,
+    "physicalPrintersTested": false
+  },
+  "publicProofArtifact": {
+    "id": "12598421779",
+    "sizeBytes": 1861,
+    "digest": "sha256:e31b3b69dd550c6cf0fa7f19f7639187c404f1a538bb73e802634e07a0008db9"
+  },
+  "assets": [
+    {
+      "name": "artifact-archive-verification.json",
+      "sizeBytes": 307,
+      "digest": "sha256:0bf756ea4add7ec6b04e27749d8c6bec181595a49ac7d6e37b9bb0324538f2eb"
+    },
+    {
+      "name": "exact-validation.json",
+      "sizeBytes": 556,
+      "digest": "sha256:52f57aee00d213f567ab9d6a78e65ac7fd3455a643663e199385e78be8d6e19f"
+    },
+    {
+      "name": "KF-R139-FULL.zip",
+      "sizeBytes": 582356862,
+      "digest": "sha256:125bb78054cb6366242eaf505f2178bdc72f6e916b8888ff001df6a3ade3922e"
+    },
+    {
+      "name": "Klipper-Farm-R139-setup.exe",
+      "sizeBytes": 233598652,
+      "digest": "sha256:82a3bb544c47bd6d1acc2e2fbbd542f7b6a3fe6b9da5c834539ba346da1ed14c"
+    },
+    {
+      "name": "native-bundle-verification.txt",
+      "sizeBytes": 145,
+      "digest": "sha256:9586e647fd1f95496638d755abee4039ff191672bf74e75813a13192543cf18c"
+    },
+    {
+      "name": "promotion-attestation.json",
+      "sizeBytes": 7476,
+      "digest": "sha256:8b383929dea4da8c5402ad7b1028197985ca1148e436708daef8c229d7c6b125"
+    },
+    {
+      "name": "provenance.json",
+      "sizeBytes": 725,
+      "digest": "sha256:5017fdbd9e9e3e372093481d3639b72a47802e5a383da125ad684d46bbedd672"
+    },
+    {
+      "name": "public-channel-verification.json",
+      "sizeBytes": 392,
+      "digest": "sha256:b554c79320f77170de1df4b9514254e61c78e04b6a3464723ff79a7b3de30bac"
+    },
+    {
+      "name": "r139-promotion-contract.json",
+      "sizeBytes": 1661,
+      "digest": "sha256:a1429e8cc8bf00d8f810f6d351971b31e919f1742c4a8f5c6902a50830a4c8e0"
+    },
+    {
+      "name": "R139-UI-proof.zip",
+      "sizeBytes": 1099255,
+      "digest": "sha256:2789c349fbba7e9aab172e61a701a7d9e7fc875b55b77259ea41d4f104874875"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "sizeBytes": 898,
+      "digest": "sha256:1fbbb31729e6f6c3b0cff7a754541e9b07a1ceff3c333dab0d38f7cc59c83687"
+    },
+    {
+      "name": "source-inspection.json",
+      "sizeBytes": 4784,
+      "digest": "sha256:0d055a404f8fc852835ff486f013031b513d235a792e8a9c576d9a727c8ffdb4"
+    },
+    {
+      "name": "update-sequence-verification.json",
+      "sizeBytes": 259,
+      "digest": "sha256:9d441a1232f7df8bbb39d2d1066bf40d37dec80645513b60eef52d04db8d68b7"
+    },
+    {
+      "name": "update-v20.json",
+      "sizeBytes": 2635,
+      "digest": "sha256:a45d7541426f1d4a9880354ba9d34490e5cfca0e4cfb22641ac37454b2278ade"
+    }
+  ],
+  "verifiedAt": "2026-10-25T12:15:37.069Z"
+}
