@@ -74,3 +74,9 @@ apply-r137-release.py -text
 .github/workflows/windows-r137-reviewed.yml -text
 .github/workflows/promote-r137.yml -text
 .github/workflows/validate-r137-exact.yml -text
+
+r138-* -text
+R138-* -text
+apply-r138.py -text
+r138-ui-proof/** -text
+.github/workflows/r138-live-ui-check.yml -text
