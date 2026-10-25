@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "baseline": "R139",
-  "featurePatchSha256": "a1a065ff465c49dfedab87778724381df55670e523801b3822a0784de8fb4a8d",
+  "featurePatchSha256": "f0bedbb970a385d8da1772277a8fbf915feb581b1f932f52fa558ccdf3350a03",
   "typescriptPassed": true,
   "frontendProductionBuildPassed": true,
   "filamentProjection": {
@@ -139,7 +139,7 @@
     "scope": "Read-only TV projections from fresh printer telemetry and existing filament ledger; no physical printer or stock writes."
   },
   "tvBrowser": {
-    "passed": 18,
+    "passed": 20,
     "cases": [
       {
         "name": "layout-dark-1920x1080",
@@ -210,6 +210,14 @@
         "passed": true
       },
       {
+        "name": "failed-camera-fallback-is-remembered-until-retry-or-config-change",
+        "passed": true
+      },
+      {
+        "name": "no-webgl-keeps-approved-spool-placeholder-without-alternate-model",
+        "passed": true
+      },
+      {
         "name": "fleet-size-0",
         "passed": true
       },
@@ -229,8 +237,8 @@
     "runtimeErrors": [],
     "externalRequests": [],
     "productionSources": {
-      "src/components/TvDashboard.tsx": "8bb9289c8eeaa8766dc0631241383ae8d26d7be7270412e6a088f66fd2130958",
-      "src/components/TvDashboard.css": "a99103d96906320209408d802d7bcde3809c790ea0c17bd528f242f34da51ab7",
+      "src/components/TvDashboard.tsx": "5567b0679db4c30156adc764c3733a3f1c2f7dc31772247f0e06a2896119963a",
+      "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
       "src/lib/tvSpotlight.ts": "ac9318f6d36c21fa2f18b9d4c721dee41b4d9a10de86f41c3085e1c010250ca6"
     },
     "actualReactComponent": true,
@@ -362,7 +370,27 @@
       }
     ]
   },
-  "legacySourceNote": "Legacy suite was built before the final time-font-only CSS adjustment; final 18-case UI report pins and verifies the final CSS.",
+  "legacySourceNote": "Legacy camera behavior suite was compiled before final duplicate-name and spacing-only adjustment; current 20-case UI report pins and verifies the exact final sources.",
+  "approvedSpool": {
+    "approvedSourceSha256": "0167dad35ed11d74b5febf989e0a19f96282c27fdae2302599102a501001e24d",
+    "rendererSha256": "6b3649ec27e6d1c54e124d9a4df8610d3e35283de40eebd633ff688b54b9f7f3",
+    "rendererUnchanged": true,
+    "defaultView": {
+      "yaw": -0.8,
+      "pitch": 0.21,
+      "roll": -0.075,
+      "zoom": 1
+    },
+    "genericSvgVisibleInTv": false,
+    "sharedThumbnailWorkerPreserved": true
+  },
+  "cameras": {
+    "automaticByDefault": true,
+    "currentPrinterOnly": true,
+    "requiresRealFrameBeforeReplacingArtwork": true,
+    "identitySuspensionStopsCamera": true,
+    "perSourceFailuresRemembered": true
+  },
   "installerBuilt": false,
   "releasePublished": false
 }
