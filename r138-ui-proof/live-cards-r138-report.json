@@ -1,0 +1,155 @@
+{
+  "passed": 14,
+  "cases": [
+    {
+      "name": "dashboard-dark-1536",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "printers-dark-1536",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "dashboard-dark-910",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "printers-dark-910",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "dashboard-dark-390",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "printers-dark-390",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "dashboard-light-1536",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "printers-light-1536",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "dashboard-light-910",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "printers-light-910",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "dashboard-light-390",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "printers-light-390",
+      "cards": 7,
+      "originalGeometryPreserved": true,
+      "realHistory": true,
+      "flatSensorNotExaggerated": true,
+      "freshnessGuarded": true,
+      "errorReasonVisible": true,
+      "noWrites": true,
+      "noOverflow": true
+    },
+    {
+      "name": "actual-state-transitions",
+      "pauseAndRemoteStopGlow": true,
+      "ambientPause": true,
+      "reducedMotion": true,
+      "noCancelCelebration": true,
+      "confirmedCompletionOnce": true,
+      "noReplayOnNavigation": true,
+      "invalidMeasurementsBreakGraph": true,
+      "keyboardDetailOpening": true
+    },
+    {
+      "name": "empty-history",
+      "noFabricatedMeasurements": true
+    }
+  ],
+  "runtimeErrors": [],
+  "externalRequests": [],
+  "scope": "Actual production FleetDashboard, PrintersPage, FleetPrinterCard and ControlPanel in Chromium. Synthetic statuses, offline IPC store and confirmed completion publication; no physical printer or Windows WebView sound test."
+}
