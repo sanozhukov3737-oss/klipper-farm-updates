@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "baseline": "R139",
+  "featurePatchSha256": "aaee78ed863bd2cf589f8a663409f7a3b859909935130389c40da0e1e6ab458e",
+  "typescriptPassed": true,
+  "frontendProductionBuildPassed": true,
+  "filamentProjection": {
+    "passed": 20,
+    "cases": [
+      {
+        "name": "reported length becomes explicitly approximate configured mass",
+        "passed": true
+      },
+      {
+        "name": "daily and total use the exact printer ledger only",
+        "passed": true
+      },
+      {
+        "name": "spool balance remains the confirmed ledger value during extrusion",
+        "passed": true
+      },
+      {
+        "name": "missing ledger preserves real metres without inventing historical zero",
+        "passed": true
+      },
+      {
+        "name": "untracked printer never borrows another printer totals",
+        "passed": true
+      },
+      {
+        "name": "missing dated history cannot become today zero",
+        "passed": true
+      },
+      {
+        "name": "known tracked empty day is a genuine zero",
+        "passed": true
+      },
+      {
+        "name": "future history start is not treated as tracked day",
+        "passed": true
+      },
+      {
+        "name": "unknown configured material parameters retain reported metres",
+        "passed": true
+      },
+      {
+        "name": "pending initial baseline cannot assign mass to an entire old print",
+        "passed": true
+      },
+      {
+        "name": "mid-print material binding preserves length rather than guessing mass",
+        "passed": true
+      },
+      {
+        "name": "material baseline with previous extrusion cannot convert entire print",
+        "passed": true
+      },
+      {
+        "name": "fresh paused print can retain its measured usage",
+        "passed": true
+      },
+      {
+        "name": "missing or invalid extrusion is unknown, real zero is retained",
+        "passed": true
+      },
+      {
+        "name": "inactive, offline, suspended, shutdown and stale jobs never look live",
+        "passed": true
+      },
+      {
+        "name": "unmounted stock does not invent a separate spool balance",
+        "passed": true
+      },
+      {
+        "name": "missing or wrong material spool stays unavailable",
+        "passed": true
+      },
+      {
+        "name": "empty spool is a genuine zero and fraction is bounded",
+        "passed": true
+      },
+      {
+        "name": "invalid spool colour is not forwarded into CSS",
+        "passed": true
+      },
+      {
+        "name": "projection never mutates the source printer or inventory",
+        "passed": true
+      }
+    ],
+    "scope": "Read-only TV projections from fresh printer telemetry and existing filament ledger; no physical printer or stock writes."
+  },
+  "tvBrowser": {
+    "passed": 16,
+    "cases": [
+      {
+        "name": "layout-dark-1920x1080",
+        "passed": true,
+        "actualComponent": true,
+        "syntheticNativeBoundary": true
+      },
+      {
+        "name": "layout-dark-1366x768",
+        "passed": true,
+        "actualComponent": true,
+        "syntheticNativeBoundary": true
+      },
+      {
+        "name": "layout-dark-390x844",
+        "passed": true,
+        "actualComponent": true,
+        "syntheticNativeBoundary": true
+      },
+      {
+        "name": "layout-light-1920x1080",
+        "passed": true,
+        "actualComponent": true,
+        "syntheticNativeBoundary": true
+      },
+      {
+        "name": "layout-light-1366x768",
+        "passed": true,
+        "actualComponent": true,
+        "syntheticNativeBoundary": true
+      },
+      {
+        "name": "layout-light-390x844",
+        "passed": true,
+        "actualComponent": true,
+        "syntheticNativeBoundary": true
+      },
+      {
+        "name": "ten-second-autorotation-and-manual-wrap",
+        "passed": true
+      },
+      {
+        "name": "pause-resume-and-hidden-document",
+        "passed": true
+      },
+      {
+        "name": "all-printers-states-and-stale-data",
+        "passed": true
+      },
+      {
+        "name": "selection-survives-reorder-deletion-and-empty-fleet",
+        "passed": true
+      },
+      {
+        "name": "inventory-subscription-is-read-only-and-current-usage-is-separate",
+        "passed": true
+      },
+      {
+        "name": "camera-only-current-visible-slide",
+        "passed": true
+      },
+      {
+        "name": "fleet-size-0",
+        "passed": true
+      },
+      {
+        "name": "fleet-size-1",
+        "passed": true
+      },
+      {
+        "name": "fleet-size-20",
+        "passed": true
+      },
+      {
+        "name": "reduced-motion-and-live-data-stop-on-expiry",
+        "passed": true
+      }
+    ],
+    "runtimeErrors": [],
+    "externalRequests": [],
+    "productionSources": {
+      "src/components/TvDashboard.tsx": "0eb18f16dbe7040e3ddc5e0640f15a716e21a52f50c937d1f409f5b20a597826",
+      "src/components/TvDashboard.css": "936a19781b8112cfaa698261b388b9e6c76823576887d9e7ad4ed46a14e2c944",
+      "src/lib/tvSpotlight.ts": "7a744a1fb608c03e8b2aa83c6bd5ae9da985a28dc73e60c6785c0d9856de504e"
+    },
+    "actualReactComponent": true,
+    "physicalPrintersTested": false,
+    "scope": "Actual TvDashboard with synthetic native storage, received telemetry and a local configured camera. No physical printer or installed Windows build tested."
+  },
+  "existingTvCameraBrowser": {
+    "passed": 20,
+    "browser": "153.0.8010.0",
+    "report": [
+      {
+        "test": "seven-printer-states-camera-slide-Escape",
+        "theme": "dark",
+        "width": 1920,
+        "height": 1080,
+        "status": "passed"
+      },
+      {
+        "test": "seven-printer-states-camera-slide-Escape",
+        "theme": "dark",
+        "width": 910,
+        "height": 512,
+        "status": "passed"
+      },
+      {
+        "test": "seven-printer-states-camera-slide-Escape",
+        "theme": "dark",
+        "width": 390,
+        "height": 844,
+        "status": "passed"
+      },
+      {
+        "test": "seven-printer-states-camera-slide-Escape",
+        "theme": "light",
+        "width": 1920,
+        "height": 1080,
+        "status": "passed"
+      },
+      {
+        "test": "seven-printer-states-camera-slide-Escape",
+        "theme": "light",
+        "width": 910,
+        "height": 512,
+        "status": "passed"
+      },
+      {
+        "test": "seven-printer-states-camera-slide-Escape",
+        "theme": "light",
+        "width": 390,
+        "height": 844,
+        "status": "passed"
+      },
+      {
+        "test": "all-printers-through-individual-slides",
+        "count": 9,
+        "status": "passed"
+      },
+      {
+        "test": "all-printers-through-individual-slides",
+        "count": 17,
+        "status": "passed"
+      },
+      {
+        "test": "all-printers-through-individual-slides",
+        "count": 40,
+        "status": "passed"
+      },
+      {
+        "test": "empty-fullscreen-and-close",
+        "status": "passed"
+      },
+      {
+        "test": "camera-guard-layout-and-durable-modes",
+        "theme": "dark",
+        "width": 1920,
+        "height": 1080,
+        "status": "passed"
+      },
+      {
+        "test": "camera-guard-layout-and-durable-modes",
+        "theme": "dark",
+        "width": 910,
+        "height": 512,
+        "status": "passed"
+      },
+      {
+        "test": "camera-guard-layout-and-durable-modes",
+        "theme": "dark",
+        "width": 390,
+        "height": 844,
+        "status": "passed"
+      },
+      {
+        "test": "camera-guard-layout-and-durable-modes",
+        "theme": "light",
+        "width": 1920,
+        "height": 1080,
+        "status": "passed"
+      },
+      {
+        "test": "camera-guard-layout-and-durable-modes",
+        "theme": "light",
+        "width": 910,
+        "height": 512,
+        "status": "passed"
+      },
+      {
+        "test": "camera-guard-layout-and-durable-modes",
+        "theme": "light",
+        "width": 390,
+        "height": 844,
+        "status": "passed"
+      },
+      {
+        "test": "unknown-settings-fail-closed-retry",
+        "status": "passed"
+      },
+      {
+        "test": "arming-requires-durable-settings-write",
+        "status": "passed"
+      },
+      {
+        "test": "read-only-cannot-arm-camera-guard",
+        "status": "passed"
+      },
+      {
+        "test": "actual-dark-blank-small-and-repeated-frame-quality",
+        "status": "passed"
+      }
+    ]
+  },
+  "installerBuilt": false,
+  "releasePublished": false
+}

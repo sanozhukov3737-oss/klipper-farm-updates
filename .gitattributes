@@ -94,3 +94,9 @@ r139-ui-proof/** -text
 .github/workflows/r139-source-inventory.yml -text
 .github/workflows/windows-r139-reviewed.yml -text
 .github/workflows/promote-r139.yml -text
+
+# Reviewed TV draft bytes
+r140-tv-* -text
+apply-r140-tv.py -text
+R140-TV.md -text
+KF-R140-TV-checkpoint.zip -text
