@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "baseline": "R139",
-  "featurePatchSha256": "aaee78ed863bd2cf589f8a663409f7a3b859909935130389c40da0e1e6ab458e",
+  "featurePatchSha256": "a1a065ff465c49dfedab87778724381df55670e523801b3822a0784de8fb4a8d",
   "typescriptPassed": true,
   "frontendProductionBuildPassed": true,
   "filamentProjection": {
-    "passed": 20,
+    "passed": 32,
     "cases": [
       {
         "name": "reported length becomes explicitly approximate configured mass",
@@ -86,12 +86,60 @@
       {
         "name": "projection never mutates the source printer or inventory",
         "passed": true
+      },
+      {
+        "name": "installed spool is the exact bound ledger object and configured diameter",
+        "passed": true
+      },
+      {
+        "name": "unbound missing and mismatched spools never create an image object",
+        "passed": true
+      },
+      {
+        "name": "invalid diameter is not forwarded to the installed spool view",
+        "passed": true
+      },
+      {
+        "name": "seven calendar days contain only this printers actual daily usage",
+        "passed": true
+      },
+      {
+        "name": "unrecorded days before tracking remain unknown while real dated rows remain visible",
+        "passed": true
+      },
+      {
+        "name": "global history coverage can be later than printer tracking",
+        "passed": true
+      },
+      {
+        "name": "missing history or an untracked account leaves all seven days unknown",
+        "passed": true
+      },
+      {
+        "name": "covered empty today is zero while earlier uncovered days are unknown",
+        "passed": true
+      },
+      {
+        "name": "binding history is a dated fallback and cannot fabricate earlier coverage",
+        "passed": true
+      },
+      {
+        "name": "future tracking date cannot create zero-fill around actual recorded rows",
+        "passed": true
+      },
+      {
+        "name": "week crosses DST with seven unique local days and the correct today",
+        "passed": true
+      },
+      {
+        "name": "actual resolved historical pending debit survives dates before tracking and history coverage",
+        "passed": true
       }
     ],
     "scope": "Read-only TV projections from fresh printer telemetry and existing filament ledger; no physical printer or stock writes."
   },
   "tvBrowser": {
-    "passed": 16,
+    "passed": 18,
     "cases": [
       {
         "name": "layout-dark-1920x1080",
@@ -128,6 +176,14 @@
         "passed": true,
         "actualComponent": true,
         "syntheticNativeBoundary": true
+      },
+      {
+        "name": "weekly-printer-only-values-and-installed-spool",
+        "passed": true
+      },
+      {
+        "name": "missing-week-history-and-no-bound-spool",
+        "passed": true
       },
       {
         "name": "ten-second-autorotation-and-manual-wrap",
@@ -173,9 +229,9 @@
     "runtimeErrors": [],
     "externalRequests": [],
     "productionSources": {
-      "src/components/TvDashboard.tsx": "0eb18f16dbe7040e3ddc5e0640f15a716e21a52f50c937d1f409f5b20a597826",
-      "src/components/TvDashboard.css": "936a19781b8112cfaa698261b388b9e6c76823576887d9e7ad4ed46a14e2c944",
-      "src/lib/tvSpotlight.ts": "7a744a1fb608c03e8b2aa83c6bd5ae9da985a28dc73e60c6785c0d9856de504e"
+      "src/components/TvDashboard.tsx": "8bb9289c8eeaa8766dc0631241383ae8d26d7be7270412e6a088f66fd2130958",
+      "src/components/TvDashboard.css": "a99103d96906320209408d802d7bcde3809c790ea0c17bd528f242f34da51ab7",
+      "src/lib/tvSpotlight.ts": "ac9318f6d36c21fa2f18b9d4c721dee41b4d9a10de86f41c3085e1c010250ca6"
     },
     "actualReactComponent": true,
     "physicalPrintersTested": false,
@@ -306,6 +362,7 @@
       }
     ]
   },
+  "legacySourceNote": "Legacy suite was built before the final time-font-only CSS adjustment; final 18-case UI report pins and verifies the final CSS.",
   "installerBuilt": false,
   "releasePublished": false
 }

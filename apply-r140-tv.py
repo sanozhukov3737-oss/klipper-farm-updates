@@ -11,7 +11,7 @@ import os
 import sys
 from pathlib import Path
 
-PATCH_SHA = 'aaee78ed863bd2cf589f8a663409f7a3b859909935130389c40da0e1e6ab458e'
+PATCH_SHA = 'a1a065ff465c49dfedab87778724381df55670e523801b3822a0784de8fb4a8d'
 PATHS = {'src/components/TvDashboard.tsx', 'src/components/TvDashboard.css',
          'src/lib/tvSpotlight.ts', 'scripts/check-tv-spotlight.mjs',
          'ui-tests/tv-camera.mjs', 'ui-tests/tv-spotlight-r140.html',
