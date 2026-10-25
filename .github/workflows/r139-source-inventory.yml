@@ -1,0 +1,41 @@
+name: Verify released R138 source inventory for R139
+on:
+  push:
+    branches: [r139-fan-address-recovery]
+    paths: [.github/workflows/r139-source-inventory.yml]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify exact released archive and record complete source hashes
+        shell: python
+        run: |
+          import hashlib,json,pathlib,shutil,urllib.request,zipfile
+          archive=pathlib.Path('KF-R138-FULL.zip')
+          with urllib.request.urlopen('https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r138-ota/KF-R138-FULL.zip',timeout=120) as source,archive.open('wb') as target:
+              shutil.copyfileobj(source,target)
+          assert archive.stat().st_size==582302630
+          with archive.open('rb') as source: assert hashlib.file_digest(source,'sha256').hexdigest()=='6ca02e8bfd959c42044d6335e9df521d4a9a31d02452f47907c000a1176ca2aa'
+          inventory={}
+          with zipfile.ZipFile(archive) as z:
+              for item in z.infolist():
+                  assert item.filename.startswith('Klipper-Farm-R138/')
+                  name=item.filename.removeprefix('Klipper-Farm-R138/')
+                  if not name or item.is_dir():continue
+                  p=pathlib.PurePosixPath(name)
+                  assert not p.is_absolute() and '..' not in p.parts and '\\' not in name and ':' not in name and name not in inventory
+                  assert (item.external_attr>>16)&0o170000!=0o120000
+                  with z.open(item) as source:digest=hashlib.file_digest(source,'sha256').hexdigest()
+                  inventory[name]={'sha256':digest,'sizeBytes':item.file_size}
+          assert len(inventory)==1793
+          pathlib.Path('R138-SOURCE-INVENTORY.json').write_text(json.dumps({'release':'R138','archiveSha256':'6ca02e8bfd959c42044d6335e9df521d4a9a31d02452f47907c000a1176ca2aa','archiveSizeBytes':582302630,'files':inventory},indent=2)+'\n')
+          print('Verified complete R138 source inventory:',len(inventory),'files')
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r139-baseline-inventory
+          path: R138-SOURCE-INVENTORY.json
+          retention-days: 14
