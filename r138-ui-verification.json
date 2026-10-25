@@ -71,5 +71,20 @@
       "path": "ui-tests/live-cards-r138.tsx",
       "sha256": "661e6d2faed04874e60b6d4392a2c263b93d1855454039a9b1235518a3593a8a"
     }
-  ]
+  ],
+  "gitHubVerification": {
+    "runId": "40170001337",
+    "headSha": "5237a22b8f101f31cd61b78e655340182c71ae2a",
+    "jobId": "121098735886",
+    "workflowSha256": "7c1414ae7a3ec99ea8d5c4737ff317744423a67aa6ad335fc781dec1222d7402",
+    "conclusion": "success",
+    "allStepsSucceeded": true,
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/40170001337",
+    "previousRunId": "40169801642",
+    "previousEnvironmentIssue": "Video recorder binary missing; fixed in verification workflow without application source changes.",
+    "artifactId": "12589364407",
+    "artifactSizeBytes": 3497653,
+    "artifactSha256": "7d7c47d54a321898273ecfd6ca6734ff85da307206bbe24b63f0d8140f0c9765",
+    "browserReportSha256": "841cbc3874129d0b45960ecc9fd3b93e84bdf5d34532138b5a1033a571996fbb"
+  }
 }
