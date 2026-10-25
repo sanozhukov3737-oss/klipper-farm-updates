@@ -80,3 +80,7 @@ R138-* -text
 apply-r138.py -text
 r138-ui-proof/** -text
 .github/workflows/r138-live-ui-check.yml -text
+apply-r138-release.py -text
+r138-build/** -text
+.github/workflows/windows-r138-reviewed.yml -text
+.github/workflows/promote-r138.yml -text
