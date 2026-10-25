@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "release": "R139",
+  "baseline": "R138",
+  "expectedRootPassed": 223,
+  "expectedRootIgnored": 2,
+  "tests": [
+    "explicit_fan_readback_updates_cache_without_inventing_other_freshness_or_events",
+    "fan_catalogue_from_another_endpoint_never_enters_status_queries",
+    "fan_telemetry_catalogue_is_bounded_and_excludes_automatic_heater_fans",
+    "known_fan_objects_reconcile_actual_speed_alongside_core_telemetry",
+    "physical_address_change_discards_old_telemetry_but_port_failover_preserves_it",
+    "rejected_optional_fan_preserves_core_fallback_and_next_temperature_query",
+    "bootstrap_marks_every_duplicate_address_without_choosing_first_card",
+    "physical_address_claim_allows_same_printer_failover_and_rejects_other_ids",
+    "physical_address_claim_excludes_ports_but_keeps_distinct_ips_and_scopes"
+  ],
+  "nodeChecks": [
+    {
+      "script": "scripts/check-r139-fan-control.mjs",
+      "proofEnv": "KF_R139_FAN_PROOF",
+      "report": "r139-fan-core.json"
+    },
+    {
+      "script": "scripts/check-r139-address-recovery.mjs",
+      "proofEnv": "KF_R139_ADDRESS_PROOF",
+      "report": "r139-address-core.json"
+    }
+  ],
+  "browserChecks": [
+    {
+      "script": "ui-tests/files-contrast-r139.mjs",
+      "proofEnv": "KF_R139_FILES_PROOF",
+      "report": "r139-files-ui.json"
+    },
+    {
+      "script": "ui-tests/fan-control-r139.mjs",
+      "proofEnv": "KF_R139_FAN_UI_PROOF",
+      "report": "r139-fan-ui.json"
+    },
+    {
+      "script": "ui-tests/address-recovery-r139.mjs",
+      "proofEnv": "KF_R139_ADDRESS_UI_PROOF",
+      "report": "r139-address-ui.json"
+    }
+  ],
+  "acceptanceReports": [
+    {
+      "filename": "r139-fan-core.json",
+      "count": 34,
+      "casesField": "report",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "r139-address-core.json",
+      "count": 19,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "r139-files-ui.json",
+      "count": 18,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "externalRequests"
+      ]
+    },
+    {
+      "filename": "r139-fan-ui.json",
+      "count": 12,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "externalRequests"
+      ]
+    },
+    {
+      "filename": "r139-address-ui.json",
+      "count": 4,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "extraNetworkRequests"
+      ]
+    }
+  ]
+}

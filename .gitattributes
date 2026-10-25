@@ -84,3 +84,13 @@ apply-r138-release.py -text
 r138-build/** -text
 .github/workflows/windows-r138-reviewed.yml -text
 .github/workflows/promote-r138.yml -text
+r139-* -text
+R139-* -text
+apply-r139.py -text
+apply-r139-release.py -text
+prepare-r139-identity.py -text
+r139-build/** -text
+r139-ui-proof/** -text
+.github/workflows/r139-source-inventory.yml -text
+.github/workflows/windows-r139-reviewed.yml -text
+.github/workflows/promote-r139.yml -text
