@@ -1,0 +1,52 @@
+name: Prepare exact R137 frontend source for R138 visual work
+on:
+  push:
+    branches: [r138-live-cards]
+    paths: [.github/workflows/r138-source-review.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify published source and retain editable source without offline toolchains
+        shell: python
+        run: |
+          import hashlib,json,pathlib,shutil,urllib.request,zipfile
+          url='https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r137-ota/KF-R137-FULL.zip'
+          archive=pathlib.Path('published-r137.zip')
+          with urllib.request.urlopen(url,timeout=120) as source,archive.open('wb') as target:
+              shutil.copyfileobj(source,target)
+          assert archive.stat().st_size==582284313
+          with archive.open('rb') as stream:
+              assert hashlib.file_digest(stream,'sha256').hexdigest()=='a2c7c77fc62cd6818be5f86192827ded786e3a4ac99ebdb6559924a30ae1c6ca'
+          root=pathlib.Path('reviewed-source');root.mkdir()
+          inventory={}
+          with zipfile.ZipFile(archive) as bundle:
+              for entry in bundle.infolist():
+                  name=entry.filename
+                  assert name.startswith('Klipper-Farm-R137/')
+                  relative=name[len('Klipper-Farm-R137/'):]
+                  if not relative or entry.is_dir():continue
+                  parts=pathlib.PurePosixPath(relative)
+                  assert not parts.is_absolute() and '..' not in parts.parts and '\\' not in relative
+                  assert ((entry.external_attr>>16)&0o170000)!=0o120000
+                  with bundle.open(entry) as stream:
+                      digest=hashlib.file_digest(stream,'sha256').hexdigest()
+                  assert relative not in inventory
+                  inventory[relative]={'sha256':digest,'sizeBytes':entry.file_size}
+                  if parts.parts[0]=='offline-tools':continue
+                  target=root/relative;target.parent.mkdir(parents=True,exist_ok=True)
+                  with bundle.open(entry) as source,target.open('wb') as output:shutil.copyfileobj(source,output)
+          assert len(inventory)==1786
+          pathlib.Path('R137-SOURCE-INVENTORY.json').write_text(json.dumps({'release':'R137','archiveSha256':'a2c7c77fc62cd6818be5f86192827ded786e3a4ac99ebdb6559924a30ae1c6ca','files':inventory},indent=2)+'\n')
+          print('Published R137 source verified:',len(inventory),'files; no application changes or release publication.')
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r138-reviewed-source
+          path: |
+            reviewed-source
+            R137-SOURCE-INVENTORY.json
+          retention-days: 7
+          compression-level: 6
