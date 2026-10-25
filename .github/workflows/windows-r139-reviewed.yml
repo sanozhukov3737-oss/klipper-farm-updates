@@ -42,9 +42,9 @@ jobs:
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        if ((Get-FileHash r139-feature-patch.json).Hash.ToLowerInvariant() -ne '13f3ba23222b5acaa4fcc0023803240cf04d797762a9e90052e441a3e6267e53') { throw 'Approved R139 feature patch differs' }
-        if ((Get-FileHash r139-release-identity.json).Hash.ToLowerInvariant() -ne 'c3ac2ba7feb5262f4aac356ae2e3a0e650b030b2d4b56f11702ff8d688a5f92e') { throw 'Approved R139 release identity differs' }
-        if ((Get-FileHash r139-required-tests.json).Hash.ToLowerInvariant() -ne '2ecfb899a84ea63bdcecb1e354606d8186ae330100b3a6f970090a0c800b1124') { throw 'Reviewed R139 test contract differs' }
+        if ((Get-FileHash r139-feature-patch.json).Hash.ToLowerInvariant() -ne '5777b34ba86b476a5afb28a85dab8e0a4104f55007085e5013727a5aaf1cd0a3') { throw 'Approved R139 feature patch differs' }
+        if ((Get-FileHash r139-release-identity.json).Hash.ToLowerInvariant() -ne '24ab1c0753556e4d2ac83cfec68241c8ffb5abab50793c83491a46f8e8c31e55') { throw 'Approved R139 release identity differs' }
+        if ((Get-FileHash r139-required-tests.json).Hash.ToLowerInvariant() -ne 'a90a901d5211fd53d9e526380766ef3a6b8461f9ef96d0a0d550eda5036322eb') { throw 'Reviewed R139 test contract differs' }
         Copy-Item r139-build ci -Recurse
         New-Item -ItemType Directory -Force incoming,proof | Out-Null
         gh release download r138-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R138-FULL.zip --dir incoming
@@ -177,7 +177,7 @@ jobs:
         Copy-Item ../../proof ../../candidate/proof -Recurse
         $manifest=@{}
         foreach ($name in @('Klipper-Farm-R139-setup.exe','KF-R139-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
-        @{release='R139';sequence=139;baselineSequence=138;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='13f3ba23222b5acaa4fcc0023803240cf04d797762a9e90052e441a3e6267e53';releaseIdentitySha256='c3ac2ba7feb5262f4aac356ae2e3a0e650b030b2d4b56f11702ff8d688a5f92e';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+        @{release='R139';sequence=139;baselineSequence=138;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='5777b34ba86b476a5afb28a85dab8e0a4104f55007085e5013727a5aaf1cd0a3';releaseIdentitySha256='24ab1c0753556e4d2ac83cfec68241c8ffb5abab50793c83491a46f8e8c31e55';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: r139-ota-candidate
