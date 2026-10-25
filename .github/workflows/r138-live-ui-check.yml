@@ -42,6 +42,7 @@ jobs:
       - name: Prepare isolated browser test runtime
         run: |
           npm install --prefix "$RUNNER_TEMP/r138-browser" --no-save --package-lock=false --ignore-scripts playwright@1.62.1
+          node "$RUNNER_TEMP/r138-browser/node_modules/playwright/cli.js" install ffmpeg
           ln -s "$GITHUB_WORKSPACE/source/node_modules" baseline/node_modules
           echo "PLAYWRIGHT_MODULE_PATH=$RUNNER_TEMP/r138-browser/node_modules/playwright/index.mjs" >> "$GITHUB_ENV"
           echo "KF_R138_BASELINE=$GITHUB_WORKSPACE/baseline" >> "$GITHUB_ENV"
