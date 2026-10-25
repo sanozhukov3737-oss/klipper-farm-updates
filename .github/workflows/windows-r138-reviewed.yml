@@ -1,0 +1,292 @@
+name: Build and validate reviewed R138 live printer cards (candidate only)
+# Release input hashes are preserved byte for byte by the R138 .gitattributes rules.
+'on':
+  push:
+    branches:
+    - r138-live-cards
+    paths:
+    - .github/workflows/windows-r138-reviewed.yml
+    - r138-build/**
+    - r138-release-identity.json
+    - r138-release-identity.sha256
+    - apply-r138-release.py
+    - apply-r138.py
+    - r138-live-ui-patch.json
+    - r138-live-ui-patch.sha256
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: windows-r138-reviewed-candidate
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Restore exact published R137 and apply reviewed R138 live cards plus release identity
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ((Get-FileHash r138-live-ui-patch.json).Hash.ToLowerInvariant() -ne 'f00d0eee45ccc36fbee60077526e7fceae099f302adaf574ab01d5f6a7d70fa1') { throw 'Approved R138 feature patch differs' }
+        if ((Get-FileHash r138-release-identity.json).Hash.ToLowerInvariant() -ne '2223adccadc3a5440c1dbb5a152b1828c96d8d6d5c76089354d85b175f1d9cee') { throw 'Approved R138 release identity differs' }
+        Copy-Item r138-build ci -Recurse
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+        gh release download r137-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R137-FULL.zip --dir incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Published R137 source download failed' }
+        if ((Get-Item incoming/KF-R137-FULL.zip).Length -ne 582284313 -or (Get-FileHash incoming/KF-R137-FULL.zip).Hash.ToLowerInvariant() -ne 'a2c7c77fc62cd6818be5f86192827ded786e3a4ac99ebdb6559924a30ae1c6ca') { throw 'Published R137 archive differs' }
+        python apply-r138-release.py incoming/KF-R137-FULL.zip work/app --proof proof/source-delta.json
+        if ($LASTEXITCODE -ne 0) { throw 'Approved R138 application failed' }
+        python apply-r138-release.py --verify work/app --proof proof/source-delta.json
+        if ($LASTEXITCODE -ne 0) { throw 'Unreviewed source changed' }
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+        components: clippy
+    - name: Check approved accounting, automatic launch recovery and existing regressions
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+        node node_modules/typescript/bin/tsc --noEmit
+        if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+        $env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-finish-core.json'
+        $env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-print-start.json'
+        $env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-sound-core.json'
+        $env:KF_R138_VISUAL_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-visual-activity.json'
+        $env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-filament-core.json'
+        node scripts/check-approved-filament.mjs | Tee-Object -FilePath (Join-Path $env:GITHUB_WORKSPACE 'proof/r138-approved-accounting.json')
+        if ($LASTEXITCODE -ne 0) { throw 'Approved filament accounting failed' }
+        foreach ($script in @('check-r138-visual-activity.mjs','check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-search-art.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+        }
+
+        $env:KF_AUTO_RETRY_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-auto-retry-core.json'
+        node scripts/check-filament-auto-retry.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Automatic late-data accounting failed' }
+        $env:KF_NATIVE_POLICY_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-native-history-policy.json'
+        node scripts/check-filament-history-policy.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Native single-job history permission checks failed' }
+
+        foreach ($script in @('check-legacy-library-routing.mjs','check-upload-actor-identity.mjs','check-local-library-print-target.mjs','check-printer-files-start-recovery.mjs','check-print-filename-preservation.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Print transfer regression failed: $script" }
+        }
+
+        $env:KF_R135_CLIENT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r138-client-start-runtime.json'
+        foreach ($script in @('check-launch-auto-recovery.mjs','check-r135-print-start-runtime.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "R138 launch regression failed: $script" }
+        }
+    - name: Preserve verified all-card review evidence
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ((Get-FileHash r138-ui-verification.json).Hash.ToLowerInvariant() -ne '4d319138cee62bf53b7e11a4cb20f9d42a250dd29a4f107eb177a0823df2e533') { throw 'Frozen frontend verification differs' }
+        if ((Get-FileHash r138-ui-proof/live-cards-r138-report.json).Hash.ToLowerInvariant() -ne '841cbc3874129d0b45960ecc9fd3b93e84bdf5d34532138b5a1033a571996fbb') { throw 'Verified 14-case browser report differs' }
+        $review=Get-Content r138-ui-verification.json -Raw | ConvertFrom-Json
+        if ($review.installerBuilt -ne $false -or $review.releasePublished -ne $false) { throw 'Frozen frontend review stage differs' }
+        if ($review.patchSha256 -ne 'f00d0eee45ccc36fbee60077526e7fceae099f302adaf574ab01d5f6a7d70fa1' -or $review.gitHubVerification.runId -ne '40170001337' -or $review.gitHubVerification.conclusion -ne 'success') { throw 'Verified UI source/run binding differs' }
+        Copy-Item r138-ui-verification.json proof/r138-prior-ui-verification.json
+        Copy-Item r138-ui-proof/live-cards-r138-report.json proof/r138-prior-ui-report.json
+        $report=Get-Content proof/r138-prior-ui-report.json -Raw | ConvertFrom-Json
+        if ($report.passed -ne 14 -or $report.runtimeErrors.Count -ne 0 -or $report.externalRequests.Count -ne 0) { throw 'Reviewed all-card UI report differs' }
+    - name: Compile frontend and freeze complete R138 source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm run build
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
+        node scripts/lock-v20-6-dist.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend source contract failed' }
+        node scripts/generate-release-manifests.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Manifest generation failed' }
+        node scripts/check-release-portability.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Source portability failed' }
+        $env:KF_ARCHIVE_ROOT='Klipper-Farm-R138'
+        $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'candidate/KF-R138-FULL.zip'
+        New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+        node scripts/build-reproducible-zip.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Complete R138 source archive failed' }
+    - name: Build Windows installer and retain exact candidate
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        node scripts/build-and-install-windows.mjs --build-only
+        if ($LASTEXITCODE -ne 0) { throw 'Windows native checks and build failed' }
+        $nativeLog=Join-Path $PWD '.klipper-build-cache/target/v20-rust-tests-last.log'
+        $nativeText=Get-Content $nativeLog -Raw
+        if ((Get-FileHash ../../r137-required-tests.json).Hash.ToLowerInvariant() -ne 'd4f5077a0573aa5060ed584b4310fae0f801b757cd05d58d900530dd66af8050') { throw 'Required R138 native test contract differs' }
+        $required=Get-Content ../../r137-required-tests.json -Raw | ConvertFrom-Json
+        if ($required.expectedRootPassed -ne 214 -or $required.expectedRootIgnored -ne 2 -or $required.tests.Count -ne 11) { throw 'Required R138 native counts differ' }
+        $wire=@('acknowledged_start_recovers_observation_over_rest_after_ws_failure','preadmission_disconnected_ws_dispatches_exactly_one_rest_start','admitted_or_ambiguous_ws_start_is_never_dispatched_again_over_rest','expired_queued_print_start_never_reaches_the_websocket_wire')
+        foreach ($test in @($wire)+@($required.tests)) {
+         if ($nativeText -notmatch ([regex]::Escape($test)+' \.\.\. ok')) { throw "Required native regression was not executed: $test" }
+        }
+        if ([regex]::Matches($nativeText,'test result: ok\. 214 passed; 0 failed; 2 ignored;').Count -ne 1 -or $nativeText -match 'test result: FAILED\.') { throw 'R138 native root tests differ' }
+        Copy-Item $nativeLog ../../proof/r138-native-tests.log
+        $release=Join-Path $PWD '.klipper-build-cache/target/release'
+        New-Item -ItemType Directory -Force ../../candidate/release,../../candidate/scripts | Out-Null
+        foreach ($file in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $file) ../../candidate/release/ }
+        foreach ($file in @('check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item "scripts/$file" ../../candidate/scripts/ }
+        Copy-Item ../../ci/r138-upgrade-data.py,../../ci/r138-check-installed-payload.mjs ../../candidate/scripts/
+        $setup=@(Get-ChildItem INSTALLER -Filter '*.exe')
+        if ($setup.Count -ne 1) { throw 'Expected exactly one R138 installer' }
+        Copy-Item $setup[0].FullName ../../candidate/Klipper-Farm-R138-setup.exe
+        Copy-Item ../../proof ../../candidate/proof -Recurse
+        $manifest=@{}
+        foreach ($name in @('Klipper-Farm-R138-setup.exe','KF-R138-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
+        @{release='R138';sequence=138;baselineSequence=137;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='f00d0eee45ccc36fbee60077526e7fceae099f302adaf574ab01d5f6a7d70fa1';releaseIdentitySha256='2223adccadc3a5440c1dbb5a152b1828c96d8d6d5c76089354d85b175f1d9cee';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r138-ota-candidate
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - name: Retain build evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r138-ota-build-evidence
+        path: |-
+          proof
+          work/app/.klipper-build-cache/*.log
+          work/app/.klipper-build-cache/target/*last.log
+          work/app/.klipper-build-cache/logs/*
+        retention-days: 14
+        include-hidden-files: true
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r138-ota-candidate
+        path: candidate
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+        if (-not (Test-Path $seven)) { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }
+        & $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R138-setup.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }
+        foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+          $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)
+          if ($items.Count -ne 1) { throw "Expected one extracted NSIS payload: $name" }
+          Write-Host "EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())"
+        }
+    - name: Clean install R138 and verify exact native payload and real WebView
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R138-clean'
+        New-Item -ItemType Directory -Force clean-smoke | Out-Null
+        $setup=(Resolve-Path Klipper-Farm-R138-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R138 clean install failed' }
+        node scripts/r138-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/clean-installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Clean installed bytes differ from exact NSIS bundle payload' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" clean-smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Clean installed R138 actual WebView startup failed' }
+    - name: Install R138 over R137 and verify exact payload, data and desktop restart
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R138-upgrade'
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+        gh release download r137-ota --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R137-setup.exe --dir old
+        if ($LASTEXITCODE -ne 0) { throw 'R137 installer download failed' }
+        $old=(Resolve-Path old/Klipper-Farm-R137-setup.exe).Path
+        if ((Get-FileHash $old).Hash.ToLowerInvariant() -ne '1352b4ff7a7ebc7e925b95f1bc1049f0f4dbad0c3917ed4a1540e6daf5adadea') { throw 'R137 installer differs' }
+        $process=Start-Process $old -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R137 install failed' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Published R137 actual WebView startup failed' }
+
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+        $marker=Join-Path $dataDir 'r138-preservation.txt'
+        [IO.File]::WriteAllText($marker,'preserve-existing-data')
+        python scripts/r138-upgrade-data.py seed --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-seed.json
+        if ($LASTEXITCODE -ne 0) { throw 'Legacy seed failed' }
+        $setup=(Resolve-Path Klipper-Farm-R138-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R138 install over R137 failed' }
+        node scripts/r138-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed bytes differ from exact NSIS bundle payload' }
+        if ((Get-Content $marker -Raw) -ne 'preserve-existing-data') { throw 'Existing app data lost' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed WebView main-window smoke failed' }
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe" --report "$PWD/proof/headless-runtime.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry regression failed' }
+        python scripts/r138-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-preserved.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer configuration, stocks, usage, reserves or spools changed during upgrade' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed R138 second actual WebView startup failed' }
+        python scripts/r138-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-after-restart.json
+        if ($LASTEXITCODE -ne 0) { throw 'Existing printer or filament data changed after installed app restart' }
+        node scripts/r138-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed exact payload changed after restart' }
+        @{release='R138';installedSequence=138;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=137;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;costSettingsPreserved=$true;installedRestartVerified=$true;cleanInstallVerified=$true} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+        Compress-Archive proof,smoke,clean-smoke R138-UI-proof.zip
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r138-ota-validated
+        path: |-
+          candidate/Klipper-Farm-R138-setup.exe
+          candidate/KF-R138-FULL.zip
+          candidate/provenance.json
+          candidate/exact-validation.json
+          candidate/R138-UI-proof.zip
+        retention-days: 14
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r138-ota-installed-evidence
+        path: |-
+          candidate/proof
+          candidate/smoke
+          candidate/clean-smoke
+        retention-days: 14
+    - name: Retain reviewed installer separately
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r138-reviewed-installer
+        path: |-
+          candidate/Klipper-Farm-R138-setup.exe
+          candidate/provenance.json
+          candidate/exact-validation.json
+        retention-days: 14
+        compression-level: 0
