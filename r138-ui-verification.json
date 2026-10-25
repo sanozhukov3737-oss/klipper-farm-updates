@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "release": "R138",
+  "stage": "implementation-and-browser-review-complete",
+  "baseline": "R137",
+  "sourceArchiveSha256": "a2c7c77fc62cd6818be5f86192827ded786e3a4ac99ebdb6559924a30ae1c6ca",
+  "patchSha256": "f00d0eee45ccc36fbee60077526e7fceae099f302adaf574ab01d5f6a7d70fa1",
+  "changedExistingSourceFiles": 5,
+  "newSourceFiles": 3,
+  "newCheckFiles": 4,
+  "engineFilesChanged": 0,
+  "printerArtworkChanged": 0,
+  "typeScriptPassed": true,
+  "frontendProductionBuildPassed": true,
+  "visualDataScenariosPassed": 10,
+  "existingSoundScenariosPassed": 12,
+  "browserScenariosPassed": 14,
+  "originalCardAndImageGeometryPreserved": true,
+  "runtimeErrors": [],
+  "extraNetworkRequests": [],
+  "physicalPrinterCommandsSent": false,
+  "installerBuilt": false,
+  "releasePublished": false,
+  "scope": "Actual production React components in Chromium with synthetic printer statuses and emulated local storage; native Windows installation not built in this stage.",
+  "files": [
+    {
+      "path": "scripts/check-r138-visual-activity.mjs",
+      "sha256": "cac35534c759c0b8e507c9baf9e6eb6f3aa1426f8c0e3d76a2726bfb7186d5c1"
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "f02df8cb8fffc699f3cb6d0069cd85e43f9a575f7bfb8677c06ca9b9ba2ca91c"
+    },
+    {
+      "path": "src/components/ControlPanel.tsx",
+      "sha256": "0f976ab05029f12fcec7ba39f56e9519d931e737ab89f7378996ec7b646f554b"
+    },
+    {
+      "path": "src/components/FleetLive.module.css",
+      "sha256": "63a7af08dc40815632466d1fb6d2b63535be02cdc0bd874bd4cc694a50bf2d5f"
+    },
+    {
+      "path": "src/components/FleetPrinterCard.tsx",
+      "sha256": "044d0996852ef113cc226d876a61c8e92fb20e9d9732c4c1047dd609586168db"
+    },
+    {
+      "path": "src/components/PrinterTemperatureSparkline.tsx",
+      "sha256": "a3fbf2e7dfbb32b60402d53c65532ff3c82385bee1bf2a49cc707dfaed18b14f"
+    },
+    {
+      "path": "src/lib/printerVisualActivity.ts",
+      "sha256": "0fb4da7fdedb9b57ba2cdc516198fa5222e4a043821445d0f0e8f8784cee9e7c"
+    },
+    {
+      "path": "src/lib/usePrinterVisualActivity.ts",
+      "sha256": "05119757f32a267ed86d2c4632b77a500a69dc2a2ddce9197188b015942b34ec"
+    },
+    {
+      "path": "src/styles.css",
+      "sha256": "ef7693a89d44d40fd30faa81ae52a16b759b29ec901bcb80ae04512422b35c48"
+    },
+    {
+      "path": "ui-tests/live-cards-r138.html",
+      "sha256": "c9cf38cbf477020093b9c5cc47e9c958c9b07492c47adfd0391bf29ed41f3e59"
+    },
+    {
+      "path": "ui-tests/live-cards-r138.mjs",
+      "sha256": "9c9a3da0d184f7a42910a621fddcd6c1e7a9a17b70b1a12b0bf847721acb468f"
+    },
+    {
+      "path": "ui-tests/live-cards-r138.tsx",
+      "sha256": "661e6d2faed04874e60b6d4392a2c263b93d1855454039a9b1235518a3593a8a"
+    }
+  ]
+}
