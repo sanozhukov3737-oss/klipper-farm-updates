@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "release": "R138",
+  "sequence": 138,
+  "version": "1.14.5-r138",
+  "buildId": "V20.6-R13.8-LIVE-CARDS-2026-10-25",
+  "installerBuilt": true,
+  "releasePublished": true,
+  "stableTag": "r138-ota",
+  "releaseId": 423245705,
+  "releaseUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/tag/r138-ota",
+  "releaseTargetCommit": "f9ac32573c4b51fa9d08a4257f735a3990656032",
+  "windowsBuildRunId": "40173567852",
+  "windowsBuildHeadSha": "f9ac32573c4b51fa9d08a4257f735a3990656032",
+  "windowsBuildWorkflowSha256": "0468e8563b794427422de3b0c2a9b7758ebdcc9848ee3a8a94c6d2dc8854f7c7",
+  "windowsJobs": {
+    "build": "121109387739",
+    "validate": "121114453017"
+  },
+  "windowsRunConclusion": "success",
+  "promotionRunId": "40175826987",
+  "promotionHeadSha": "10e0260cdfc6ab98ce0dd5e4ace22569f8afefe3",
+  "promotionRunConclusion": "success",
+  "promotionJobs": {
+    "verify": "121116171517",
+    "promote": "121116700819"
+  },
+  "featurePatchSha256": "f00d0eee45ccc36fbee60077526e7fceae099f302adaf574ab01d5f6a7d70fa1",
+  "releaseIdentitySha256": "2223adccadc3a5440c1dbb5a152b1828c96d8d6d5c76089354d85b175f1d9cee",
+  "baselineSourceSha256": "a2c7c77fc62cd6818be5f86192827ded786e3a4ac99ebdb6559924a30ae1c6ca",
+  "assets": {
+    "artifact-archive-verification.json": {
+      "sha256": "2ade517965f09f5b0d62af513ab45ac08219666ed966725714885afb8616c259",
+      "sizeBytes": 307
+    },
+    "exact-validation.json": {
+      "sha256": "8a26d00302f1a4fed0b1496c1b509df93cd549725bb00be4c888e4acf9e3aea7",
+      "sizeBytes": 556
+    },
+    "KF-R138-FULL.zip": {
+      "sha256": "6ca02e8bfd959c42044d6335e9df521d4a9a31d02452f47907c000a1176ca2aa",
+      "sizeBytes": 582302630
+    },
+    "Klipper-Farm-R138-setup.exe": {
+      "sha256": "f0f9b85e79c4232737c285bc04d866c22a46b7324d298c80b4b97e65d4923394",
+      "sizeBytes": 233555116
+    },
+    "native-bundle-verification.txt": {
+      "sha256": "37b06b1502057b7f3f0dea72631a380156f6852bc6206baaa6e98c5bfbdc2b07",
+      "sizeBytes": 145
+    },
+    "promotion-attestation.json": {
+      "sha256": "0c54c54bd6617da77742fe46f9267be0e46f91174acd46bcdf8bb318de9e2a7c",
+      "sizeBytes": 6468
+    },
+    "provenance.json": {
+      "sha256": "abab61601f962bb904b4d410fbc5ed8d04b0dcdb4ee3913fe8ac54cf5b48146a",
+      "sizeBytes": 724
+    },
+    "public-channel-verification.json": {
+      "sha256": "c5fc8b8594ac70db149876b97c6704f499f7b81e2f98c9564ff4e425317ae5b5",
+      "sizeBytes": 392
+    },
+    "r138-promotion-contract.json": {
+      "sha256": "33af37898d2a4b6220c4390534fd0ba8520bafa5a9cf43c1dba8c02967a79a91",
+      "sizeBytes": 1659
+    },
+    "R138-UI-proof.zip": {
+      "sha256": "f44f9506dc20a9e45677078a5bdd0e405cd9c939c93be701a1de6c0e7fa7dcf1",
+      "sizeBytes": 22171
+    },
+    "SHA256SUMS.txt": {
+      "sha256": "ae15cace0715ee876620c9a508f6d11a59aa88190d2c99b97f2b0b57d3f400db",
+      "sizeBytes": 898
+    },
+    "source-inspection.json": {
+      "sha256": "ce53f9d1d4116adb0cb221d4e945897013faad7b58883e124e08b814d36e3f4e",
+      "sizeBytes": 3794
+    },
+    "update-sequence-verification.json": {
+      "sha256": "34ef7987e5a3a42594fecf7d3e93e329a8d448f634663fe2fab10ef36f0a7879",
+      "sizeBytes": 259
+    },
+    "update-v20.json": {
+      "sha256": "8ad2ae90b3b8df9cb71b04963cd3dd4dfc1c9354ba6abfb9d5f4b8dceaea7881",
+      "sizeBytes": 2335
+    }
+  },
+  "windowsChecks": {
+    "cleanInstallVerified": true,
+    "upgradeFrom": 137,
+    "dataAndRestartPreserved": true,
+    "nativeRuntimeEmulatorVerified": true,
+    "exactInstalledNsisPayloadVerified": true,
+    "nativeTests": {
+      "passed": 214,
+      "failed": 0,
+      "ignored": 2,
+      "requiredBackupTests": [
+        "automatic_backup_survives_restarts_and_obeys_daily_boundary",
+        "automatic_backup_ignores_future_empty_corrupt_truncated_and_foreign_files",
+        "schedule_inspection_and_restore_use_immutable_paths_with_spaces_unicode_and_uri_characters",
+        "abandoned_temporary_cleanup_removes_only_owned_regular_files_and_orphan_sidecars",
+        "concurrent_automatic_requests_publish_one_copy_and_manual_wal_backup_stays_available",
+        "temporary_guards_remove_base_wal_shm_and_journal_after_failure_or_commit",
+        "missing_or_wrong_schema_live_database_never_publishes_or_rotates_backups",
+        "restore_failure_removes_temporary_copy_without_touching_live_data",
+        "retention_preserves_current_snapshot_and_ignores_foreign_files_and_directories",
+        "backup_cleanup_and_schedule_work_through_windows_directory_junction",
+        "retention_continues_after_an_old_locked_file_cannot_be_removed"
+      ],
+      "requiredBackupTestsSha256": "d4f5077a0573aa5060ed584b4310fae0f801b757cd05d58d900530dd66af8050",
+      "backupRetentionRegressionsVerified": true,
+      "fourNativeStartWireRegressionsVerified": true
+    },
+    "acceptanceCases": {
+      "r138-print-start.json": 12,
+      "r138-sound-core.json": 12,
+      "r138-auto-retry-core.json": 14,
+      "r138-native-history-policy.json": 7,
+      "r138-approved-accounting.json": 7,
+      "r138-finish-core.json": 8,
+      "r138-filament-core.json": 9,
+      "r138-client-start-runtime.json": 38,
+      "r138-visual-activity.json": 10,
+      "r138-prior-ui-report.json": 14
+    }
+  },
+  "publicChannelVerification": {
+    "sequence": 138,
+    "publicApplicationEndpointVerified": true,
+    "installerSha256": "f0f9b85e79c4232737c285bc04d866c22a46b7324d298c80b4b97e65d4923394",
+    "productionRustUpdaterVerified": true,
+    "manifestSha256": "8ad2ae90b3b8df9cb71b04963cd3dd4dfc1c9354ba6abfb9d5f4b8dceaea7881",
+    "passed": true,
+    "verifiedAt": "2026-10-25T08:17:48.2734707+00:00",
+    "releaseId": 423245705
+  },
+  "physicalPrintersTested": false,
+  "privateWorkingKeyRemoved": true,
+  "verifiedAt": "2026-10-25T08:20:04.280080+00:00"
+}
