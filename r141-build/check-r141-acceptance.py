@@ -16,9 +16,9 @@ import shutil
 import subprocess
 import sys
 
-CONTRACT_SHA256 = '03be587d1a70dffbd8aeb966c0c291f53ed1e78de42b809ae637d90a42ae51f7'
-FEATURE_SHA256 = 'cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4'
-IDENTITY_SHA256 = 'e4322e63ca75550d91f043aec1fb56db17383f8fab34e43b598a52046f3568c2'
+CONTRACT_SHA256 = '693bf9e35b2b9a68a9c5259eed7d87a0f54a3da6f8ae80c76a10d8b4e5c56926'
+FEATURE_SHA256 = '1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c'
+IDENTITY_SHA256 = '2abaffec709fcdcdb811726eb835a9fd1f6ea05bb0effe95165a13ae8a417ec8'
 BUILD_ID = 'V20.6-R14.1-PERFORMANCE-TELEMETRY-2026-10-26'
 TREE_ROOTS = ('src', 'public', 'scripts', 'ui-tests', 'src-tauri/src',
               'src-tauri/crates', 'src-tauri/capabilities', 'src-tauri/windows',
