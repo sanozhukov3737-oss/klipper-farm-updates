@@ -16,9 +16,9 @@ import shutil
 import subprocess
 import sys
 
-CONTRACT_SHA256 = '17fb87aa9e236b03f966c6b1b5cefbd516cbf36f4f0b4d142e1828e6210d4294'
-FEATURE_SHA256 = '436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d'
-IDENTITY_SHA256 = '26bb489fada2656c857855a5d4bf46b126a6f739852e1bb36c37010414dd4269'
+CONTRACT_SHA256 = '03be587d1a70dffbd8aeb966c0c291f53ed1e78de42b809ae637d90a42ae51f7'
+FEATURE_SHA256 = 'cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4'
+IDENTITY_SHA256 = 'e4322e63ca75550d91f043aec1fb56db17383f8fab34e43b598a52046f3568c2'
 BUILD_ID = 'V20.6-R14.1-PERFORMANCE-TELEMETRY-2026-10-26'
 TREE_ROOTS = ('src', 'public', 'scripts', 'ui-tests', 'src-tauri/src',
               'src-tauri/crates', 'src-tauri/capabilities', 'src-tauri/windows',
@@ -117,7 +117,7 @@ def verify_source(value, source, patch_path, identity_path):
     assert sha(patch_path) == FEATURE_SHA256, 'Approved feature patch differs'
     assert sha(identity_path) == IDENTITY_SHA256, 'Approved release identity differs'
     patch, identity = load(patch_path), load(identity_path)
-    assert len(patch['files']) == 31 and len(identity['files']) == 5
+    assert len(patch['files']) == 32 and len(identity['files']) == 5
     assert identity['buildId'] == BUILD_ID and identity['sequence'] == 141
     assert identity['featurePatchSha256'] == FEATURE_SHA256
     assert patch['baselineFiles'] == identity['baselineFiles']
@@ -127,7 +127,7 @@ def verify_source(value, source, patch_path, identity_path):
         assert sha(Path(source) / spec['path']) == spec['sha256'], spec['path']
     expected = {name: digest for name, digest in expected.items() if selected(name)}
     actual = source_snapshot(source)
-    assert actual == expected, 'Handwritten source/assets/config differ from pinned R140 + feature31 + identity5: ' + str(sorted(name for name in set(actual) | set(expected) if actual.get(name) != expected.get(name)))
+    assert actual == expected, 'Handwritten source/assets/config differ from pinned R140 + feature32 + identity5: ' + str(sorted(name for name in set(actual) | set(expected) if actual.get(name) != expected.get(name)))
     assert (Path(source) / 'RELEASE-BUILD-ID.txt').read_text().strip() == value['buildId']
     return actual
 
@@ -323,7 +323,7 @@ def main():
     snapshot = verify_source(value, args.source_root, patch, identity)
     if args.proof_directory is None:
         assert not args.run_checks and not args.native_log and not args.output
-        print(json.dumps({'passed': True, 'exactFeatureFilesVerified': 31, 'releaseIdentityFilesVerified': 5, 'sourceInputsVerified': len(snapshot), 'sourceSnapshotSha256': object_sha(snapshot)}))
+        print(json.dumps({'passed': True, 'exactFeatureFilesVerified': 32, 'releaseIdentityFilesVerified': 5, 'sourceInputsVerified': len(snapshot), 'sourceSnapshotSha256': object_sha(snapshot)}))
         return
     if args.run_checks:
         assert args.native_log is None and args.output is None
@@ -338,7 +338,7 @@ def main():
     report = {'schemaVersion': 1, 'release': 'R141', 'baseline': 'R140', 'sequence': 141,
               'passed': True, 'buildId': BUILD_ID, 'contractSha256': sha(args.contract),
               'featurePatchSha256': FEATURE_SHA256, 'releaseIdentitySha256': IDENTITY_SHA256,
-              'exactFeatureFilesVerified': 31, 'releaseIdentityFilesVerified': 5,
+              'exactFeatureFilesVerified': 32, 'releaseIdentityFilesVerified': 5,
               'sourceInputsVerified': len(snapshot), 'sourceSnapshotSha256': object_sha(snapshot),
               'acceptanceCases': counts, 'freshAcceptanceCases': 220, 'retainedPerformanceCases': 13,
               'totalAcceptanceCases': sum(counts.values()), 'executionLedgerSha256': ledgers,
