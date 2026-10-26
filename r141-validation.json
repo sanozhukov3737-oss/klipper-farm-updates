@@ -1,0 +1,511 @@
+{
+  "schemaVersion": 1,
+  "release": "R141-PERFORMANCE-DRAFT",
+  "baseline": "R140",
+  "passed": true,
+  "featurePatchSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
+  "typescriptPassed": true,
+  "frontendProductionBuildPassed": true,
+  "testCounts": {
+    "filamentData": 32,
+    "cacheBoundaries": 9,
+    "tvBrowser": 20,
+    "cameraBrowser": 20,
+    "actualAppAddressAndSettings": 5,
+    "performance": 12
+  },
+  "totalPassed": 98,
+  "reports": {
+    "filamentData": {
+      "passed": 32,
+      "cases": [
+        {
+          "name": "reported length becomes explicitly approximate configured mass",
+          "passed": true
+        },
+        {
+          "name": "daily and total use the exact printer ledger only",
+          "passed": true
+        },
+        {
+          "name": "spool balance remains the confirmed ledger value during extrusion",
+          "passed": true
+        },
+        {
+          "name": "missing ledger preserves real metres without inventing historical zero",
+          "passed": true
+        },
+        {
+          "name": "untracked printer never borrows another printer totals",
+          "passed": true
+        },
+        {
+          "name": "missing dated history cannot become today zero",
+          "passed": true
+        },
+        {
+          "name": "known tracked empty day is a genuine zero",
+          "passed": true
+        },
+        {
+          "name": "future history start is not treated as tracked day",
+          "passed": true
+        },
+        {
+          "name": "unknown configured material parameters retain reported metres",
+          "passed": true
+        },
+        {
+          "name": "pending initial baseline cannot assign mass to an entire old print",
+          "passed": true
+        },
+        {
+          "name": "mid-print material binding preserves length rather than guessing mass",
+          "passed": true
+        },
+        {
+          "name": "material baseline with previous extrusion cannot convert entire print",
+          "passed": true
+        },
+        {
+          "name": "fresh paused print can retain its measured usage",
+          "passed": true
+        },
+        {
+          "name": "missing or invalid extrusion is unknown, real zero is retained",
+          "passed": true
+        },
+        {
+          "name": "inactive, offline, suspended, shutdown and stale jobs never look live",
+          "passed": true
+        },
+        {
+          "name": "unmounted stock does not invent a separate spool balance",
+          "passed": true
+        },
+        {
+          "name": "missing or wrong material spool stays unavailable",
+          "passed": true
+        },
+        {
+          "name": "empty spool is a genuine zero and fraction is bounded",
+          "passed": true
+        },
+        {
+          "name": "invalid spool colour is not forwarded into CSS",
+          "passed": true
+        },
+        {
+          "name": "projection never mutates the source printer or inventory",
+          "passed": true
+        },
+        {
+          "name": "installed spool is the exact bound ledger object and configured diameter",
+          "passed": true
+        },
+        {
+          "name": "unbound missing and mismatched spools never create an image object",
+          "passed": true
+        },
+        {
+          "name": "invalid diameter is not forwarded to the installed spool view",
+          "passed": true
+        },
+        {
+          "name": "seven calendar days contain only this printers actual daily usage",
+          "passed": true
+        },
+        {
+          "name": "unrecorded days before tracking remain unknown while real dated rows remain visible",
+          "passed": true
+        },
+        {
+          "name": "global history coverage can be later than printer tracking",
+          "passed": true
+        },
+        {
+          "name": "missing history or an untracked account leaves all seven days unknown",
+          "passed": true
+        },
+        {
+          "name": "covered empty today is zero while earlier uncovered days are unknown",
+          "passed": true
+        },
+        {
+          "name": "binding history is a dated fallback and cannot fabricate earlier coverage",
+          "passed": true
+        },
+        {
+          "name": "future tracking date cannot create zero-fill around actual recorded rows",
+          "passed": true
+        },
+        {
+          "name": "week crosses DST with seven unique local days and the correct today",
+          "passed": true
+        },
+        {
+          "name": "actual resolved historical pending debit survives dates before tracking and history coverage",
+          "passed": true
+        }
+      ],
+      "scope": "Read-only TV projections from fresh printer telemetry and existing filament ledger; no physical printer or stock writes."
+    },
+    "cacheBoundaries": {
+      "passed": 9,
+      "cases": [
+        {
+          "name": "live extrusion changes only the live projection without changing confirmed ledger data",
+          "passed": true
+        },
+        {
+          "name": "local midnight changes calendar key and moves recorded today usage into yesterday",
+          "passed": true
+        },
+        {
+          "name": "future history eligibility invalidates exactly when recorded history becomes available",
+          "passed": true
+        },
+        {
+          "name": "future explicit tracking invalidates weekly coverage at its actual boundary",
+          "passed": true
+        },
+        {
+          "name": "fallback binding eligibility uses earliest valid binding including the active binding",
+          "passed": true
+        },
+        {
+          "name": "historical debits stay visible while future coverage leaves missing neighbours unknown",
+          "passed": true
+        },
+        {
+          "name": "DST repeated hour preserves seven unique calendar days and updates timezone boundary",
+          "passed": true
+        },
+        {
+          "name": "selected printer and replaced inventory use their own confirmed data",
+          "passed": true
+        },
+        {
+          "name": "received usage expires at the existing freshness boundary independently of cached history",
+          "passed": true
+        }
+      ],
+      "scope": "Pure R141 presentation/cache eligibility contracts; no inventory writes or physical printer commands."
+    },
+    "tvBrowser": {
+      "passed": 20,
+      "cases": [
+        {
+          "name": "layout-dark-1920x1080",
+          "passed": true,
+          "actualComponent": true,
+          "syntheticNativeBoundary": true
+        },
+        {
+          "name": "layout-dark-1366x768",
+          "passed": true,
+          "actualComponent": true,
+          "syntheticNativeBoundary": true
+        },
+        {
+          "name": "layout-dark-390x844",
+          "passed": true,
+          "actualComponent": true,
+          "syntheticNativeBoundary": true
+        },
+        {
+          "name": "layout-light-1920x1080",
+          "passed": true,
+          "actualComponent": true,
+          "syntheticNativeBoundary": true
+        },
+        {
+          "name": "layout-light-1366x768",
+          "passed": true,
+          "actualComponent": true,
+          "syntheticNativeBoundary": true
+        },
+        {
+          "name": "layout-light-390x844",
+          "passed": true,
+          "actualComponent": true,
+          "syntheticNativeBoundary": true
+        },
+        {
+          "name": "weekly-printer-only-values-and-installed-spool",
+          "passed": true
+        },
+        {
+          "name": "missing-week-history-and-no-bound-spool",
+          "passed": true
+        },
+        {
+          "name": "ten-second-autorotation-and-manual-wrap",
+          "passed": true
+        },
+        {
+          "name": "pause-resume-and-hidden-document",
+          "passed": true
+        },
+        {
+          "name": "all-printers-states-and-stale-data",
+          "passed": true
+        },
+        {
+          "name": "selection-survives-reorder-deletion-and-empty-fleet",
+          "passed": true
+        },
+        {
+          "name": "inventory-subscription-is-read-only-and-current-usage-is-separate",
+          "passed": true
+        },
+        {
+          "name": "camera-only-current-visible-slide",
+          "passed": true
+        },
+        {
+          "name": "failed-camera-fallback-is-remembered-until-retry-or-config-change",
+          "passed": true
+        },
+        {
+          "name": "no-webgl-keeps-approved-spool-placeholder-without-alternate-model",
+          "passed": true
+        },
+        {
+          "name": "fleet-size-0",
+          "passed": true
+        },
+        {
+          "name": "fleet-size-1",
+          "passed": true
+        },
+        {
+          "name": "fleet-size-20",
+          "passed": true
+        },
+        {
+          "name": "reduced-motion-and-live-data-stop-on-expiry",
+          "passed": true
+        }
+      ],
+      "runtimeErrors": [],
+      "externalRequests": [],
+      "productionSources": {
+        "src/components/TvDashboard.tsx": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68",
+        "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+        "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97"
+      },
+      "actualReactComponent": true,
+      "physicalPrintersTested": false,
+      "scope": "Actual TvDashboard with synthetic native storage, received telemetry and a local configured camera. No physical printer or installed Windows build tested."
+    },
+    "cameraBrowser": {
+      "passed": 20,
+      "browser": "151.0.7922.34",
+      "report": [
+        {
+          "test": "seven-printer-states-camera-slide-Escape",
+          "theme": "dark",
+          "width": 1920,
+          "height": 1080,
+          "status": "passed"
+        },
+        {
+          "test": "seven-printer-states-camera-slide-Escape",
+          "theme": "dark",
+          "width": 910,
+          "height": 512,
+          "status": "passed"
+        },
+        {
+          "test": "seven-printer-states-camera-slide-Escape",
+          "theme": "dark",
+          "width": 390,
+          "height": 844,
+          "status": "passed"
+        },
+        {
+          "test": "seven-printer-states-camera-slide-Escape",
+          "theme": "light",
+          "width": 1920,
+          "height": 1080,
+          "status": "passed"
+        },
+        {
+          "test": "seven-printer-states-camera-slide-Escape",
+          "theme": "light",
+          "width": 910,
+          "height": 512,
+          "status": "passed"
+        },
+        {
+          "test": "seven-printer-states-camera-slide-Escape",
+          "theme": "light",
+          "width": 390,
+          "height": 844,
+          "status": "passed"
+        },
+        {
+          "test": "all-printers-through-individual-slides",
+          "count": 9,
+          "status": "passed"
+        },
+        {
+          "test": "all-printers-through-individual-slides",
+          "count": 17,
+          "status": "passed"
+        },
+        {
+          "test": "all-printers-through-individual-slides",
+          "count": 40,
+          "status": "passed"
+        },
+        {
+          "test": "empty-fullscreen-and-close",
+          "status": "passed"
+        },
+        {
+          "test": "camera-guard-layout-and-durable-modes",
+          "theme": "dark",
+          "width": 1920,
+          "height": 1080,
+          "status": "passed"
+        },
+        {
+          "test": "camera-guard-layout-and-durable-modes",
+          "theme": "dark",
+          "width": 910,
+          "height": 512,
+          "status": "passed"
+        },
+        {
+          "test": "camera-guard-layout-and-durable-modes",
+          "theme": "dark",
+          "width": 390,
+          "height": 844,
+          "status": "passed"
+        },
+        {
+          "test": "camera-guard-layout-and-durable-modes",
+          "theme": "light",
+          "width": 1920,
+          "height": 1080,
+          "status": "passed"
+        },
+        {
+          "test": "camera-guard-layout-and-durable-modes",
+          "theme": "light",
+          "width": 910,
+          "height": 512,
+          "status": "passed"
+        },
+        {
+          "test": "camera-guard-layout-and-durable-modes",
+          "theme": "light",
+          "width": 390,
+          "height": 844,
+          "status": "passed"
+        },
+        {
+          "test": "unknown-settings-fail-closed-retry",
+          "status": "passed"
+        },
+        {
+          "test": "arming-requires-durable-settings-write",
+          "status": "passed"
+        },
+        {
+          "test": "read-only-cannot-arm-camera-guard",
+          "status": "passed"
+        },
+        {
+          "test": "actual-dark-blank-small-and-repeated-frame-quality",
+          "status": "passed"
+        }
+      ]
+    },
+    "actualAppAddressAndSettings": {
+      "release": "R139",
+      "passed": 5,
+      "cases": [
+        {
+          "name": "three-way",
+          "passed": true,
+          "realFarmAppMounted": true,
+          "duplicateOnlinePrevented": true,
+          "oldNativeBindingsRemoved": true,
+          "ambiguousControlsBlocked": true,
+          "readyCards": 3,
+          "physicalPrinterCommands": 0
+        },
+        {
+          "name": "weak-evidence",
+          "passed": true,
+          "realFarmAppMounted": true,
+          "duplicateOnlinePrevented": true,
+          "oldNativeBindingsRemoved": true,
+          "ambiguousControlsBlocked": true,
+          "readyCards": 0,
+          "physicalPrinterCommands": 0
+        },
+        {
+          "name": "powered-off",
+          "passed": true,
+          "realFarmAppMounted": true,
+          "duplicateOnlinePrevented": true,
+          "oldNativeBindingsRemoved": true,
+          "ambiguousControlsBlocked": true,
+          "readyCards": 2,
+          "physicalPrinterCommands": 0
+        },
+        {
+          "name": "foreign-hardware",
+          "passed": true,
+          "realFarmAppMounted": true,
+          "duplicateOnlinePrevented": true,
+          "oldNativeBindingsRemoved": true,
+          "ambiguousControlsBlocked": true,
+          "readyCards": 0,
+          "physicalPrinterCommands": 0
+        },
+        {
+          "name": "metadata-only-settings-save",
+          "passed": true,
+          "realFarmAppMounted": true,
+          "duplicateOnlinePrevented": true,
+          "oldNativeBindingsRemoved": true,
+          "ambiguousControlsBlocked": true,
+          "metadataOnlyConnectionPreserved": true,
+          "nameSaved": true,
+          "freshTelemetryPreserved": true,
+          "readyCards": 3,
+          "physicalPrinterCommands": 0
+        }
+      ],
+      "runtimeErrors": [],
+      "extraNetworkRequests": [],
+      "physicalPrintersTested": false,
+      "nativeBoundary": "Production FarmApp, clients, persistence and physical-identity parser. Only authenticated native IPC and printer responses are emulated.",
+      "productionSources": {
+        "src/App.tsx": "0dc92c965fd7ed3cfd5fa736efd77cc5274a23e0a10d080be0c23c50c9d88b50",
+        "src/lib/printerAddressRecovery.ts": "eaa9f9d8a63c11d8faf7a061d684c8befeadf7a8fa670b6e9c66d5cb78cc2836",
+        "src/lib/printerEndpoint.ts": "b2734d39692fd126f77f4347ae4eb949bfa82840f0e84e52c7e26f323ca86414",
+        "src/lib/moonraker.ts": "d3c17753d02e788a8a9052d41fbc1d30899acde3681373d38e536defbef85f6e",
+        "src/lib/printerConfigStore.ts": "46454551d5773df3584b1530c4e6af9807ea866f281216a8aae353e20db7e664",
+        "ui-tests/farm-startup-r125.tsx": "c3e5c7507a3dd94271f26371c4c402fa47c7260c1213a66b61a0a596e793ef89",
+        "ui-tests/address-recovery-r139.tsx": "7fda96ac9964179065b09c107a24bb878a7f875ab5fbcb12a2fcc1783a008251",
+        "ui-tests/address-recovery-r139.mjs": "a0c4008559517f35d8c23b679789fb2cb5b5c5bb2f2e591fe6175e9511bc8a73"
+      }
+    }
+  },
+  "performanceReportSha256": "e846f27d29dcd7104fa076d59fb4e7e108ddcabecef0bd2ae28bdc2413dc7828",
+  "preservedRustFiles": 60,
+  "approvedSpoolRendererUnchanged": true,
+  "tvCssUnchanged": true,
+  "sharedClockUnchanged": true,
+  "releaseIdentityUnchanged": true,
+  "physicalPrintersTested": false,
+  "installedWindowsTested": false,
+  "installerBuilt": false,
+  "releasePublished": false
+}

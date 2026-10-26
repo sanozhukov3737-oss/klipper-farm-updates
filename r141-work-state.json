@@ -1,0 +1,22 @@
+{
+  "stage": "performance-implemented-measured-and-tested",
+  "branch": "r141-performance",
+  "baseCommit": "4661e879f244a4470181558a6e90bcba7a6feb86",
+  "stableTag": "r140-ota",
+  "sourcePath": "/workspace/scratch/d006d396a32a/klipper-farm-r141-source",
+  "repositoryPath": "/workspace/scratch/d006d396a32a/klipper-farm-r141-review",
+  "featurePatchSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
+  "featureFiles": 11,
+  "newSourceFiles": 7,
+  "validation": {
+    "totalPassed": 98,
+    "typescript": true,
+    "productionBuild": true
+  },
+  "installerBuilt": false,
+  "releasePublished": false,
+  "pending": [
+    "Windows installer and release only when requested"
+  ],
+  "updatedAt": "2026-10-26T10:44:22.002299+00:00"
+}

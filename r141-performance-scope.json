@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "release": "R141-PERFORMANCE-DRAFT",
+  "baseline": "R140",
+  "passed": true,
+  "featurePatchSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
+  "baseArchiveSha256": "cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04",
+  "baselineFiles": 1811,
+  "reviewedFiles": 11,
+  "modifiedFiles": 4,
+  "newFiles": 7,
+  "expectedPrebuildSourceFiles": 1818,
+  "unchangedNonGeneratedBaselineFiles": 1301,
+  "excludedBaselineDistFiles": 506,
+  "unreviewedStaticFiles": [],
+  "ignoredTransientFiles": [
+    "public/camera-detector/.obico-failure-5a6b1be1fa.onnx.uk65tb",
+    "offline-tools/rust/.rust-vendor-v1144.tar.gz.4sVxYp"
+  ],
+  "files": [
+    {
+      "path": "src/App.tsx",
+      "beforeSha256": "7adfccfd41e10c2fa3db25d42046a25bb86aea284502248525b2e9d6a2cb4ee2",
+      "sha256": "0dc92c965fd7ed3cfd5fa736efd77cc5274a23e0a10d080be0c23c50c9d88b50"
+    },
+    {
+      "path": "src/components/DeferredPanel.tsx",
+      "beforeSha256": null,
+      "sha256": "5cfd3c2c8b80a22f683bf3c1ff9d0db25efef7b0867fbecc210e58fd5f28aaf0"
+    },
+    {
+      "path": "src/components/DeferredPanel.css",
+      "beforeSha256": null,
+      "sha256": "92cf9438559c32f8b97eb79f9c0134722b442bdebeb8d954c323613d6a876ae6"
+    },
+    {
+      "path": "src/components/TvDashboard.tsx",
+      "beforeSha256": "5567b0679db4c30156adc764c3733a3f1c2f7dc31772247f0e06a2896119963a",
+      "sha256": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68"
+    },
+    {
+      "path": "src/lib/tvSpotlight.ts",
+      "beforeSha256": "ac9318f6d36c21fa2f18b9d4c721dee41b4d9a10de86f41c3085e1c010250ca6",
+      "sha256": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97"
+    },
+    {
+      "path": "src/lib/modalAccessibility.ts",
+      "beforeSha256": "b0894be4ca57061736595b0d44507b06e7c9053bfcaa4200bf769de616d52ace",
+      "sha256": "65c58d69bb3ff903abd25ed02b3ed112ead28c80dea88a3282467ccd00632443"
+    },
+    {
+      "path": "scripts/check-r141-tv-projection.mjs",
+      "beforeSha256": null,
+      "sha256": "ddb20cefd5812eac02fbd9c199584055ef5c77892b65d37a9d43d4e4fb156b23"
+    },
+    {
+      "path": "scripts/check-r141-performance-report.mjs",
+      "beforeSha256": null,
+      "sha256": "1ce16d0312eed9b54935de88c720e5d50e64e723ae052bc0361e441fb9038f74"
+    },
+    {
+      "path": "ui-tests/r141-performance.mjs",
+      "beforeSha256": null,
+      "sha256": "eb6e7f282f6724bedae6e7f33de1c569fa799f2c59927600af89b0252017824e"
+    },
+    {
+      "path": "ui-tests/r141-performance-app.html",
+      "beforeSha256": null,
+      "sha256": "b4073bd92a905cccfdce7661952b2b11cf3e0ccdb05ffc6e483c5506379fd29d"
+    },
+    {
+      "path": "ui-tests/r141-performance-tv.html",
+      "beforeSha256": null,
+      "sha256": "68e68fb548dcb19b502d049eae4cbaaab8b564cd9df4190207812c7186f60414"
+    }
+  ],
+  "preserved": {
+    "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+    "src/lib/spool-viewer.mjs": "6b3649ec27e6d1c54e124d9a4df8610d3e35283de40eebd633ff688b54b9f7f3",
+    "src/lib/filamentThumbnails.ts": "680662bb25f294b482a5cf63a919bf5351387c22074bc3ac4df0e82449b1a9c0",
+    "src/lib/liveClock.ts": "d9ae8c2f498ba3b8fb447e64f859348f8646a32f78662b8ba3a004fa95c280b6",
+    "src/lib/filamentInventory.ts": "021ae0fe42b7127758e47967113d957c1b2f2ec45b3a862c2e2f009578c6b7de",
+    "src/lib/useFilamentAccounting.ts": "b27d8e121c2e888a1de21be0accc793a0c332f46f9e7241eac34192da7b32f57",
+    "src/lib/moonraker.ts": "d3c17753d02e788a8a9052d41fbc1d30899acde3681373d38e536defbef85f6e",
+    "src/lib/printerAddressRecovery.ts": "eaa9f9d8a63c11d8faf7a061d684c8befeadf7a8fa670b6e9c66d5cb78cc2836",
+    "src-tauri/src/lib.rs": "f3537fd07934935b1425ccb43d35928bbe22d4a8267bf208efa396c471e4d767",
+    "src-tauri/src/main.rs": "a6a61f4ad3e90a95f82d56077c92103d51a557971c64b9d1dea5c8dca0075936",
+    "UPDATE-CHANNEL.json": "532acab9b5ec5e3b3bbd977a448d166e882ab032b6090e69aa4a3442d2348513",
+    "RELEASE-BUILD-ID.txt": "ea22ee0d0db459c8083c8aaf8086f7cdfbadaf172226584ac4e89ca4c99cae86"
+  },
+  "installerBuilt": false,
+  "releasePublished": false,
+  "sourceVersionMetadata": "R140 retained; R141 release identity has not been applied",
+  "nativeRustFilesPreserved": 60,
+  "applyValidation": {
+    "passed": true,
+    "freshPublishedArchiveApplied": true,
+    "firstApplyFiles": 11,
+    "idempotentApplyFiles": 0,
+    "completeVerifiedFiles": 1818,
+    "cases": [
+      "unchanged-file tamper rejected before reviewed writes",
+      "unreviewed changed-row bytes rejected",
+      "symlink target rejected without touching target",
+      "changed feature JSON rejected by pinned SHA",
+      "second complete-source idempotent verification",
+      "R140 release identity and stable channel left byte-identical"
+    ],
+    "fullSmokeFeatureSha256": "fd9b04d655579b23fea700070a735010dd25df1efd3e48ec7dd95a8c2cd48754",
+    "finalPayloadRevalidated": true,
+    "finalFeatureSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
+    "applyLogicUnchangedAfterDigestRepin": true,
+    "finalDeltaOnly": [
+      "ui-tests/r141-performance.mjs"
+    ]
+  }
+}

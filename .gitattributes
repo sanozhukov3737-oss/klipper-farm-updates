@@ -109,3 +109,10 @@ prepare-r140-identity.py -text
 r140-build/** -text
 .github/workflows/windows-r140-reviewed.yml -text
 .github/workflows/promote-r140.yml -text
+
+# Reviewed R141 performance draft
+r141-* -text
+R141-* -text
+KF-R141-* -text
+apply-r141-performance.py -text
+r141-performance-proof/** -text
