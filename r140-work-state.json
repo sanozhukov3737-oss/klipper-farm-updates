@@ -1,0 +1,38 @@
+{
+  "stage": "windows-validated-update-signed-ready-for-promotion",
+  "release": "R140",
+  "baseline": "R139",
+  "branch": "r140-tv-spotlight",
+  "stableTag": "r139-ota",
+  "approvedFeatureCommit": "bb13d59547bee9d5fe8fb25b42ac3a721be76bfa",
+  "featureSha256": "f0bedbb970a385d8da1772277a8fbf915feb581b1f932f52fa558ccdf3350a03",
+  "releaseIdentitySha256": "5f632e3efd2e28869f8f6122bf5b5ac8ff1067c9ca80b0a15e9862261bf39019",
+  "buildWorkflowSha256": "f8f062171382428613893347be7a396115036dd9800176a2d83d68bf71fc0551",
+  "baselineSourceSha256": "125bb78054cb6366242eaf505f2178bdc72f6e916b8888ff001df6a3ade3922e",
+  "installerBuilt": true,
+  "releasePublished": false,
+  "updatedAt": "2026-10-26T05:16:33.217340+00:00",
+  "buildRunId": 40270179010,
+  "buildHeadSha": "3f051ec6ae9ef634020d51a1cee869778a36c32e",
+  "validation": {
+    "tvCases": 72,
+    "inheritedAcceptanceCases": 88,
+    "nativePassed": 223,
+    "nativeIgnored": 2,
+    "cleanInstallAndWebViewPassed": true,
+    "upgradeFromR139AndRestartPassed": true,
+    "printerAndFilamentDataPreserved": true,
+    "physicalPrintersTested": false
+  },
+  "assets": {
+    "Klipper-Farm-R140-setup.exe": {
+      "sizeBytes": 233591012,
+      "sha256": "bb2a13681a16253ca3910c951053b2aa9ed781728fcec496803fb2a4e2fb9829"
+    },
+    "KF-R140-FULL.zip": {
+      "sizeBytes": 582390782,
+      "sha256": "cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04"
+    }
+  },
+  "manifestSha256": "fed4ad7c93d0d1c861e1a3522a33b07e5c4ee3504b46aadb8cf1636a370ae7b2"
+}
