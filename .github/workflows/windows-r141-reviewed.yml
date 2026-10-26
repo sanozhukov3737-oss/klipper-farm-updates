@@ -35,21 +35,21 @@ jobs:
       run: |
         $ErrorActionPreference='Stop'
         $pins=[ordered]@{
-          'prepare-r141-identity.py'='ac0748db21e5b168571b32b7fbad6d2df791adae7bc5b75f014e9c7e64829b1a'
-          'apply-r141-release.py'='1a7196c3f1cdbc49f318ae11bd4ac6a3ddac6e66f4596462b851bef619bc6a10'
-          'r141-release-identity.json'='2abaffec709fcdcdb811726eb835a9fd1f6ea05bb0effe95165a13ae8a417ec8'
-          'r141-release-identity.sha256'='165e00e502ed44985048980f893dd5689f49b1377b843bdb04e85f7ad07d9a5c'
-          'r141-required-tests.json'='693bf9e35b2b9a68a9c5259eed7d87a0f54a3da6f8ae80c76a10d8b4e5c56926'
-          'r141-required-tests.sha256'='1e0dc3dfcd6c38cc7eb3297f6269645dd3f7df680e84f5451a87e2790496b3df'
-          'r141-build/check-r141-acceptance.py'='e23e74a64ca2d50173bc65ffa5e23e44677701c85efd262aa4c579fc526ecdf5'
+          'prepare-r141-identity.py'='2a90158e8e297ad1c91cb6240b343facb7dd1f68bf8ac11b38aa385d6ff34afb'
+          'apply-r141-release.py'='0ca4f4f01b9b73daf52b22350d5a19d2eecad9d41fca4dd4c86f580f2062221f'
+          'r141-release-identity.json'='254a34bb0d1656d551f3d46c503e656e3a358eb28b231b56c0110a2e4795146c'
+          'r141-release-identity.sha256'='0fe4fe43754f0c256b4ffa0395fb6ded4d5b640026c2b6eec07684d3f675d703'
+          'r141-required-tests.json'='d235ac2b198aeeb158e2f62930ba156f6b563964dd60da02176364b9d0532d22'
+          'r141-required-tests.sha256'='b30de62aa7b0e0f08a281dc35f36a6c4e56f542a978840ff981439a6033bf689'
+          'r141-build/check-r141-acceptance.py'='c430fa69545a312d5487f58dfb5fc1e77c05fcaba1fed4ac27a6e37085ccab54'
           'r141-build/r141-upgrade-data.py'='dd4a86d65885c28fe836376808bf5043cc49302a8430d942d24038dd259668d9'
           'r141-build/r141-check-installed-payload.mjs'='d5067f4c290ca8983e55055794e540a85c182a427b04e3f533903af4f059886c'
-          'r141-build/check-r141-installed-fullscreen.mjs'='6da9e85505726e63cbd5fe8ad97ead4512ebed3b2fc1f991e7c518d095f058e6'
+          'r141-build/check-r141-installed-fullscreen.mjs'='d5fba83e6f85fe205f348f210c9152d9060e3ea86d6a25f79ab0412ce7920da5'
           'r141-build/check-r141-installed-fullscreen-window.ps1'='51a3d4153823d96357a5ded493a8758e955f981dd4f3d6889a64e2aea0a81375'
-          'r141-performance-patch.json'='1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c'
-          'r141-performance-patch.sha256'='9b5823fdf1f747aa17af85071f0c8352c2a875214752079275a986ad8b8f7c4b'
-          'r141-performance-report.json'='dee852a3588c65eee0b191c43ddd0bc7a604e2c0244162e6ccdad9426bc33e24'
-          'r141-performance-build.json'='92798b7f72bc3725785b82d229d093bd99a6024833b3bdd0285c4b1bc7bcffd7'
+          'r141-performance-patch.json'='aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca'
+          'r141-performance-patch.sha256'='49d0e6ce13af00fea61841b2c7b03f48d874cf5a94ff265d28146514e04d0db7'
+          'r141-performance-report.json'='057c069a9cefd06d2c67257de136574a0f3ac5b9af394a404b6a504c426ce659'
+          'r141-performance-build.json'='777f9d44ab662df068eafbd896885aa74d45eb5eced3fa66af215684dcb422c3'
         }
         foreach ($entry in $pins.GetEnumerator()) {
          if ((Get-FileHash $entry.Key).Hash.ToLowerInvariant() -ne $entry.Value) { throw "Reviewed release input differs: $($entry.Key)" }
@@ -194,7 +194,7 @@ jobs:
         Copy-Item ../../proof ../../candidate/proof -Recurse
         $manifest=@{}
         foreach ($name in @('Klipper-Farm-R141-setup.exe','KF-R141-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
-        @{release='R141';sequence=141;baselineSequence=140;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c';releaseIdentitySha256='2abaffec709fcdcdb811726eb835a9fd1f6ea05bb0effe95165a13ae8a417ec8';requiredTestsSha256='693bf9e35b2b9a68a9c5259eed7d87a0f54a3da6f8ae80c76a10d8b4e5c56926';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+        @{release='R141';sequence=141;baselineSequence=140;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca';releaseIdentitySha256='254a34bb0d1656d551f3d46c503e656e3a358eb28b231b56c0110a2e4795146c';requiredTestsSha256='d235ac2b198aeeb158e2f62930ba156f6b563964dd60da02176364b9d0532d22';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: r141-ota-candidate
