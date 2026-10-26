@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply the reviewed R141 performance draft to exact published R140 source.
+"""Apply the reviewed R141 performance and temperature draft to exact published R140 source.
 
 python apply-r141-performance.py PATH_TO_EXTRACTED_R140
 python apply-r141-performance.py --archive KF-R140-FULL.zip --output NEW_DIRECTORY
@@ -19,17 +19,35 @@ import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
-PATCH_SHA = 'b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68'
+PATCH_SHA = '9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae'
 BASE_SHA = 'cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04'
 BASE_SIZE = 582390782
 BUILD_ID = 'V20.6-R14.0-TV-SPOTLIGHT-2026-10-26'
 PREFIX = 'Klipper-Farm-R140/'
 PATHS = {
-    'src/App.tsx', 'src/components/DeferredPanel.tsx', 'src/components/DeferredPanel.css',
-    'src/components/TvDashboard.tsx', 'src/lib/tvSpotlight.ts', 'src/lib/modalAccessibility.ts',
-    'scripts/check-r141-tv-projection.mjs', 'scripts/check-r141-performance-report.mjs',
-    'ui-tests/r141-performance.mjs', 'ui-tests/r141-performance-app.html',
+    'src/App.tsx',
+    'src/components/DeferredPanel.tsx',
+    'src/components/DeferredPanel.css',
+    'src/components/TvDashboard.tsx',
+    'src/lib/tvSpotlight.ts',
+    'src/lib/modalAccessibility.ts',
+    'scripts/check-r141-tv-projection.mjs',
+    'scripts/check-r141-performance-report.mjs',
+    'ui-tests/r141-performance.mjs',
+    'ui-tests/r141-performance-app.html',
     'ui-tests/r141-performance-tv.html',
+    'src/components/TvDashboard.css',
+    'src/lib/moonraker.ts',
+    'src/types.ts',
+    'src-tauri/src/transactional_core/temperature.rs',
+    'src-tauri/src/transactional_core/mod.rs',
+    'src-tauri/src/transactional_core/types.rs',
+    'src-tauri/src/transactional_core/actor.rs',
+    'src-tauri/src/transactional_core/journal.rs',
+    'src-tauri/src/online_updates.rs',
+    'scripts/check-v20-6-discovery-display.mjs',
+    'scripts/run-rust-tests.mjs',
+    'scripts/check-r141-temperature-merge.mjs',
 }
 IGNORED_DIRECTORIES = {'node_modules', 'ui-tests/node_modules', '.git', '.klipper-build-cache'}
 
@@ -77,8 +95,8 @@ def load_patch():
     assert value['archivePrefix'] == PREFIX
     assert value['installerBuilt'] is False and value['releasePublished'] is False
     assert len(value['baselineFiles']) == 1811
-    assert len(value['files']) == 11 and {row['path'] for row in value['files']} == PATHS
-    assert sum(row['beforeSha256'] is None for row in value['files']) == 7
+    assert len(value['files']) == 23 and {row['path'] for row in value['files']} == PATHS
+    assert sum(row['beforeSha256'] is None for row in value['files']) == 9
     for name in value['baselineFiles']:
         safe_name(name)
     prepared = {}
@@ -201,8 +219,8 @@ def main():
             os.rename(staging, output)
             staging = None
             root = output
-        print(json.dumps({'passed': True, 'appliedFiles': changed, 'verifiedFiles': 1818,
-                          'baselineFiles': 1811, 'scope': 'Reviewed performance draft only',
+        print(json.dumps({'passed': True, 'appliedFiles': changed, 'verifiedFiles': 1820,
+                          'baselineFiles': 1811, 'scope': 'Reviewed performance, heater provenance and TV outline draft only',
                           'source': str(root), 'installerBuilt': False, 'releasePublished': False}))
     finally:
         if staging is not None:

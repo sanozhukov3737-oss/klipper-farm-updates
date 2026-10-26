@@ -17,7 +17,7 @@
   "productionSources": {
     "src/App.tsx": "0dc92c965fd7ed3cfd5fa736efd77cc5274a23e0a10d080be0c23c50c9d88b50",
     "src/components/TvDashboard.tsx": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68",
-    "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+    "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
     "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97",
     "src/lib/spool-viewer.mjs": "6b3649ec27e6d1c54e124d9a4df8610d3e35283de40eebd633ff688b54b9f7f3"
   },
@@ -891,7 +891,7 @@
     "src/components/SystemPanel.module.css": "aeb5e1b36d30e780aab211cb8cfd57d2299dcf853a2368f21650dd5c878d8480",
     "src/components/SystemPanel.tsx": "029eb71408b5b4033abdebfaf094ac9d973a9ac26644685b29a0fab6b3950f1b",
     "src/components/TemperatureChart.tsx": "b73dce9c23e1c3bd6e37c2cd876d8987fbc11fb07ed5d4cfd850dc0a5becdae1",
-    "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+    "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
     "src/components/TvDashboard.tsx": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68",
     "src/data/printerCatalog.json": "4e6a0f6b8491a417faaa35aa4252ea54742b1e2f778936f8183163e87831196b",
     "src/i18n.tsx": "22270f2709935ad77132e60151b551fd983791282fbade9205207f2c86936f6f",
@@ -936,7 +936,7 @@
     "src/lib/modalAccessibility.ts": "65c58d69bb3ff903abd25ed02b3ed112ead28c80dea88a3282467ccd00632443",
     "src/lib/modelSafety.ts": "7efad581bed383ada8f40812f0893c27cf4c4220aa9e2071525cc552ddb15f2f",
     "src/lib/modelSelection.ts": "8fff8dcfc54ce0d6becaca1be1c4115a3eadcf4ed00d44c60e2a047711b2929f",
-    "src/lib/moonraker.ts": "d3c17753d02e788a8a9052d41fbc1d30899acde3681373d38e536defbef85f6e",
+    "src/lib/moonraker.ts": "0a0f1ac9f0cd1e25e320ba9b78be11da495d156156b6d931005adf8fd1762520",
     "src/lib/moonrakerFiles.ts": "caf0a46dd37162d9787c872b49c5634d3230ade0c5e8180d09a8c5d6a0adc84b",
     "src/lib/moonrakerPayload.ts": "d49398a651043bb89d45206989e9093bdadd8e5c76977621324f71bb092b2bdd",
     "src/lib/native.ts": "e3ddacf8cb6db5c48774fc1a5db611150fee8250675be575ff1aba843bd65558",
@@ -971,7 +971,7 @@
     "src/lib/usePrinterVisualActivity.ts": "05119757f32a267ed86d2c4632b77a500a69dc2a2ddce9197188b015942b34ec",
     "src/main.tsx": "96ee5192c401107d57bcf182e1f2f67fa2fe36614496730a2902f17c13a003fa",
     "src/styles.css": "7feee00fb4602ce492270809f20f34ac5ec6718d4f272abc8f09c215d6e71c27",
-    "src/types.ts": "444a68d003f485891f55cf91a25d71e1eca69d9c2e1b2532081efb2fa3ee3d55",
+    "src/types.ts": "9f8c0696860f3bdbcc7bdda3a95ff266082c75293e6e8e9cf0ac661b8eac52f7",
     "src/vite-env.d.ts": "424faf9241dd699dda995b367ed36665732da1e6ec1f33b2fd40394488ecac92"
   },
   "modes": {
@@ -983,10 +983,10 @@
       ]
     },
     "current": {
-      "initialJavaScriptBytes": 808795,
-      "initialGzipBytes": 232267,
+      "initialJavaScriptBytes": 809479,
+      "initialGzipBytes": 232542,
       "initialJavaScriptFiles": [
-        "assets/index-BZ7kOv1y.js"
+        "assets/index-BVK0qNgB.js"
       ]
     }
   }

@@ -1,22 +1,21 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
+  "revision": "performance-temperature-middle-frame",
   "baseline": "R140",
   "passed": true,
-  "featurePatchSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
+  "scope": "Exact source delta and preservation audit; this is not full native build or release validation.",
+  "featurePatchSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
   "baseArchiveSha256": "cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04",
   "baselineFiles": 1811,
-  "reviewedFiles": 11,
-  "modifiedFiles": 4,
-  "newFiles": 7,
-  "expectedPrebuildSourceFiles": 1818,
-  "unchangedNonGeneratedBaselineFiles": 1301,
+  "reviewedFiles": 23,
+  "modifiedFiles": 14,
+  "newFiles": 9,
+  "expectedPrebuildSourceFiles": 1820,
+  "unchangedNonGeneratedBaselineFiles": 1291,
   "excludedBaselineDistFiles": 506,
   "unreviewedStaticFiles": [],
-  "ignoredTransientFiles": [
-    "public/camera-detector/.obico-failure-5a6b1be1fa.onnx.uk65tb",
-    "offline-tools/rust/.rust-vendor-v1144.tar.gz.4sVxYp"
-  ],
+  "ignoredTransientFileCount": 2,
   "files": [
     {
       "path": "src/App.tsx",
@@ -56,12 +55,12 @@
     {
       "path": "scripts/check-r141-performance-report.mjs",
       "beforeSha256": null,
-      "sha256": "1ce16d0312eed9b54935de88c720e5d50e64e723ae052bc0361e441fb9038f74"
+      "sha256": "be2e8d29ba01534067da9483115c1c090363229361683ae9904f300f78cb9bd6"
     },
     {
       "path": "ui-tests/r141-performance.mjs",
       "beforeSha256": null,
-      "sha256": "eb6e7f282f6724bedae6e7f33de1c569fa799f2c59927600af89b0252017824e"
+      "sha256": "a95c3a6e32dbb940779fe66e4b1f28cb645eb2e899a465e1aaa9f2f3343a3c01"
     },
     {
       "path": "ui-tests/r141-performance-app.html",
@@ -72,46 +71,112 @@
       "path": "ui-tests/r141-performance-tv.html",
       "beforeSha256": null,
       "sha256": "68e68fb548dcb19b502d049eae4cbaaab8b564cd9df4190207812c7186f60414"
+    },
+    {
+      "path": "src/components/TvDashboard.css",
+      "beforeSha256": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+      "sha256": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40"
+    },
+    {
+      "path": "src/lib/moonraker.ts",
+      "beforeSha256": "d3c17753d02e788a8a9052d41fbc1d30899acde3681373d38e536defbef85f6e",
+      "sha256": "0a0f1ac9f0cd1e25e320ba9b78be11da495d156156b6d931005adf8fd1762520"
+    },
+    {
+      "path": "src/types.ts",
+      "beforeSha256": "444a68d003f485891f55cf91a25d71e1eca69d9c2e1b2532081efb2fa3ee3d55",
+      "sha256": "9f8c0696860f3bdbcc7bdda3a95ff266082c75293e6e8e9cf0ac661b8eac52f7"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/temperature.rs",
+      "beforeSha256": null,
+      "sha256": "4d0283831856cdbf8dd5f883104978aaa93a7d54db20c56d48fef70401fff9e6"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/mod.rs",
+      "beforeSha256": "07357d61a5b7d52868a6cffbfa24caab79cf10b11022acfeeb60c4b60c6386fc",
+      "sha256": "85c045cd7d35ffd6517946f8ac31cbcf6987bf1b6fac807ace12e538fc86eb8f"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/types.rs",
+      "beforeSha256": "1e770b40fbe75678f5dad78394f532b8b78d9d5ca859b9bd3a660feeed6aa654",
+      "sha256": "fe14406d2090ec75204737dd08c3405b728148e94c6f022afb7a6f3250bc3921"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/actor.rs",
+      "beforeSha256": "b0fcae5abf4f3cda072e945c813caff887bd48557ecc57b4651f48434eca5cbc",
+      "sha256": "a76cd72ae30c3cb2e3911c399c4461d66d77433d33d18d5785deda0d1a4a0bbf"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/journal.rs",
+      "beforeSha256": "e2665c774cebc0e9f936b348a1715d8356d440847d343d41c955231488ffff5e",
+      "sha256": "9b3f54acc7809460e8ae2e22a986973c45241f3bcccdef486df07466c232fd2b"
+    },
+    {
+      "path": "src-tauri/src/online_updates.rs",
+      "beforeSha256": "3eb17e8ecf44f6035dc2cba5ed3c53e11a8996dd818ecba8145aa0396800ea8c",
+      "sha256": "bcaaffbd09189ec95b0da82d2b8b5137c3d8340015a701d2c0c0455095c7855c"
+    },
+    {
+      "path": "scripts/check-v20-6-discovery-display.mjs",
+      "beforeSha256": "f2d2d49cfa51b1901339c805b2fe5925a966b3156e04d49fb053e3dd655c1f16",
+      "sha256": "f685136b909c3c3bd2d90ea820278fee90ee980e3af4480ea0f02acdddc3e4ef"
+    },
+    {
+      "path": "scripts/run-rust-tests.mjs",
+      "beforeSha256": "f16cfdc2a7d9f5ceb23e1cec0abb964939657e831df332e37a3a936fa1b2b9ef",
+      "sha256": "0f156fbc880aaf2863288d51bd6ac97b7d8a5bd3a8992f1071c88560c79fe8d3"
+    },
+    {
+      "path": "scripts/check-r141-temperature-merge.mjs",
+      "beforeSha256": null,
+      "sha256": "da6e6c6560af2db1bcb653762e13e65221474060885e0d57f82aa707a22dbbc9"
     }
   ],
   "preserved": {
-    "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
     "src/lib/spool-viewer.mjs": "6b3649ec27e6d1c54e124d9a4df8610d3e35283de40eebd633ff688b54b9f7f3",
     "src/lib/filamentThumbnails.ts": "680662bb25f294b482a5cf63a919bf5351387c22074bc3ac4df0e82449b1a9c0",
     "src/lib/liveClock.ts": "d9ae8c2f498ba3b8fb447e64f859348f8646a32f78662b8ba3a004fa95c280b6",
     "src/lib/filamentInventory.ts": "021ae0fe42b7127758e47967113d957c1b2f2ec45b3a862c2e2f009578c6b7de",
     "src/lib/useFilamentAccounting.ts": "b27d8e121c2e888a1de21be0accc793a0c332f46f9e7241eac34192da7b32f57",
-    "src/lib/moonraker.ts": "d3c17753d02e788a8a9052d41fbc1d30899acde3681373d38e536defbef85f6e",
     "src/lib/printerAddressRecovery.ts": "eaa9f9d8a63c11d8faf7a061d684c8befeadf7a8fa670b6e9c66d5cb78cc2836",
     "src-tauri/src/lib.rs": "f3537fd07934935b1425ccb43d35928bbe22d4a8267bf208efa396c471e4d767",
     "src-tauri/src/main.rs": "a6a61f4ad3e90a95f82d56077c92103d51a557971c64b9d1dea5c8dca0075936",
     "UPDATE-CHANNEL.json": "532acab9b5ec5e3b3bbd977a448d166e882ab032b6090e69aa4a3442d2348513",
     "RELEASE-BUILD-ID.txt": "ea22ee0d0db459c8083c8aaf8086f7cdfbadaf172226584ac4e89ca4c99cae86"
   },
+  "unchangedNativeRustFiles": 55,
+  "modifiedNativeRustFiles": [
+    "src-tauri/src/transactional_core/mod.rs",
+    "src-tauri/src/transactional_core/types.rs",
+    "src-tauri/src/transactional_core/actor.rs",
+    "src-tauri/src/transactional_core/journal.rs",
+    "src-tauri/src/online_updates.rs"
+  ],
+  "newNativeRustFiles": [
+    "src-tauri/src/transactional_core/temperature.rs"
+  ],
+  "nativeActorIntegrationExecuted": false,
+  "fullNativeTypecheckExecuted": false,
   "installerBuilt": false,
   "releasePublished": false,
   "sourceVersionMetadata": "R140 retained; R141 release identity has not been applied",
-  "nativeRustFilesPreserved": 60,
   "applyValidation": {
     "passed": true,
+    "fullSmokeFeatureSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
     "freshPublishedArchiveApplied": true,
-    "firstApplyFiles": 11,
+    "firstApplyFiles": 23,
     "idempotentApplyFiles": 0,
-    "completeVerifiedFiles": 1818,
-    "cases": [
-      "unchanged-file tamper rejected before reviewed writes",
-      "unreviewed changed-row bytes rejected",
-      "symlink target rejected without touching target",
-      "changed feature JSON rejected by pinned SHA",
-      "second complete-source idempotent verification",
-      "R140 release identity and stable channel left byte-identical"
-    ],
-    "fullSmokeFeatureSha256": "fd9b04d655579b23fea700070a735010dd25df1efd3e48ec7dd95a8c2cd48754",
-    "finalPayloadRevalidated": true,
-    "finalFeatureSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
-    "applyLogicUnchangedAfterDigestRepin": true,
-    "finalDeltaOnly": [
-      "ui-tests/r141-performance.mjs"
-    ]
+    "completeVerifiedFiles": 1820,
+    "reviewedPayloadRowsVerified": 23,
+    "scope": "Fresh full published R140 archive applied and then reapplied idempotently with the final combined payload."
+  },
+  "sourceReview": {
+    "passed": true,
+    "scope": "Manual source review of per-heater provenance, strict decimal parsing, delayed/cache ordering and bounded recovery paths.",
+    "healthyResponseAdditionalQueriesReviewed": 0,
+    "missingHeaterRecoveryAdditionalTimeoutBoundMs": 6000,
+    "fanIpAndStartDispatchReviewedAsPreserved": true,
+    "doesNotProveFullNativeTypecheckOrExecution": true
   }
 }

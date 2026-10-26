@@ -1,20 +1,27 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
+  "revision": "performance-temperature-middle-frame",
   "baseline": "R140",
+  "status": "executed_draft_checks_passed_full_native_validation_pending",
   "passed": true,
-  "featurePatchSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
+  "scope": "All listed executed draft checks passed; full native actor typecheck/integration and Windows release validation remain pending.",
+  "featurePatchSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
   "typescriptPassed": true,
   "frontendProductionBuildPassed": true,
+  "discoveryDisplayCheckPassed": true,
+  "rustStructureCheckPassed": true,
   "testCounts": {
     "filamentData": 32,
     "cacheBoundaries": 9,
     "tvBrowser": 20,
     "cameraBrowser": 20,
     "actualAppAddressAndSettings": 5,
-    "performance": 12
+    "performance": 13,
+    "temperatureMerge": 16,
+    "nativeHelper": 7
   },
-  "totalPassed": 98,
+  "totalPassed": 122,
   "reports": {
     "filamentData": {
       "passed": 32,
@@ -292,7 +299,7 @@
       "externalRequests": [],
       "productionSources": {
         "src/components/TvDashboard.tsx": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68",
-        "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+        "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
         "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97"
       },
       "actualReactComponent": true,
@@ -490,22 +497,474 @@
         "src/App.tsx": "0dc92c965fd7ed3cfd5fa736efd77cc5274a23e0a10d080be0c23c50c9d88b50",
         "src/lib/printerAddressRecovery.ts": "eaa9f9d8a63c11d8faf7a061d684c8befeadf7a8fa670b6e9c66d5cb78cc2836",
         "src/lib/printerEndpoint.ts": "b2734d39692fd126f77f4347ae4eb949bfa82840f0e84e52c7e26f323ca86414",
-        "src/lib/moonraker.ts": "d3c17753d02e788a8a9052d41fbc1d30899acde3681373d38e536defbef85f6e",
+        "src/lib/moonraker.ts": "0a0f1ac9f0cd1e25e320ba9b78be11da495d156156b6d931005adf8fd1762520",
         "src/lib/printerConfigStore.ts": "46454551d5773df3584b1530c4e6af9807ea866f281216a8aae353e20db7e664",
         "ui-tests/farm-startup-r125.tsx": "c3e5c7507a3dd94271f26371c4c402fa47c7260c1213a66b61a0a596e793ef89",
         "ui-tests/address-recovery-r139.tsx": "7fda96ac9964179065b09c107a24bb878a7f875ab5fbcb12a2fcc1783a008251",
         "ui-tests/address-recovery-r139.mjs": "a0c4008559517f35d8c23b679789fb2cb5b5c5bb2f2e591fe6175e9511bc8a73"
       }
+    },
+    "temperatureMerge": {
+      "passed": 16,
+      "cases": [
+        {
+          "name": "fresh-job-snapshot-cannot-backdate-or-replace-a-newer-heater-read",
+          "passed": true
+        },
+        {
+          "name": "undated-cached-heaters-cannot-overwrite-confirmed-readings",
+          "passed": true
+        },
+        {
+          "name": "buffered-heater-read-is-protected-before-its-first-render",
+          "passed": true
+        },
+        {
+          "name": "websocket-temperature-delta-survives-an-older-actor-cache",
+          "passed": true
+        },
+        {
+          "name": "job-and-fan-updates-never-refresh-old-heater-data",
+          "passed": true
+        },
+        {
+          "name": "newer-real-heaters-recover-and-identical-values-still-refresh",
+          "passed": true
+        },
+        {
+          "name": "initial-undated-cache-stays-unavailable-and-zero-is-a-real-reading",
+          "passed": true
+        },
+        {
+          "name": "disconnect-clears-the-observation-guard-for-a-new-connection",
+          "passed": true
+        },
+        {
+          "name": "fresh-bed-cache-never-promotes-or-overwrites-an-older-cached-nozzle",
+          "passed": true
+        },
+        {
+          "name": "newer-nozzle-date-does-not-block-a-fresh-bed-observation",
+          "passed": true
+        },
+        {
+          "name": "new-actor-with-one-unobserved-heater-does-not-confirm-its-default-zero",
+          "passed": true
+        },
+        {
+          "name": "legacy-snapshot-global-date-preserves-the-earlier-bridge-contract",
+          "passed": true
+        },
+        {
+          "name": "delayed-native-event-keeps-each-source-date-instead-of-receipt-time",
+          "passed": true
+        },
+        {
+          "name": "unstamped-legacy-event-cannot-relabel-two-hour-old-heaters-as-live",
+          "passed": true
+        },
+        {
+          "name": "invalid-numeric-prefixes-never-replace-confirmed-heater-values",
+          "passed": true
+        },
+        {
+          "name": "malformed-direct-heater-payload-does-not-refresh-and-real-zero-still-does",
+          "passed": true
+        }
+      ],
+      "sourceSha256": {
+        "src/lib/moonraker.ts": "0a0f1ac9f0cd1e25e320ba9b78be11da495d156156b6d931005adf8fd1762520",
+        "src/types.ts": "9f8c0696860f3bdbcc7bdda3a95ff266082c75293e6e8e9cf0ac661b8eac52f7",
+        "src/lib/printerTelemetry.ts": "26d906e146a194975dcdd196d5d79bab8ffd64cac49ab9192846bfc27771d683",
+        "scripts/check-r141-temperature-merge.mjs": "da6e6c6560af2db1bcb653762e13e65221474060885e0d57f82aa707a22dbbc9"
+      },
+      "scope": "Actual production MoonrakerClient with isolated native boundary; no printer network requests or fabricated live heater fallback."
+    },
+    "nativeHelper": {
+      "schemaVersion": 1,
+      "scope": "Exact production temperature.rs and types.rs included by Rust #[path] in an isolated temporary Cargo crate with the real path dependency kf-domain. Three helper, three production types and one additional wire roundtrip tests executed. Actor integration, Tauri, Windows installer and physical printers were not tested.",
+      "observedAt": "2026-10-26T11:08:27.272507+00:00",
+      "source": "src-tauri/src/transactional_core/temperature.rs",
+      "sourceSha256": "4d0283831856cdbf8dd5f883104978aaa93a7d54db20c56d48fef70401fff9e6",
+      "compiledProductionModules": {
+        "src-tauri/src/transactional_core/temperature.rs": "4d0283831856cdbf8dd5f883104978aaa93a7d54db20c56d48fef70401fff9e6",
+        "src-tauri/src/transactional_core/types.rs": "fe14406d2090ec75204737dd08c3405b728148e94c6f022afb7a6f3250bc3921"
+      },
+      "nativeSourceHashes": {
+        "src-tauri/src/transactional_core/temperature.rs": "4d0283831856cdbf8dd5f883104978aaa93a7d54db20c56d48fef70401fff9e6",
+        "src-tauri/src/transactional_core/types.rs": "fe14406d2090ec75204737dd08c3405b728148e94c6f022afb7a6f3250bc3921",
+        "src-tauri/src/transactional_core/actor.rs": "a76cd72ae30c3cb2e3911c399c4461d66d77433d33d18d5785deda0d1a4a0bbf",
+        "src-tauri/src/transactional_core/journal.rs": "9b3f54acc7809460e8ae2e22a986973c45241f3bcccdef486df07466c232fd2b",
+        "src-tauri/src/transactional_core/mod.rs": "85c045cd7d35ffd6517946f8ac31cbcf6987bf1b6fac807ace12e538fc86eb8f",
+        "src-tauri/src/online_updates.rs": "bcaaffbd09189ec95b0da82d2b8b5137c3d8340015a701d2c0c0455095c7855c"
+      },
+      "sourceUnchangedDuringRun": true,
+      "cargoVersion": "cargo 1.99.1 (5f94df478 2026-08-27)",
+      "rustcVersion": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+      "rustfmtVersion": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+      "command": [
+        "/tmp/r141-cargo/bin/cargo",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/tmp/r141-temperature-helper-crate/Cargo.toml",
+        "--",
+        "--nocapture"
+      ],
+      "environment": {
+        "RUSTUP_HOME": "/tmp/r141-rustup",
+        "CARGO_HOME": "/tmp/r141-cargo"
+      },
+      "exitCode": 0,
+      "passed": 7,
+      "helperTestsPassed": 3,
+      "productionTypesTestsPassed": 3,
+      "additionalHarnessTestsPassed": 1,
+      "cases": [
+        "actor_types::tests::actor_presentation_keeps_reason_channel_and_data_age_together",
+        "actor_types::tests::connected_quarantine_does_not_lie_about_network_reachability",
+        "temperature::tests::temperature_core_freshness_requires_both_observations_and_uses_older_one",
+        "temperature::tests::temperature_rejects_absent_malformed_and_nonfinite_readings",
+        "actor_types::tests::temperature_legacy_actor_wire_fields_do_not_invent_provenance",
+        "wire_roundtrip::separate_heater_observation_dates_round_trip_snapshot_and_event",
+        "temperature::tests::temperature_accepts_finite_numeric_json_and_vendor_strings"
+      ],
+      "failed": 0,
+      "ignored": 0,
+      "dependencyVersionsAndChecksumsMatchProductionLock": true,
+      "dependencies": {
+        "itoa": {
+          "version": "1.0.18",
+          "checksum": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+        },
+        "memchr": {
+          "version": "2.8.3",
+          "checksum": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
+        },
+        "proc-macro2": {
+          "version": "1.0.107",
+          "checksum": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
+        },
+        "quote": {
+          "version": "1.0.47",
+          "checksum": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
+        },
+        "serde": {
+          "version": "1.0.229",
+          "checksum": "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
+        },
+        "serde_core": {
+          "version": "1.0.229",
+          "checksum": "67dca2c9c51e58a4791a4b1ed58308b39c64224d349a935ab5039aa360942a48"
+        },
+        "serde_derive": {
+          "version": "1.0.229",
+          "checksum": "e7a5d71263a5a7d47b41f6b3f06ba276f10cc18b0931f1799f710578e2309348"
+        },
+        "serde_json": {
+          "version": "1.0.151",
+          "checksum": "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+        },
+        "syn": {
+          "version": "3.0.3",
+          "checksum": "53e9bae58849f64dfa4f5d5ae372c8341f7305f82a3868709269343628b659a3"
+        },
+        "thiserror": {
+          "version": "2.0.20",
+          "checksum": "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f"
+        },
+        "thiserror-impl": {
+          "version": "2.0.20",
+          "checksum": "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af"
+        },
+        "unicode-ident": {
+          "version": "1.0.24",
+          "checksum": "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75"
+        },
+        "zmij": {
+          "version": "1.0.23",
+          "checksum": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+        }
+      },
+      "pathDependency": {
+        "path": "src-tauri/crates/kf-domain",
+        "cargoTomlSha256": "3b3ddc2d3dfa514c31a03080a11ad183d02d0b66dfd85fe1c642f0073411c5ce",
+        "libRsSha256": "a789c695066725ce9bb0ec9e501d9fb3d8889eb6bc9882a2c83992063f68646d"
+      },
+      "harnessCargoTomlSha256": "e4fc1ddb7a8839cbd7b7e7f104cc32c51c6a8cab746e523869ee3b5f3d0a9bb6",
+      "harnessCargoLockSha256": "cbc13a62169fd5f465d9303371abf3707ac02c8e8801ab1307f5bc02859509d2",
+      "harnessModuleSha256": "fbf2abefb09648a2bf7f3c6e8991f66b3c9698ef61a2a112b630e83e2ac0155a",
+      "testLogSha256": "f2ccbfcc5eb02134b3fb84b3d8839000ba00bb4c17caea31ada1e66deb5b955f",
+      "actorIntegrationTestsRun": false,
+      "actorTypeChecked": false,
+      "fullNativeBuildRun": false,
+      "installedWindowsTested": false,
+      "physicalPrintersTested": false
     }
   },
-  "performanceReportSha256": "e846f27d29dcd7104fa076d59fb4e7e108ddcabecef0bd2ae28bdc2413dc7828",
-  "preservedRustFiles": 60,
+  "performanceReportSha256": "4b86c73c7d90fdd40211ad678c4d40426a4f3fb5267dd4bad8bb0bc76ea32f79",
+  "performanceCases": [
+    {
+      "name": "matched-actual-seven-printer-app-and-tv-samples",
+      "passed": true,
+      "samplesPerMode": 3,
+      "modes": [
+        "baseline",
+        "current"
+      ]
+    },
+    {
+      "name": "baseline-actual-module-load-boundary",
+      "passed": true
+    },
+    {
+      "name": "current-actual-module-load-boundary",
+      "passed": true
+    },
+    {
+      "name": "clock-only-heavy-renders-and-ledger-scans-removed",
+      "passed": true
+    },
+    {
+      "name": "live-telemetry-retains-visible-updates-without-ledger-rescans",
+      "passed": true
+    },
+    {
+      "name": "approved-middle-column-outline-preserves-all-column-geometry",
+      "passed": true,
+      "viewports": [
+        {
+          "width": 1366,
+          "height": 900
+        },
+        {
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "onlyApprovedCssDelta": true
+    },
+    {
+      "name": "pending-secondary-panel-can-close-without-hiding-farm",
+      "passed": true
+    },
+    {
+      "name": "cold-tv-fallback-hands-off-focus-and-restores-original-launcher",
+      "passed": true
+    },
+    {
+      "name": "control-to-cold-settings-handoff-keeps-focus-inside-new-panel",
+      "passed": true
+    },
+    {
+      "name": "failed-secondary-panel-closes-and-explicit-ui-reload-recovers",
+      "passed": true,
+      "sevenConfigurationsPreserved": true,
+      "automaticReloads": 0,
+      "explicitUserReload": true,
+      "actuatorCommands": 0
+    },
+    {
+      "name": "cached-ledger-rolls-over-at-local-midnight",
+      "passed": true
+    },
+    {
+      "name": "cached-ledger-invalidates-at-future-coverage-boundary",
+      "passed": true
+    },
+    {
+      "name": "freshness-expiry-still-stops-live-state-without-telemetry",
+      "passed": true
+    }
+  ],
+  "performanceScope": "Headless Chromium on Linux with actual production React components, seven synthetic printers, local camera frame and exact approved spool renderer. Renderer task CPU time and JavaScript heap only; not installed Windows startup, total process RAM or the user computer.",
+  "sourceReview": {
+    "passed": true,
+    "scope": "Manual source review of per-heater provenance, strict decimal parsing, delayed/cache ordering and bounded recovery paths.",
+    "healthyResponseAdditionalQueriesReviewed": 0,
+    "missingHeaterRecoveryAdditionalTimeoutBoundMs": 6000,
+    "fanIpAndStartDispatchReviewedAsPreserved": true,
+    "doesNotProveFullNativeTypecheckOrExecution": true
+  },
+  "nativeSyntaxFilesParsed": 6,
+  "nativeSyntaxReport": {
+    "schemaVersion": 1,
+    "scope": "Rustfmt parsing only, with output discarded. Production files were not formatted or written. Parsing does not prove imports, struct literals or type correctness in actor/journal/mod/online_updates; no actor typecheck or integration execution.",
+    "observedAt": "2026-10-26T11:08:27.272507+00:00",
+    "rustfmtVersion": "rustfmt 1.10.0-stable (58cf8f9c35 2026-10-13)",
+    "passed": 6,
+    "failed": 0,
+    "files": [
+      {
+        "source": "src-tauri/src/transactional_core/temperature.rs",
+        "sourceSha256": "4d0283831856cdbf8dd5f883104978aaa93a7d54db20c56d48fef70401fff9e6",
+        "command": [
+          "/tmp/r141-cargo/bin/rustfmt",
+          "--edition",
+          "2021",
+          "--emit",
+          "stdout",
+          "/workspace/scratch/d006d396a32a/klipper-farm-r141-source/src-tauri/src/transactional_core/temperature.rs"
+        ],
+        "exitCode": 0,
+        "stderr": "",
+        "syntaxParsed": true,
+        "typeChecked": true,
+        "sourceUnchanged": true
+      },
+      {
+        "source": "src-tauri/src/transactional_core/types.rs",
+        "sourceSha256": "fe14406d2090ec75204737dd08c3405b728148e94c6f022afb7a6f3250bc3921",
+        "command": [
+          "/tmp/r141-cargo/bin/rustfmt",
+          "--edition",
+          "2021",
+          "--emit",
+          "stdout",
+          "/workspace/scratch/d006d396a32a/klipper-farm-r141-source/src-tauri/src/transactional_core/types.rs"
+        ],
+        "exitCode": 0,
+        "stderr": "",
+        "syntaxParsed": true,
+        "typeChecked": true,
+        "sourceUnchanged": true
+      },
+      {
+        "source": "src-tauri/src/transactional_core/actor.rs",
+        "sourceSha256": "a76cd72ae30c3cb2e3911c399c4461d66d77433d33d18d5785deda0d1a4a0bbf",
+        "command": [
+          "/tmp/r141-cargo/bin/rustfmt",
+          "--edition",
+          "2021",
+          "--emit",
+          "stdout",
+          "/workspace/scratch/d006d396a32a/klipper-farm-r141-source/src-tauri/src/transactional_core/actor.rs"
+        ],
+        "exitCode": 0,
+        "stderr": "",
+        "syntaxParsed": true,
+        "typeChecked": false,
+        "sourceUnchanged": true
+      },
+      {
+        "source": "src-tauri/src/transactional_core/journal.rs",
+        "sourceSha256": "9b3f54acc7809460e8ae2e22a986973c45241f3bcccdef486df07466c232fd2b",
+        "command": [
+          "/tmp/r141-cargo/bin/rustfmt",
+          "--edition",
+          "2021",
+          "--emit",
+          "stdout",
+          "/workspace/scratch/d006d396a32a/klipper-farm-r141-source/src-tauri/src/transactional_core/journal.rs"
+        ],
+        "exitCode": 0,
+        "stderr": "",
+        "syntaxParsed": true,
+        "typeChecked": false,
+        "sourceUnchanged": true
+      },
+      {
+        "source": "src-tauri/src/transactional_core/mod.rs",
+        "sourceSha256": "85c045cd7d35ffd6517946f8ac31cbcf6987bf1b6fac807ace12e538fc86eb8f",
+        "command": [
+          "/tmp/r141-cargo/bin/rustfmt",
+          "--edition",
+          "2021",
+          "--emit",
+          "stdout",
+          "/workspace/scratch/d006d396a32a/klipper-farm-r141-source/src-tauri/src/transactional_core/mod.rs"
+        ],
+        "exitCode": 0,
+        "stderr": "",
+        "syntaxParsed": true,
+        "typeChecked": false,
+        "sourceUnchanged": true
+      },
+      {
+        "source": "src-tauri/src/online_updates.rs",
+        "sourceSha256": "bcaaffbd09189ec95b0da82d2b8b5137c3d8340015a701d2c0c0455095c7855c",
+        "command": [
+          "/tmp/r141-cargo/bin/rustfmt",
+          "--edition",
+          "2021",
+          "--emit",
+          "stdout",
+          "/workspace/scratch/d006d396a32a/klipper-farm-r141-source/src-tauri/src/online_updates.rs"
+        ],
+        "exitCode": 0,
+        "stderr": "",
+        "syntaxParsed": true,
+        "typeChecked": false,
+        "sourceUnchanged": true
+      }
+    ],
+    "sourcesUnchangedDuringRun": true,
+    "actorTypeChecked": false,
+    "actorIntegrationTestsRun": false,
+    "fullNativeBuildRun": false
+  },
+  "nativeIntegrationPending": {
+    "status": "pending_native_actor_compilation_and_execution",
+    "actorTests": [
+      {
+        "name": "transactional_core::actor::tests::temperature_numeric_strings_advance_only_actual_core_freshness",
+        "status": "not_executed"
+      },
+      {
+        "name": "transactional_core::actor::tests::temperature_partial_heater_delta_keeps_other_heater_provenance",
+        "status": "not_executed"
+      },
+      {
+        "name": "transactional_core::actor::tests::temperature_repair_restores_heaters_after_job_only_grouped_reply",
+        "status": "not_executed"
+      },
+      {
+        "name": "transactional_core::actor::tests::temperature_repair_uses_alternate_transport_for_still_missing_heater",
+        "status": "not_executed"
+      },
+      {
+        "name": "transactional_core::actor::tests::temperature_repair_failure_keeps_stale_readings_and_freshness_honest",
+        "status": "not_executed"
+      }
+    ],
+    "extendedExistingTests": [
+      {
+        "name": "transactional_core::actor::tests::physical_address_change_discards_old_telemetry_but_port_failover_preserves_it",
+        "status": "not_executed"
+      },
+      {
+        "name": "transactional_core::actor::tests::rejected_optional_fan_preserves_core_fallback_and_next_temperature_query",
+        "status": "not_executed"
+      }
+    ],
+    "actorTypeChecked": false,
+    "actorIntegrationTestsRun": false,
+    "fullNativeBuildRun": false,
+    "nativeRegressionCommand": "cargo test --manifest-path src-tauri/Cargo.toml --locked --lib --features fault-injection temperature -- --nocapture",
+    "fullNativeCommand": "node scripts/run-rust-tests.mjs",
+    "sourceReportSha256": "bf34fdba595def97cd27fe06a570cabf7d40212cd1a283e001e24a0f09702a31",
+    "limitations": [
+      "Full Tauri/native actor/journal compilation and integration execution remain pending.",
+      "Isolated exact-module helper/types tests and Rust syntax parsing do not prove complete actor type correctness.",
+      "No installed Windows build or physical printer temperature validation was performed."
+    ]
+  },
+  "readyForWindowsRelease": false,
   "approvedSpoolRendererUnchanged": true,
-  "tvCssUnchanged": true,
+  "approvedMiddleFrameCssDelta": true,
+  "tvCssUnchanged": false,
+  "tvColumnGeometryUnchanged": true,
+  "frameViewports": 3,
   "sharedClockUnchanged": true,
   "releaseIdentityUnchanged": true,
   "physicalPrintersTested": false,
   "installedWindowsTested": false,
+  "fullNativeBuildRun": false,
   "installerBuilt": false,
   "releasePublished": false
 }

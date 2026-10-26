@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "release": "R141-performance-draft",
-  "passed": 12,
+  "passed": 13,
   "cases": [
     {
       "name": "matched-actual-seven-printer-app-and-tv-samples",
@@ -27,6 +27,25 @@
     {
       "name": "live-telemetry-retains-visible-updates-without-ledger-rescans",
       "passed": true
+    },
+    {
+      "name": "approved-middle-column-outline-preserves-all-column-geometry",
+      "passed": true,
+      "viewports": [
+        {
+          "width": 1366,
+          "height": 900
+        },
+        {
+          "width": 1920,
+          "height": 1080
+        },
+        {
+          "width": 390,
+          "height": 844
+        }
+      ],
+      "onlyApprovedCssDelta": true
     },
     {
       "name": "pending-secondary-panel-can-close-without-hiding-farm",
@@ -79,7 +98,7 @@
   "productionSources": {
     "src/App.tsx": "0dc92c965fd7ed3cfd5fa736efd77cc5274a23e0a10d080be0c23c50c9d88b50",
     "src/components/TvDashboard.tsx": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68",
-    "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+    "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
     "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97",
     "src/lib/spool-viewer.mjs": "6b3649ec27e6d1c54e124d9a4df8610d3e35283de40eebd633ff688b54b9f7f3"
   },
@@ -953,7 +972,7 @@
     "src/components/SystemPanel.module.css": "aeb5e1b36d30e780aab211cb8cfd57d2299dcf853a2368f21650dd5c878d8480",
     "src/components/SystemPanel.tsx": "029eb71408b5b4033abdebfaf094ac9d973a9ac26644685b29a0fab6b3950f1b",
     "src/components/TemperatureChart.tsx": "b73dce9c23e1c3bd6e37c2cd876d8987fbc11fb07ed5d4cfd850dc0a5becdae1",
-    "src/components/TvDashboard.css": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+    "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
     "src/components/TvDashboard.tsx": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68",
     "src/data/printerCatalog.json": "4e6a0f6b8491a417faaa35aa4252ea54742b1e2f778936f8183163e87831196b",
     "src/i18n.tsx": "22270f2709935ad77132e60151b551fd983791282fbade9205207f2c86936f6f",
@@ -998,7 +1017,7 @@
     "src/lib/modalAccessibility.ts": "65c58d69bb3ff903abd25ed02b3ed112ead28c80dea88a3282467ccd00632443",
     "src/lib/modelSafety.ts": "7efad581bed383ada8f40812f0893c27cf4c4220aa9e2071525cc552ddb15f2f",
     "src/lib/modelSelection.ts": "8fff8dcfc54ce0d6becaca1be1c4115a3eadcf4ed00d44c60e2a047711b2929f",
-    "src/lib/moonraker.ts": "d3c17753d02e788a8a9052d41fbc1d30899acde3681373d38e536defbef85f6e",
+    "src/lib/moonraker.ts": "0a0f1ac9f0cd1e25e320ba9b78be11da495d156156b6d931005adf8fd1762520",
     "src/lib/moonrakerFiles.ts": "caf0a46dd37162d9787c872b49c5634d3230ade0c5e8180d09a8c5d6a0adc84b",
     "src/lib/moonrakerPayload.ts": "d49398a651043bb89d45206989e9093bdadd8e5c76977621324f71bb092b2bdd",
     "src/lib/native.ts": "e3ddacf8cb6db5c48774fc1a5db611150fee8250675be575ff1aba843bd65558",
@@ -1033,11 +1052,489 @@
     "src/lib/usePrinterVisualActivity.ts": "05119757f32a267ed86d2c4632b77a500a69dc2a2ddce9197188b015942b34ec",
     "src/main.tsx": "96ee5192c401107d57bcf182e1f2f67fa2fe36614496730a2902f17c13a003fa",
     "src/styles.css": "7feee00fb4602ce492270809f20f34ac5ec6718d4f272abc8f09c215d6e71c27",
-    "src/types.ts": "444a68d003f485891f55cf91a25d71e1eca69d9c2e1b2532081efb2fa3ee3d55",
+    "src/types.ts": "9f8c0696860f3bdbcc7bdda3a95ff266082c75293e6e8e9cf0ac661b8eac52f7",
     "src/vite-env.d.ts": "424faf9241dd699dda995b367ed36665732da1e6ec1f33b2fd40394488ecac92"
   },
+  "productionBundleMeasurement": {
+    "base": "/",
+    "matchesProjectDefaultBase": true,
+    "fixtureBase": "./",
+    "scope": "Actual production index.html static JavaScript dependency closure using the project default base. Fixture browser workloads retain their relative base."
+  },
   "approvedSpoolRendererUnchanged": true,
-  "tvCssUnchanged": true,
+  "approvedMiddleFrameCssDelta": true,
+  "approvedMiddleFrameCss": {
+    "baselineSha256": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+    "currentSha256": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
+    "restoredSha256": "f0929056bab6feb648395022c4a0db605d2cfb1fb82164671e80fcbd2ebcfb29",
+    "radiusPx": 18,
+    "outlineWidthPx": 1,
+    "outlineStyle": "solid",
+    "outlineOffset": "clamp(8px, .7vw, 13px)",
+    "onlyApprovedDelta": true
+  },
+  "middleFrameLayoutChecks": [
+    {
+      "width": 1366,
+      "height": 900,
+      "baseline": {
+        "rectangles": {
+          ".tvSpotlight": {
+            "x": 20.484375,
+            "y": 185.46875,
+            "width": 1325.03125,
+            "height": 639.046875
+          },
+          ".tvSpotlightBody": {
+            "x": 50.15625,
+            "y": 302.21875,
+            "width": 1265.6875,
+            "height": 353.25
+          },
+          ".tvSpotlightVisual": {
+            "x": 50.15625,
+            "y": 302.21875,
+            "width": 619.25,
+            "height": 353.25
+          },
+          ".tvSpotlightInfo": {
+            "x": 715.84375,
+            "y": 302.21875,
+            "width": 600,
+            "height": 353.25
+          },
+          ".tvSpotlightDetails": {
+            "x": 715.84375,
+            "y": 302.21875,
+            "width": 392.6875,
+            "height": 353.25
+          },
+          ".tvInsightRail": {
+            "x": 1135.84375,
+            "y": 302.21875,
+            "width": 180,
+            "height": 353.25
+          },
+          ".tvSpoolFeature": {
+            "x": 1160.84375,
+            "y": 307.25,
+            "width": 155,
+            "height": 177.140625
+          },
+          ".tvWeekUsage": {
+            "x": 1160.84375,
+            "y": 504.390625,
+            "width": 155,
+            "height": 146.03125
+          },
+          ".tvSpotlightStats": {
+            "x": 50.15625,
+            "y": 668.96875,
+            "width": 1265.6875,
+            "height": 97.375
+          },
+          ".tvTemperatures": {
+            "x": 715.84375,
+            "y": 537.4375,
+            "width": 392.6875,
+            "height": 89
+          }
+        },
+        "frame": {
+          "outlineStyle": "none",
+          "outlineWidth": 3,
+          "outlineOffset": 0,
+          "borderRadius": 0
+        },
+        "viewport": {
+          "width": 1366,
+          "height": 900
+        }
+      },
+      "current": {
+        "rectangles": {
+          ".tvSpotlight": {
+            "x": 20.484375,
+            "y": 185.46875,
+            "width": 1325.03125,
+            "height": 639.046875
+          },
+          ".tvSpotlightBody": {
+            "x": 50.15625,
+            "y": 302.21875,
+            "width": 1265.6875,
+            "height": 353.25
+          },
+          ".tvSpotlightVisual": {
+            "x": 50.15625,
+            "y": 302.21875,
+            "width": 619.25,
+            "height": 353.25
+          },
+          ".tvSpotlightInfo": {
+            "x": 715.84375,
+            "y": 302.21875,
+            "width": 600,
+            "height": 353.25
+          },
+          ".tvSpotlightDetails": {
+            "x": 715.84375,
+            "y": 302.21875,
+            "width": 392.6875,
+            "height": 353.25
+          },
+          ".tvInsightRail": {
+            "x": 1135.84375,
+            "y": 302.21875,
+            "width": 180,
+            "height": 353.25
+          },
+          ".tvSpoolFeature": {
+            "x": 1160.84375,
+            "y": 307.25,
+            "width": 155,
+            "height": 177.140625
+          },
+          ".tvWeekUsage": {
+            "x": 1160.84375,
+            "y": 504.390625,
+            "width": 155,
+            "height": 146.03125
+          },
+          ".tvSpotlightStats": {
+            "x": 50.15625,
+            "y": 668.96875,
+            "width": 1265.6875,
+            "height": 97.375
+          },
+          ".tvTemperatures": {
+            "x": 715.84375,
+            "y": 537.4375,
+            "width": 392.6875,
+            "height": 89
+          }
+        },
+        "frame": {
+          "outlineStyle": "solid",
+          "outlineWidth": 1,
+          "outlineOffset": 9,
+          "borderRadius": 18
+        },
+        "viewport": {
+          "width": 1366,
+          "height": 900
+        }
+      },
+      "geometryUnchanged": true
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "baseline": {
+        "rectangles": {
+          ".tvSpotlight": {
+            "x": 28.796875,
+            "y": 210.84375,
+            "width": 1862.40625,
+            "height": 781.359375
+          },
+          ".tvSpotlightBody": {
+            "x": 69.796875,
+            "y": 352.21875,
+            "width": 1780.40625,
+            "height": 440.34375
+          },
+          ".tvSpotlightVisual": {
+            "x": 69.796875,
+            "y": 352.21875,
+            "width": 955.40625,
+            "height": 440.34375
+          },
+          ".tvSpotlightInfo": {
+            "x": 1090.203125,
+            "y": 352.21875,
+            "width": 760,
+            "height": 440.34375
+          },
+          ".tvSpotlightDetails": {
+            "x": 1090.203125,
+            "y": 352.21875,
+            "width": 480,
+            "height": 440.34375
+          },
+          ".tvInsightRail": {
+            "x": 1620.203125,
+            "y": 352.21875,
+            "width": 230,
+            "height": 440.34375
+          },
+          ".tvSpoolFeature": {
+            "x": 1645.203125,
+            "y": 378.296875,
+            "width": 205,
+            "height": 204.140625
+          },
+          ".tvWeekUsage": {
+            "x": 1645.203125,
+            "y": 602.4375,
+            "width": 205,
+            "height": 164.03125
+          },
+          ".tvSpotlightStats": {
+            "x": 69.796875,
+            "y": 808.75,
+            "width": 1780.40625,
+            "height": 111.265625
+          },
+          ".tvTemperatures": {
+            "x": 1090.203125,
+            "y": 649.140625,
+            "width": 480,
+            "height": 91.796875
+          }
+        },
+        "frame": {
+          "outlineStyle": "none",
+          "outlineWidth": 3,
+          "outlineOffset": 0,
+          "borderRadius": 0
+        },
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        }
+      },
+      "current": {
+        "rectangles": {
+          ".tvSpotlight": {
+            "x": 28.796875,
+            "y": 210.84375,
+            "width": 1862.40625,
+            "height": 781.359375
+          },
+          ".tvSpotlightBody": {
+            "x": 69.796875,
+            "y": 352.21875,
+            "width": 1780.40625,
+            "height": 440.34375
+          },
+          ".tvSpotlightVisual": {
+            "x": 69.796875,
+            "y": 352.21875,
+            "width": 955.40625,
+            "height": 440.34375
+          },
+          ".tvSpotlightInfo": {
+            "x": 1090.203125,
+            "y": 352.21875,
+            "width": 760,
+            "height": 440.34375
+          },
+          ".tvSpotlightDetails": {
+            "x": 1090.203125,
+            "y": 352.21875,
+            "width": 480,
+            "height": 440.34375
+          },
+          ".tvInsightRail": {
+            "x": 1620.203125,
+            "y": 352.21875,
+            "width": 230,
+            "height": 440.34375
+          },
+          ".tvSpoolFeature": {
+            "x": 1645.203125,
+            "y": 378.296875,
+            "width": 205,
+            "height": 204.140625
+          },
+          ".tvWeekUsage": {
+            "x": 1645.203125,
+            "y": 602.4375,
+            "width": 205,
+            "height": 164.03125
+          },
+          ".tvSpotlightStats": {
+            "x": 69.796875,
+            "y": 808.75,
+            "width": 1780.40625,
+            "height": 111.265625
+          },
+          ".tvTemperatures": {
+            "x": 1090.203125,
+            "y": 649.140625,
+            "width": 480,
+            "height": 91.796875
+          }
+        },
+        "frame": {
+          "outlineStyle": "solid",
+          "outlineWidth": 1,
+          "outlineOffset": 13,
+          "borderRadius": 18
+        },
+        "viewport": {
+          "width": 1920,
+          "height": 1080
+        }
+      },
+      "geometryUnchanged": true
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "baseline": {
+        "rectangles": {
+          ".tvSpotlight": {
+            "x": 10,
+            "y": 194.203125,
+            "width": 370,
+            "height": 1048.84375
+          },
+          ".tvSpotlightBody": {
+            "x": 27,
+            "y": 289.59375,
+            "width": 336,
+            "height": 696.28125
+          },
+          ".tvSpotlightVisual": {
+            "x": 27,
+            "y": 289.59375,
+            "width": 336,
+            "height": 205
+          },
+          ".tvSpotlightInfo": {
+            "x": 27,
+            "y": 509.59375,
+            "width": 336,
+            "height": 476.28125
+          },
+          ".tvSpotlightDetails": {
+            "x": 27,
+            "y": 509.59375,
+            "width": 336,
+            "height": 269.890625
+          },
+          ".tvInsightRail": {
+            "x": 27,
+            "y": 799.484375,
+            "width": 336,
+            "height": 186.390625
+          },
+          ".tvSpoolFeature": {
+            "x": 27,
+            "y": 817.484375,
+            "width": 158,
+            "height": 168.390625
+          },
+          ".tvWeekUsage": {
+            "x": 205,
+            "y": 817.484375,
+            "width": 158,
+            "height": 168.390625
+          },
+          ".tvSpotlightStats": {
+            "x": 27,
+            "y": 1002.875,
+            "width": 336,
+            "height": 178.890625
+          },
+          ".tvTemperatures": {
+            "x": 27,
+            "y": 692.484375,
+            "width": 336,
+            "height": 87
+          }
+        },
+        "frame": {
+          "outlineStyle": "none",
+          "outlineWidth": 3,
+          "outlineOffset": 0,
+          "borderRadius": 0
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "current": {
+        "rectangles": {
+          ".tvSpotlight": {
+            "x": 10,
+            "y": 194.203125,
+            "width": 370,
+            "height": 1048.84375
+          },
+          ".tvSpotlightBody": {
+            "x": 27,
+            "y": 289.59375,
+            "width": 336,
+            "height": 696.28125
+          },
+          ".tvSpotlightVisual": {
+            "x": 27,
+            "y": 289.59375,
+            "width": 336,
+            "height": 205
+          },
+          ".tvSpotlightInfo": {
+            "x": 27,
+            "y": 509.59375,
+            "width": 336,
+            "height": 476.28125
+          },
+          ".tvSpotlightDetails": {
+            "x": 27,
+            "y": 509.59375,
+            "width": 336,
+            "height": 269.890625
+          },
+          ".tvInsightRail": {
+            "x": 27,
+            "y": 799.484375,
+            "width": 336,
+            "height": 186.390625
+          },
+          ".tvSpoolFeature": {
+            "x": 27,
+            "y": 817.484375,
+            "width": 158,
+            "height": 168.390625
+          },
+          ".tvWeekUsage": {
+            "x": 205,
+            "y": 817.484375,
+            "width": 158,
+            "height": 168.390625
+          },
+          ".tvSpotlightStats": {
+            "x": 27,
+            "y": 1002.875,
+            "width": 336,
+            "height": 178.890625
+          },
+          ".tvTemperatures": {
+            "x": 27,
+            "y": 692.484375,
+            "width": 336,
+            "height": 87
+          }
+        },
+        "frame": {
+          "outlineStyle": "solid",
+          "outlineWidth": 1,
+          "outlineOffset": 8,
+          "borderRadius": 18
+        },
+        "viewport": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "geometryUnchanged": true
+    }
+  ],
+  "tvColumnGeometryUnchanged": true,
   "instrumentation": "Temporary Vite-only function counters; production source files are never patched by the harness. CPU durations include that same instrumentation in both variants. No timing threshold is a test gate.",
   "summary": {
     "baseline": {
@@ -1047,130 +1544,130 @@
         "assets/index-D5abHpda.js"
       ],
       "firstFarmReadyMs": {
-        "median": 588.1594409999961,
-        "minimum": 457.1676290000032,
-        "maximum": 723.054798000001,
+        "median": 595.2431580000048,
+        "minimum": 538.4241419999962,
+        "maximum": 737.1025760000011,
         "samples": [
-          723.054798000001,
-          457.1676290000032,
-          588.1594409999961
+          737.1025760000011,
+          595.2431580000048,
+          538.4241419999962
         ]
       },
       "firstHistoryReadyMs": {
-        "median": 104.25419800000236,
-        "minimum": 77.45016400000168,
-        "maximum": 124.38583799999469,
+        "median": 122.5092650000006,
+        "minimum": 89.30470100000093,
+        "maximum": 133.79387300000235,
         "samples": [
-          104.25419800000236,
-          77.45016400000168,
-          124.38583799999469
+          133.79387300000235,
+          89.30470100000093,
+          122.5092650000006
         ]
       },
       "clockWorkTaskMs": {
-        "median": 393.904,
-        "minimum": 319.409,
-        "maximum": 411.806,
+        "median": 395.317,
+        "minimum": 367.407,
+        "maximum": 428.00100000000003,
         "samples": [
-          319.409,
-          411.806,
-          393.904
+          428.00100000000003,
+          367.407,
+          395.317
         ]
       },
       "telemetryWorkTaskMs": {
-        "median": 56.54499999999996,
-        "minimum": 53.91499999999999,
-        "maximum": 59.76400000000004,
+        "median": 63.48599999999993,
+        "minimum": 62.319999999999986,
+        "maximum": 72.25499999999995,
         "samples": [
-          59.76400000000004,
-          56.54499999999996,
-          53.91499999999999
+          63.48599999999993,
+          62.319999999999986,
+          72.25499999999995
         ]
       },
       "clockJsHeapUsedBytes": {
-        "median": 4735592,
-        "minimum": 4735384,
-        "maximum": 4747176,
+        "median": 4760364,
+        "minimum": 4756600,
+        "maximum": 4764224,
         "samples": [
-          4747176,
-          4735592,
-          4735384
+          4764224,
+          4756600,
+          4760364
         ]
       },
       "telemetryJsHeapUsedBytes": {
-        "median": 4836292,
-        "minimum": 4835724,
-        "maximum": 4843552,
+        "median": 4846428,
+        "minimum": 4842880,
+        "maximum": 4850540,
         "samples": [
-          4843552,
-          4836292,
-          4835724
+          4850540,
+          4842880,
+          4846428
         ]
       }
     },
     "current": {
-      "initialJavaScriptBytes": 808795,
-      "initialGzipBytes": 232267,
+      "initialJavaScriptBytes": 809479,
+      "initialGzipBytes": 232542,
       "initialJavaScriptFiles": [
-        "assets/index-BZ7kOv1y.js"
+        "assets/index-BVK0qNgB.js"
       ],
       "firstFarmReadyMs": {
-        "median": 472.0262719999955,
-        "minimum": 466.95878699999594,
-        "maximum": 505.2503969999998,
+        "median": 543.8428009999989,
+        "minimum": 526.6754870000004,
+        "maximum": 598.508007000004,
         "samples": [
-          505.2503969999998,
-          472.0262719999955,
-          466.95878699999594
+          526.6754870000004,
+          598.508007000004,
+          543.8428009999989
         ]
       },
       "firstHistoryReadyMs": {
-        "median": 135.42283999999927,
-        "minimum": 95.59805700000288,
-        "maximum": 136.5983520000009,
+        "median": 134.12041500000487,
+        "minimum": 109.15680699999939,
+        "maximum": 161.2652919999964,
         "samples": [
-          136.5983520000009,
-          95.59805700000288,
-          135.42283999999927
+          134.12041500000487,
+          109.15680699999939,
+          161.2652919999964
         ]
       },
       "clockWorkTaskMs": {
-        "median": 338.96999999999997,
-        "minimum": 332.83199999999994,
-        "maximum": 363.875,
+        "median": 335.382,
+        "minimum": 330.22799999999995,
+        "maximum": 360.904,
         "samples": [
-          338.96999999999997,
-          332.83199999999994,
-          363.875
+          335.382,
+          330.22799999999995,
+          360.904
         ]
       },
       "telemetryWorkTaskMs": {
-        "median": 38.341999999999985,
-        "minimum": 35.987000000000045,
-        "maximum": 38.580000000000005,
+        "median": 61.279000000000025,
+        "minimum": 56.60700000000002,
+        "maximum": 68.75799999999998,
         "samples": [
-          38.580000000000005,
-          38.341999999999985,
-          35.987000000000045
+          61.279000000000025,
+          56.60700000000002,
+          68.75799999999998
         ]
       },
       "clockJsHeapUsedBytes": {
-        "median": 4613720,
-        "minimum": 4613364,
-        "maximum": 4627128,
+        "median": 4635348,
+        "minimum": 4634696,
+        "maximum": 4642716,
         "samples": [
-          4627128,
-          4613364,
-          4613720
+          4642716,
+          4634696,
+          4635348
         ]
       },
       "telemetryJsHeapUsedBytes": {
-        "median": 4853428,
-        "minimum": 4853092,
-        "maximum": 4863152,
+        "median": 4860900,
+        "minimum": 4860248,
+        "maximum": 4868084,
         "samples": [
-          4863152,
-          4853092,
-          4853428
+          4868084,
+          4860248,
+          4860900
         ]
       }
     }
@@ -1179,8 +1676,8 @@
     "baseline": {
       "app": [
         {
-          "firstFarmReadyMs": 723.054798000001,
-          "firstHistoryReadyMs": 104.25419800000236,
+          "firstFarmReadyMs": 737.1025760000011,
+          "firstHistoryReadyMs": 133.79387300000235,
           "loadedBefore": [
             "TvDashboard",
             "ControlPanel",
@@ -1197,8 +1694,8 @@
           ]
         },
         {
-          "firstFarmReadyMs": 457.1676290000032,
-          "firstHistoryReadyMs": 77.45016400000168,
+          "firstFarmReadyMs": 595.2431580000048,
+          "firstHistoryReadyMs": 89.30470100000093,
           "loadedBefore": [
             "TvDashboard",
             "ControlPanel",
@@ -1215,8 +1712,8 @@
           ]
         },
         {
-          "firstFarmReadyMs": 588.1594409999961,
-          "firstHistoryReadyMs": 124.38583799999469,
+          "firstFarmReadyMs": 538.4241419999962,
+          "firstHistoryReadyMs": 122.5092650000006,
           "loadedBefore": [
             "TvDashboard",
             "ControlPanel",
@@ -1242,10 +1739,10 @@
               "tvFilamentStats": 6,
               "filamentUsageInPeriod": 48
             },
-            "rendererTaskMs": 319.409,
-            "rendererScriptMs": 23.719,
-            "jsHeapUsedBytes": 4747176,
-            "jsHeapChangeBytes": 181436
+            "rendererTaskMs": 428.00100000000003,
+            "rendererScriptMs": 27.558,
+            "jsHeapUsedBytes": 4764224,
+            "jsHeapChangeBytes": 177792
           },
           "telemetry": {
             "counts": {
@@ -1254,10 +1751,10 @@
               "tvFilamentStats": 13,
               "filamentUsageInPeriod": 104
             },
-            "rendererTaskMs": 59.76400000000004,
-            "rendererScriptMs": 35.374,
-            "jsHeapUsedBytes": 4843552,
-            "jsHeapChangeBytes": 88364
+            "rendererTaskMs": 63.48599999999993,
+            "rendererScriptMs": 33.941,
+            "jsHeapUsedBytes": 4850540,
+            "jsHeapChangeBytes": 86368
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1273,10 +1770,10 @@
               "tvFilamentStats": 6,
               "filamentUsageInPeriod": 48
             },
-            "rendererTaskMs": 411.806,
-            "rendererScriptMs": 21.976,
-            "jsHeapUsedBytes": 4735592,
-            "jsHeapChangeBytes": 207656
+            "rendererTaskMs": 367.407,
+            "rendererScriptMs": 22.096999999999998,
+            "jsHeapUsedBytes": 4756600,
+            "jsHeapChangeBytes": 210508
           },
           "telemetry": {
             "counts": {
@@ -1285,10 +1782,10 @@
               "tvFilamentStats": 13,
               "filamentUsageInPeriod": 104
             },
-            "rendererTaskMs": 56.54499999999996,
-            "rendererScriptMs": 32.363,
-            "jsHeapUsedBytes": 4836292,
-            "jsHeapChangeBytes": 85120
+            "rendererTaskMs": 62.319999999999986,
+            "rendererScriptMs": 38.053000000000004,
+            "jsHeapUsedBytes": 4842880,
+            "jsHeapChangeBytes": 86368
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1304,10 +1801,10 @@
               "tvFilamentStats": 6,
               "filamentUsageInPeriod": 48
             },
-            "rendererTaskMs": 393.904,
-            "rendererScriptMs": 19.094,
-            "jsHeapUsedBytes": 4735384,
-            "jsHeapChangeBytes": 207656
+            "rendererTaskMs": 395.317,
+            "rendererScriptMs": 25.571,
+            "jsHeapUsedBytes": 4760364,
+            "jsHeapChangeBytes": 188680
           },
           "telemetry": {
             "counts": {
@@ -1316,10 +1813,10 @@
               "tvFilamentStats": 13,
               "filamentUsageInPeriod": 104
             },
-            "rendererTaskMs": 53.91499999999999,
-            "rendererScriptMs": 31.252000000000002,
-            "jsHeapUsedBytes": 4835724,
-            "jsHeapChangeBytes": 84760
+            "rendererTaskMs": 72.25499999999995,
+            "rendererScriptMs": 40.50000000000001,
+            "jsHeapUsedBytes": 4846428,
+            "jsHeapChangeBytes": 86152
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1332,24 +1829,24 @@
     "current": {
       "app": [
         {
-          "firstFarmReadyMs": 505.2503969999998,
-          "firstHistoryReadyMs": 136.5983520000009,
+          "firstFarmReadyMs": 526.6754870000004,
+          "firstHistoryReadyMs": 134.12041500000487,
           "loadedBefore": [],
           "loadedAfter": [
             "AnalyticsPanel"
           ]
         },
         {
-          "firstFarmReadyMs": 472.0262719999955,
-          "firstHistoryReadyMs": 95.59805700000288,
+          "firstFarmReadyMs": 598.508007000004,
+          "firstHistoryReadyMs": 109.15680699999939,
           "loadedBefore": [],
           "loadedAfter": [
             "AnalyticsPanel"
           ]
         },
         {
-          "firstFarmReadyMs": 466.95878699999594,
-          "firstHistoryReadyMs": 135.42283999999927,
+          "firstFarmReadyMs": 543.8428009999989,
+          "firstHistoryReadyMs": 161.2652919999964,
           "loadedBefore": [],
           "loadedAfter": [
             "AnalyticsPanel"
@@ -1362,10 +1859,10 @@
             "counts": {
               "tvFilamentCurrentStats": 6
             },
-            "rendererTaskMs": 338.96999999999997,
-            "rendererScriptMs": 7.667,
-            "jsHeapUsedBytes": 4627128,
-            "jsHeapChangeBytes": 46232
+            "rendererTaskMs": 335.382,
+            "rendererScriptMs": 9.538,
+            "jsHeapUsedBytes": 4642716,
+            "jsHeapChangeBytes": 58088
           },
           "telemetry": {
             "counts": {
@@ -1373,10 +1870,10 @@
               "TvDashboard": 6,
               "TvPrinter": 7
             },
-            "rendererTaskMs": 38.580000000000005,
-            "rendererScriptMs": 18.567,
-            "jsHeapUsedBytes": 4863152,
-            "jsHeapChangeBytes": 221796
+            "rendererTaskMs": 61.279000000000025,
+            "rendererScriptMs": 25.478,
+            "jsHeapUsedBytes": 4868084,
+            "jsHeapChangeBytes": 225280
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1389,10 +1886,10 @@
             "counts": {
               "tvFilamentCurrentStats": 6
             },
-            "rendererTaskMs": 332.83199999999994,
-            "rendererScriptMs": 10.054,
-            "jsHeapUsedBytes": 4613364,
-            "jsHeapChangeBytes": 31976
+            "rendererTaskMs": 330.22799999999995,
+            "rendererScriptMs": 11.16,
+            "jsHeapUsedBytes": 4634696,
+            "jsHeapChangeBytes": 46668
           },
           "telemetry": {
             "counts": {
@@ -1400,10 +1897,10 @@
               "TvDashboard": 6,
               "TvPrinter": 7
             },
-            "rendererTaskMs": 38.341999999999985,
-            "rendererScriptMs": 16.268,
-            "jsHeapUsedBytes": 4853092,
-            "jsHeapChangeBytes": 224056
+            "rendererTaskMs": 56.60700000000002,
+            "rendererScriptMs": 24.259,
+            "jsHeapUsedBytes": 4860248,
+            "jsHeapChangeBytes": 225400
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1416,10 +1913,10 @@
             "counts": {
               "tvFilamentCurrentStats": 6
             },
-            "rendererTaskMs": 363.875,
-            "rendererScriptMs": 23.804,
-            "jsHeapUsedBytes": 4613720,
-            "jsHeapChangeBytes": 45416
+            "rendererTaskMs": 360.904,
+            "rendererScriptMs": 16.836,
+            "jsHeapUsedBytes": 4635348,
+            "jsHeapChangeBytes": 30308
           },
           "telemetry": {
             "counts": {
@@ -1427,10 +1924,10 @@
               "TvDashboard": 6,
               "TvPrinter": 7
             },
-            "rendererTaskMs": 35.987000000000045,
-            "rendererScriptMs": 16.887,
-            "jsHeapUsedBytes": 4853428,
-            "jsHeapChangeBytes": 224036
+            "rendererTaskMs": 68.75799999999998,
+            "rendererScriptMs": 33.965999999999994,
+            "jsHeapUsedBytes": 4860900,
+            "jsHeapChangeBytes": 225400
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1444,21 +1941,5 @@
   "runtimeErrors": [],
   "unexpectedRequests": [],
   "physicalPrintersTested": false,
-  "installedWindowsTested": false,
-  "productionBundleMeasurement": {
-    "base": "/",
-    "matchesProjectDefaultBase": true,
-    "fixtureBase": "./",
-    "scope": "Actual production index.html static JavaScript dependency closure using the project default base. Fixture browser workloads retain their relative base.",
-    "refreshedAt": "2026-10-26T10:42:14.090Z",
-    "browserSamplesReused": true,
-    "unchangedProductionSourceFilesVerified": 800,
-    "fixtureSources": {
-      "ui-tests/farm-startup-r125.tsx": "c3e5c7507a3dd94271f26371c4c402fa47c7260c1213a66b61a0a596e793ef89",
-      "ui-tests/tv-spotlight-r140.tsx": "9646ecc3c6cf3306fa435d66004abe88354e0153d1654a4568196705cdbe0d37",
-      "ui-tests/r141-performance-app.html": "b4073bd92a905cccfdce7661952b2b11cf3e0ccdb05ffc6e483c5506379fd29d",
-      "ui-tests/r141-performance-tv.html": "68e68fb548dcb19b502d049eae4cbaaab8b564cd9df4190207812c7186f60414"
-    },
-    "browserSampleReuseReason": "Only the separate production build base was corrected. The fixture base, fixture HTML, temporary counter instrumentation and all production source bytes used for the existing three browser samples are unchanged."
-  }
+  "installedWindowsTested": false
 }

@@ -1,22 +1,39 @@
 {
-  "stage": "performance-implemented-measured-and-tested",
-  "branch": "r141-performance",
-  "baseCommit": "4661e879f244a4470181558a6e90bcba7a6feb86",
+  "stage": "combined_r141_source_draft_checked_native_actor_integration_pending",
+  "baseline": "R140",
   "stableTag": "r140-ota",
-  "sourcePath": "/workspace/scratch/d006d396a32a/klipper-farm-r141-source",
-  "repositoryPath": "/workspace/scratch/d006d396a32a/klipper-farm-r141-review",
-  "featurePatchSha256": "b224b130681669d1cdfcb0af184496e9900d272dc096f38189ba1adbd7966e68",
-  "featureFiles": 11,
-  "newSourceFiles": 7,
+  "branch": "r141-performance",
+  "previousPublishedDraftCommit": "4905c791",
+  "featureSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
+  "featureFiles": 23,
+  "modifiedSourceFiles": 14,
+  "newSourceFiles": 9,
+  "expectedPrebuildSourceFiles": 1820,
   "validation": {
-    "totalPassed": 98,
-    "typescript": true,
-    "productionBuild": true
+    "totalPassed": 122,
+    "testCounts": {
+      "filamentData": 32,
+      "cacheBoundaries": 9,
+      "tvBrowser": 20,
+      "cameraBrowser": 20,
+      "actualAppAddressAndSettings": 5,
+      "performance": 13,
+      "temperatureMerge": 16,
+      "nativeHelper": 7
+    },
+    "nativeSyntaxFilesParsed": 6,
+    "fullNativeActorTypecheck": false,
+    "fullNativeActorIntegrationExecuted": false,
+    "installedWindowsTested": false,
+    "physicalPrintersTested": false
   },
+  "sourceReviewPassed": true,
+  "performanceReportSha256": "4b86c73c7d90fdd40211ad678c4d40426a4f3fb5267dd4bad8bb0bc76ea32f79",
   "installerBuilt": false,
   "releasePublished": false,
   "pending": [
-    "Windows installer and release only when requested"
+    "Full native actor/journal compilation and all native regression tests, including five new actor tests and two extended tests.",
+    "Windows installer, clean installation and upgrade from R140; signed stable channel only after complete release validation."
   ],
-  "updatedAt": "2026-10-26T10:44:22.002299+00:00"
+  "updatedAt": "2026-10-26T11:25:27.191694+00:00"
 }
