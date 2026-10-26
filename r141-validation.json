@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
-  "revision": "performance-temperature-middle-frame-native-fullscreen-ast-probe-harness",
+  "revision": "performance-temperature-middle-frame-native-fullscreen-ast-probe-windows-fixture",
   "baseline": "R140",
   "status": "executed_draft_checks_passed_native_and_windows_validation_pending",
   "passed": true,
   "scope": "Listed executed draft checks passed, with explicit current/retained provenance; native actor typecheck/integration and real Windows fullscreen validation remain pending.",
-  "featurePatchSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
+  "featurePatchSha256": "1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c",
   "typescriptPassed": true,
   "frontendProductionBuildPassed": true,
   "securityCheckPassed": true,
@@ -27,23 +27,23 @@
   "totalPassed": 157,
   "proofLineage": {
     "currentSnapshotRerun": [
-      "tvBrowser",
-      "cameraBrowser",
-      "performance",
       "fullscreenHelper",
-      "fullscreenBrowser",
-      "temperatureMerge",
-      "cacheBoundaries"
+      "fullscreenBrowser"
     ],
-    "currentSnapshotCaseCount": 113,
+    "currentSnapshotCaseCount": 35,
     "retainedPreviousSnapshot": [
       "filamentData",
+      "cacheBoundaries",
+      "tvBrowser",
+      "cameraBrowser",
       "actualAppAddressAndSettings",
+      "performance",
+      "temperatureMerge",
       "nativeHelper"
     ],
-    "retainedCaseCount": 44,
+    "retainedCaseCount": 122,
     "retainedNativeSyntaxFiles": 6,
-    "retainedProofPolicy": "Prior executed results are retained explicitly; relevant recorded source hashes still match. They are not claimed as repeated runs. Temperature/cache structured case reports are retained and their current rerun exit/hash proofs are in rootChecks."
+    "retainedProofPolicy": "After the fixture-only isolation, only fullscreen helper/browser were rerun. The other recorded results are retained explicitly; production src801 and all61Rust bytes are unchanged. UI/performance reruns are not claimed. Earlier rootChecks retains temperature/cache rerun proof."
   },
   "reports": {
     "filamentData": {
@@ -840,7 +840,9 @@
         },
         {
           "name": "native-manual-arrow-leaves-TV-open-and-restores-maximize",
-          "passed": true
+          "passed": true,
+          "cameraNegotiationDwellMs": 3000,
+          "noConfiguredOrInferredCameras": true
         },
         {
           "name": "native-Escape-closes-and-restores-owned-fullscreen",
@@ -885,10 +887,16 @@
         "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
         "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97"
       },
+      "fixtureSources": {
+        "ui-tests/tv-fullscreen-r141.tsx": "43e6c7632402f58c37d17575f4159d869d88bd4bb3c2e9ddf99dcbf465627efb",
+        "ui-tests/tv-fullscreen-r141.mjs": "d1c0e4ab7ea44ada485f0ad95047deb0ef3d66b608056eecfb50ae6cc6cdbdd8",
+        "ui-tests/tv-fullscreen-r141.html": "91b90714baa104f087b701bf6eaa0b90cfb1a01444c556626a2c854c87b149aa",
+        "ui-tests/tv-fullscreen-r141-window.ts": "f696c80093225e1a0441f982ef7d9963964ec80f730ae0132f965d3aff26a491"
+      },
       "browserVersion": "151.0.7922.34",
       "runtimeErrors": [],
       "externalRequests": [],
-      "scope": "Actual React TvDashboard and production fullscreen helper; real Chromium browser Fullscreen API, actual Tauri core.isTauri with a module-level native-window port mock. Seven fixture printers; no physical printers or Windows window manager exercised."
+      "scope": "Actual React TvDashboard and production fullscreen helper; real Chromium browser Fullscreen API, actual Tauri core.isTauri with a module-level native-window port mock. Seven generic printers without configured or inferred cameras, including a 3000ms mounted dwell beyond the 2500ms ICE-negotiation delay; no physical printers or Windows window manager exercised."
     }
   },
   "rootChecks": {
@@ -1216,7 +1224,9 @@
   "astProbeHarnessRepair": {
     "scope": "CI inherited Node checks after correcting incomplete extracted-method harness; no product code changes",
     "failedCiRunId": "40325073205",
-    "featurePatchSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
+    "originFeaturePatchSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
+    "validatedAgainstCurrentFeaturePatchSha256": "1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c",
+    "rerunForLatestFixtureIsolation": false,
     "passed": 31,
     "total": 31,
     "productSourceUnchanged": true,
@@ -1449,8 +1459,24 @@
   },
   "performanceReferenceReusedBecauseAll801ProductionSrcBytesUnchanged": true,
   "latestWindowsCandidateCi": {
-    "runId": "40325073205",
-    "status": "failed_before_native_build",
-    "reason": "Inherited extracted-method Probe lacked current client status initializers; repaired only the isolated test harness. A new complete Windows candidate CI run remains pending."
+    "runId": "40327646057",
+    "status": "failed_in_browser_fixture_before_native_build",
+    "reason": "A slow Windows fullscreen fixture allowed asynchronous camera connection negotiation. Isolated seven generic camera-free fixture printers and kept the strict no-write guard. A complete new Windows candidate CI run remains pending."
+  },
+  "fullscreenFixtureIsolation": {
+    "changedPaths": [
+      "ui-tests/tv-fullscreen-r141.mjs",
+      "ui-tests/tv-fullscreen-r141.tsx"
+    ],
+    "genericPrinters": 7,
+    "configuredOrInferredCameras": 0,
+    "mountedDwellMs": 3000,
+    "iceNegotiationDelayMs": 2500,
+    "strictNoWriteGuardRetained": true,
+    "helperCasesRerun": 22,
+    "browserCasesRerun": 13,
+    "productionSrcBytesChanged": false,
+    "nativeRustBytesChanged": false,
+    "actualWindowsWindowManagerRetestedLocally": false
   }
 }

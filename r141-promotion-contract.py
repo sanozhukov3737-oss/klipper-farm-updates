@@ -14,8 +14,8 @@ import zipfile
 from pathlib import Path
 
 REPOSITORY = 'sanozhukov3737-oss/klipper-farm-updates'
-PATCH_SHA = 'cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4'
-IDENTITY_SHA = 'e4322e63ca75550d91f043aec1fb56db17383f8fab34e43b598a52046f3568c2'
+PATCH_SHA = '1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c'
+IDENTITY_SHA = '2abaffec709fcdcdb811726eb835a9fd1f6ea05bb0effe95165a13ae8a417ec8'
 BASE_SHA = 'cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04'
 BUILD_ID = 'V20.6-R14.1-PERFORMANCE-TELEMETRY-2026-10-26'
 EXPECTED = {'Klipper-Farm-R141-setup.exe', 'KF-R141-FULL.zip', 'R141-UI-proof.zip', 'provenance.json', 'exact-validation.json'}

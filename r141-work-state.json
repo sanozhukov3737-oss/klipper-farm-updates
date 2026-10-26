@@ -4,7 +4,7 @@
   "stableTag": "r140-ota",
   "branch": "r141-performance",
   "previousPublishedDraftCommit": "30372b7d79bcd4ad00c335fb2ff48ee7d7c43ae5",
-  "featureSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
+  "featureSha256": "1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c",
   "featureFiles": 32,
   "modifiedSourceFiles": 17,
   "newSourceFiles": 15,
@@ -25,23 +25,23 @@
     },
     "proofLineage": {
       "currentSnapshotRerun": [
-        "tvBrowser",
-        "cameraBrowser",
-        "performance",
         "fullscreenHelper",
-        "fullscreenBrowser",
-        "temperatureMerge",
-        "cacheBoundaries"
+        "fullscreenBrowser"
       ],
-      "currentSnapshotCaseCount": 113,
+      "currentSnapshotCaseCount": 35,
       "retainedPreviousSnapshot": [
         "filamentData",
+        "cacheBoundaries",
+        "tvBrowser",
+        "cameraBrowser",
         "actualAppAddressAndSettings",
+        "performance",
+        "temperatureMerge",
         "nativeHelper"
       ],
-      "retainedCaseCount": 44,
+      "retainedCaseCount": 122,
       "retainedNativeSyntaxFiles": 6,
-      "retainedProofPolicy": "Prior executed results are retained explicitly; relevant recorded source hashes still match. They are not claimed as repeated runs. Temperature/cache structured case reports are retained and their current rerun exit/hash proofs are in rootChecks."
+      "retainedProofPolicy": "After the fixture-only isolation, only fullscreen helper/browser were rerun. The other recorded results are retained explicitly; production src801 and all61Rust bytes are unchanged. UI/performance reruns are not claimed. Earlier rootChecks retains temperature/cache rerun proof."
     },
     "nativeSyntaxFilesParsed": 6,
     "fullNativeActorTypecheck": false,
@@ -60,11 +60,19 @@
     "productionSrcFilesUnchanged": 801,
     "typescriptPassed": true
   },
+  "fullscreenFixtureIsolation": {
+    "failedCiRunId": "40327646057",
+    "helperCasesRerun": 22,
+    "browserCasesRerun": 13,
+    "strictNoWriteGuardRetained": true,
+    "productionSrcFilesUnchanged": 801,
+    "nativeRustFilesUnchanged": 61
+  },
   "pending": [
-    "Rerun complete Windows candidate CI after isolated AST Probe test harness repair.",
+    "Rerun complete Windows candidate CI after camera-free fullscreen fixture isolation.",
     "Full native actor/journal compilation and all native regression tests, including five new actor tests and two extended tests.",
     "Real Windows window manager validation of fullscreen/maximized/windowed transitions, close/reopen, Escape and permission failures.",
     "Windows installer, clean installation and upgrade from R140; signed stable channel only after complete release validation."
   ],
-  "updatedAt": "2026-10-26T12:58:48.178888+00:00"
+  "updatedAt": "2026-10-26T13:20:26.623420+00:00"
 }
