@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
-  "revision": "performance-temperature-middle-frame-native-fullscreen",
+  "revision": "performance-temperature-middle-frame-native-fullscreen-ast-probe-harness",
   "baseline": "R140",
   "status": "executed_draft_checks_passed_native_and_windows_validation_pending",
   "passed": true,
   "scope": "Listed executed draft checks passed, with explicit current/retained provenance; native actor typecheck/integration and real Windows fullscreen validation remain pending.",
-  "featurePatchSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
+  "featurePatchSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
   "typescriptPassed": true,
   "frontendProductionBuildPassed": true,
   "securityCheckPassed": true,
@@ -1212,5 +1212,245 @@
   "installedWindowsTested": false,
   "fullNativeBuildRun": false,
   "installerBuilt": false,
-  "releasePublished": false
+  "releasePublished": false,
+  "astProbeHarnessRepair": {
+    "scope": "CI inherited Node checks after correcting incomplete extracted-method harness; no product code changes",
+    "failedCiRunId": "40325073205",
+    "featurePatchSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
+    "passed": 31,
+    "total": 31,
+    "productSourceUnchanged": true,
+    "completeProductionSrcFilesUnchanged": 801,
+    "fixedHarnessSha256": "b8142e37423de9fdce7367e62718c8a6cd69614e79fbbf8a7498e6b0e803d6c2",
+    "typescript": {
+      "exitCode": 0,
+      "passed": true
+    },
+    "checks": [
+      {
+        "name": "check-r138-visual-activity.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.171,
+        "scriptSha256": "cac35534c759c0b8e507c9baf9e6eb6f3aa1426f8c0e3d76a2726bfb7186d5c1"
+      },
+      {
+        "name": "check-r128-finish.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.797,
+        "scriptSha256": "5cce70ae8933baea784872d37f38b7aacf10de6e18c81089467b193f44eb45f2"
+      },
+      {
+        "name": "check-r127-print-confirmation.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.274,
+        "scriptSha256": "f909dc80aff02d76e52a06f349f2e4c2df0f5ba55f05e0729af37d5820989ad5"
+      },
+      {
+        "name": "check-r127-notification-sound.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.128,
+        "scriptSha256": "5d139b84f8f1edfde43d52108536d6897100cc254448bcafcaa8bb5a3d0a203a"
+      },
+      {
+        "name": "check-r127-filament.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.98,
+        "scriptSha256": "1ecb09722b30bb490ace45e0928201b494dc1fcd866308d831b21982996683f3"
+      },
+      {
+        "name": "check-r126-files-profile.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 1.372,
+        "scriptSha256": "1ba1a830aa29d43108a080550bd681b9aafd2773d7688dad00db903e20195748"
+      },
+      {
+        "name": "check-r126-file-sync.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 3.166,
+        "scriptSha256": "53b87b818f2ff203e5a7e8695ee38bae812d7f3bc80a291f6e112b9a40d6a965"
+      },
+      {
+        "name": "check-printer-catalog.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 1.618,
+        "scriptSha256": "de00be76dd0617209e91be0863073e8242193020347352f9f2bccce977a0f87d"
+      },
+      {
+        "name": "check-printer-catalog-images.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.439,
+        "scriptSha256": "4d221afd8ee63fadd77ae45129306a2d745a567b8d91ec1f6416e5f92e4960eb"
+      },
+      {
+        "name": "check-search-art.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 1.176,
+        "scriptSha256": "31d25ab2aba26684598539bcc01cd72ca5941fdb26bec42e7dba550bdb25357e"
+      },
+      {
+        "name": "check-gcode-validation.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 1.929,
+        "scriptSha256": "c2065c6f5338ea1c40bd354f1e28c376bea222ac81effff7fe664649ca734b12"
+      },
+      {
+        "name": "check-printer-config-persistence.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.798,
+        "scriptSha256": "cc34723d6fd827fd92af12e77c0ea381bf0bedd9cbd23b4b0a28ebc2e4316717"
+      },
+      {
+        "name": "check-security.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.205,
+        "scriptSha256": "660fd6e7aff4565df34db554afc47a67270e7c3af61a2cb993cc83eb5e0c69c7"
+      },
+      {
+        "name": "check-moonraker-compat.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.705,
+        "scriptSha256": "2c9382a46b00679f1d9daee4771d5899580afa4f1ec262fb87f3d6624365fdc3"
+      },
+      {
+        "name": "check-filament-inventory.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 1.244,
+        "scriptSha256": "b6796f1f463839847370fa297e562f2276c63ac62c925fc1460f685db4f0c041"
+      },
+      {
+        "name": "check-filament-telemetry.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.854,
+        "scriptSha256": "b8142e37423de9fdce7367e62718c8a6cd69614e79fbbf8a7498e6b0e803d6c2"
+      },
+      {
+        "name": "check-local-library.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.111,
+        "scriptSha256": "ec40114ad73e73fd3248d0d9fe9a3d7f5dde6d9c547c59860996c2aa631733c6"
+      },
+      {
+        "name": "check-print-start-confirmation.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.302,
+        "scriptSha256": "fd24c1d0111cbfd65cc86cd2297797e931c015d3439759464abec386eee518fb"
+      },
+      {
+        "name": "check-r9-clean-installer.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.108,
+        "scriptSha256": "52e660a81e63cc135699e79a807d168257a831ce4624dc1d2746be31a6f6e308"
+      },
+      {
+        "name": "check-update-gate.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.662,
+        "scriptSha256": "b326e3a57b1a2523b14d911339164b51d2d3e2847a8962e9d65d35aea1b2cb1e"
+      },
+      {
+        "name": "check-legacy-library-routing.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.23,
+        "scriptSha256": "fc111fe0311a20e97588c99de82ad5ec99a9a2032245291a654eb9de4c4624a6"
+      },
+      {
+        "name": "check-upload-actor-identity.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.191,
+        "scriptSha256": "5cfaab1464ec46581c0c3a17e3749b87613d0d08987c5e992173ac1a6060f124"
+      },
+      {
+        "name": "check-local-library-print-target.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.716,
+        "scriptSha256": "54a3276dade321dd7d4b15653a8c0636ce90edf8b0f630b82bb9806aad86a1f4"
+      },
+      {
+        "name": "check-printer-files-start-recovery.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.25,
+        "scriptSha256": "1ffbb7536837bde0f120fc1f1559ab1c6e663c8d6f7bd61154eb7620ac79ab4d"
+      },
+      {
+        "name": "check-print-filename-preservation.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.256,
+        "scriptSha256": "504d5ceb95fed2d5937c7d0c7f7ba927e0b80747837c8c346660df17687b8af7"
+      },
+      {
+        "name": "check-launch-auto-recovery.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.486,
+        "scriptSha256": "fd15db389961eb5b692b307651f431bc4961cdbe32ba96678374f5d435880ff1"
+      },
+      {
+        "name": "check-r135-print-start-runtime.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.325,
+        "scriptSha256": "d929fcc129fe7bdf867d430ee6a60affa494f6bd9b8e1339c5a4b8813a1d7240"
+      },
+      {
+        "name": "check-approved-filament.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 1.82,
+        "scriptSha256": "3f7026367839d2f74f3a6669e4c4eb4d2789d77c4cbbb18511c8e7e53d516e42"
+      },
+      {
+        "name": "check-filament-auto-retry.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 2.199,
+        "scriptSha256": "6a0ca7bf4d94d048d5ee52589805e71a3366e8140710625d402cccb57b5e78ad"
+      },
+      {
+        "name": "check-filament-history-policy.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.512,
+        "scriptSha256": "453bdc2ae4052c781dcfd656c7943544fa2118d48e769d8b37b389eec0d0d03e"
+      },
+      {
+        "name": "check-r141-temperature-merge.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "seconds": 0.201,
+        "scriptSha256": "da6e6c6560af2db1bcb653762e13e65221474060885e0d57f82aa707a22dbbc9"
+      }
+    ],
+    "testedScriptHashContext": "Current feature32 plus the separate R141 release identity5; identity-specific check-r9-clean-installer.mjs matches its exact release payload."
+  },
+  "performanceReferenceReusedBecauseAll801ProductionSrcBytesUnchanged": true,
+  "latestWindowsCandidateCi": {
+    "runId": "40325073205",
+    "status": "failed_before_native_build",
+    "reason": "Inherited extracted-method Probe lacked current client status initializers; repaired only the isolated test harness. A new complete Windows candidate CI run remains pending."
+  }
 }

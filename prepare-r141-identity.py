@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parent
 BASE_SHA = 'cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04'
 BASE_SIZE = 582390782
 BASE_PREFIX = 'Klipper-Farm-R140/'
-FEATURE_SHA = '436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d'
+FEATURE_SHA = 'cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4'
 PREVIOUS_IDENTITY_SHA = '5f632e3efd2e28869f8f6122bf5b5ac8ff1067c9ca80b0a15e9862261bf39019'
 PREVIOUS_BUILD_ID = 'V20.6-R14.0-TV-SPOTLIGHT-2026-10-26'
 BUILD_ID = 'V20.6-R14.1-PERFORMANCE-TELEMETRY-2026-10-26'
@@ -47,7 +47,7 @@ def main():
     assert feature['schemaVersion'] == 1 and feature['release'] == 'R141-PERFORMANCE-DRAFT' and feature['baseline'] == 'R140'
     assert feature['baseArchiveSha256'] == BASE_SHA and feature['baseArchiveSize'] == BASE_SIZE
     assert feature['archivePrefix'] == BASE_PREFIX
-    assert len(feature['files']) == len({row['path'] for row in feature['files']}) == 31
+    assert len(feature['files']) == len({row['path'] for row in feature['files']}) == 32
     assert PATHS.isdisjoint(row['path'] for row in feature['files'])
     previous_bytes = (ROOT / 'r140-release-identity.json').read_bytes()
     assert digest(previous_bytes) == PREVIOUS_IDENTITY_SHA

@@ -3,10 +3,10 @@
   "baseline": "R140",
   "stableTag": "r140-ota",
   "branch": "r141-performance",
-  "previousPublishedDraftCommit": "c91e6c22b178f7548a62aaf203a23ed6fc27062a",
-  "featureSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
-  "featureFiles": 31,
-  "modifiedSourceFiles": 16,
+  "previousPublishedDraftCommit": "30372b7d79bcd4ad00c335fb2ff48ee7d7c43ae5",
+  "featureSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
+  "featureFiles": 32,
+  "modifiedSourceFiles": 17,
   "newSourceFiles": 15,
   "expectedPrebuildSourceFiles": 1826,
   "validation": {
@@ -54,10 +54,17 @@
   "performanceReportSha256": "dee852a3588c65eee0b191c43ddd0bc7a604e2c0244162e6ccdad9426bc33e24",
   "installerBuilt": false,
   "releasePublished": false,
+  "astProbeHarnessRepair": {
+    "failedCiRunId": "40325073205",
+    "inheritedNodeChecksPassed": 31,
+    "productionSrcFilesUnchanged": 801,
+    "typescriptPassed": true
+  },
   "pending": [
+    "Rerun complete Windows candidate CI after isolated AST Probe test harness repair.",
     "Full native actor/journal compilation and all native regression tests, including five new actor tests and two extended tests.",
     "Real Windows window manager validation of fullscreen/maximized/windowed transitions, close/reopen, Escape and permission failures.",
     "Windows installer, clean installation and upgrade from R140; signed stable channel only after complete release validation."
   ],
-  "updatedAt": "2026-10-26T12:01:19.604129+00:00"
+  "updatedAt": "2026-10-26T12:58:48.178888+00:00"
 }

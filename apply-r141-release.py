@@ -14,8 +14,8 @@ import shutil
 import zipfile
 from pathlib import Path, PurePosixPath
 
-FEATURE_SHA = '436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d'
-IDENTITY_SHA = '26bb489fada2656c857855a5d4bf46b126a6f739852e1bb36c37010414dd4269'
+FEATURE_SHA = 'cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4'
+IDENTITY_SHA = 'e4322e63ca75550d91f043aec1fb56db17383f8fab34e43b598a52046f3568c2'
 BASE_SHA = 'cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04'
 BASE_SIZE = 582390782
 BASE_PREFIX = 'Klipper-Farm-R140/'
@@ -55,6 +55,7 @@ FEATURE_PATHS = {
     'ui-tests/tv-fullscreen-r141.mjs',
     'ui-tests/tv-fullscreen-r141.tsx',
     'ui-tests/tv-fullscreen-r141-window.ts',
+    'scripts/check-filament-telemetry.mjs',
 }
 
 
@@ -81,7 +82,7 @@ def inputs():
     assert feature['schemaVersion'] == 1 and feature['release'] == 'R141-PERFORMANCE-DRAFT' and feature['baseline'] == 'R140'
     assert feature['baseArchiveSha256'] == BASE_SHA and feature['baseArchiveSize'] == BASE_SIZE
     assert feature['archivePrefix'] == BASE_PREFIX
-    assert len(feature['files']) == 31 and {row['path'] for row in feature['files']} == FEATURE_PATHS
+    assert len(feature['files']) == 32 and {row['path'] for row in feature['files']} == FEATURE_PATHS
     assert identity['schemaVersion'] == 1 and identity['release'] == 'R141' and identity['baseline'] == 'R140'
     assert identity['sequence'] == 141 and identity['buildId'] == BUILD_ID
     assert identity['version'] == '1.14.5-r141' and identity['productVersion'] == '1.14.5'

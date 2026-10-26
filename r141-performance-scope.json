@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
-  "revision": "performance-temperature-middle-frame-native-fullscreen",
+  "revision": "performance-temperature-middle-frame-native-fullscreen-ast-probe-harness",
   "baseline": "R140",
   "passed": true,
   "scope": "Exact source delta and preservation audit; this is not full native build or release validation.",
-  "featurePatchSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
+  "featurePatchSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
   "baseArchiveSha256": "cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04",
   "baselineFiles": 1811,
-  "reviewedFiles": 31,
-  "modifiedFiles": 16,
+  "reviewedFiles": 32,
+  "modifiedFiles": 17,
   "newFiles": 15,
   "expectedPrebuildSourceFiles": 1826,
-  "unchangedNonGeneratedBaselineFiles": 1289,
+  "unchangedNonGeneratedBaselineFiles": 1288,
   "excludedBaselineDistFiles": 506,
   "unreviewedStaticFiles": [],
   "ignoredTransientFileCount": 2,
@@ -171,6 +171,11 @@
       "path": "ui-tests/tv-fullscreen-r141-window.ts",
       "beforeSha256": null,
       "sha256": "f696c80093225e1a0441f982ef7d9963964ec80f730ae0132f965d3aff26a491"
+    },
+    {
+      "path": "scripts/check-filament-telemetry.mjs",
+      "beforeSha256": "f3e42a57567db2f26b5ee9b6ae3a60d396780a26df38249e71862db37dfaf6e6",
+      "sha256": "b8142e37423de9fdce7367e62718c8a6cd69614e79fbbf8a7498e6b0e803d6c2"
     }
   ],
   "preserved": {
@@ -203,13 +208,16 @@
   "sourceVersionMetadata": "R140 retained; R141 release identity has not been applied",
   "applyValidation": {
     "passed": true,
-    "fullSmokeFeatureSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
+    "fullSmokeFeatureSha256": "cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4",
     "freshPublishedArchiveApplied": true,
-    "firstApplyFiles": 31,
-    "idempotentApplyFiles": 0,
+    "firstApplyFeatureFiles": 32,
+    "releaseIdentityFiles": 5,
+    "totalOverlayFiles": 37,
+    "secondRunMode": "verify-only",
     "completeVerifiedFiles": 1826,
-    "reviewedPayloadRowsVerified": 31,
-    "scope": "Fresh full published R140 archive applied and then reapplied idempotently with the final combined payload."
+    "reviewedPayloadRowsVerified": 32,
+    "scope": "Fresh full published R140 archive applied with feature32 and release identity5, then fully verified without rebuilding.",
+    "releaseIdentitySha256": "e4322e63ca75550d91f043aec1fb56db17383f8fab34e43b598a52046f3568c2"
   },
   "sourceReview": {
     "passed": true,

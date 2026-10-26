@@ -19,7 +19,7 @@ import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
-PATCH_SHA = '436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d'
+PATCH_SHA = 'cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4'
 BASE_SHA = 'cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04'
 BASE_SIZE = 582390782
 BUILD_ID = 'V20.6-R14.0-TV-SPOTLIGHT-2026-10-26'
@@ -56,6 +56,7 @@ PATHS = {
     'ui-tests/tv-fullscreen-r141.mjs',
     'ui-tests/tv-fullscreen-r141.tsx',
     'ui-tests/tv-fullscreen-r141-window.ts',
+    'scripts/check-filament-telemetry.mjs',
 }
 IGNORED_DIRECTORIES = {'node_modules', 'ui-tests/node_modules', '.git', '.klipper-build-cache'}
 
@@ -103,7 +104,7 @@ def load_patch():
     assert value['archivePrefix'] == PREFIX
     assert value['installerBuilt'] is False and value['releasePublished'] is False
     assert len(value['baselineFiles']) == 1811
-    assert len(value['files']) == 31 and {row['path'] for row in value['files']} == PATHS
+    assert len(value['files']) == 32 and {row['path'] for row in value['files']} == PATHS
     assert sum(row['beforeSha256'] is None for row in value['files']) == 15
     for name in value['baselineFiles']:
         safe_name(name)
