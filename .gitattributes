@@ -116,3 +116,10 @@ R141-* -text
 KF-R141-* -text
 apply-r141-performance.py -text
 r141-performance-proof/** -text
+
+# Reviewed R141 Windows release inputs
+apply-r141-release.py -text
+prepare-r141-identity.py -text
+r141-build/** -text
+.github/workflows/windows-r141-reviewed.yml -text
+.github/workflows/promote-r141.yml -text
