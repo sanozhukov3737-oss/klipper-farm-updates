@@ -1,0 +1,239 @@
+name: Validate exact built R141 installer and asynchronous Windows TV restoration (no rebuild)
+'on':
+  push:
+    branches:
+    - r141-performance
+    paths:
+    - .github/workflows/validate-r141-exact.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: validate-r141-exact
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  validate:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Restore and verify exact successful original R141 build without recompiling
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ($env:GITHUB_REPOSITORY -ne 'sanozhukov3737-oss/klipper-farm-updates') { throw 'Wrong repository' }
+        New-Item -ItemType Directory -Force incoming,validation-metadata | Out-Null
+        function Save-Api([string]$endpoint,[string]$name) {
+         $body=gh api $endpoint
+         if ($LASTEXITCODE -ne 0) { throw "Metadata read failed: $name" }
+         [IO.File]::WriteAllText((Join-Path $PWD "validation-metadata/$name"),($body -join "`n"),[Text.UTF8Encoding]::new($false))
+        }
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/40342662951" 'original-build-run.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/40342662951/jobs?per_page=100" 'original-build-jobs.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/12662975858" 'original-candidate-artifact.json'
+        $run=Get-Content validation-metadata/original-build-run.json -Raw | ConvertFrom-Json
+        if ([string]$run.id -ne '40342662951' -or $run.head_sha -ne '220bf3307fe62ff958a53f2b559a38ba618c452b' -or $run.head_branch -ne 'r141-performance' -or $run.path -ne '.github/workflows/windows-r141-reviewed.yml' -or $run.status -ne 'completed' -or $run.conclusion -ne 'failure') { throw 'Original completed build run differs' }
+        $jobs=(Get-Content validation-metadata/original-build-jobs.json -Raw | ConvertFrom-Json).jobs
+        $build=@($jobs | Where-Object { [string]$_.id -eq '121641207588' })
+        if ($build.Count -ne 1 -or $build[0].name -ne 'build' -or $build[0].status -ne 'completed' -or $build[0].conclusion -ne 'success' -or [string]$build[0].run_id -ne '40342662951') { throw 'Exact original build job was not successful' }
+        $artifact=Get-Content validation-metadata/original-candidate-artifact.json -Raw | ConvertFrom-Json
+        if ([string]$artifact.id -ne '12662975858' -or $artifact.name -ne 'r141-ota-candidate' -or $artifact.size_in_bytes -ne 1079484496 -or $artifact.digest -ne 'sha256:3c68078b9c8490052f1f461a647b34d67c847c8720e26be5e842ee228c1f0e0e' -or $artifact.expired -or [string]$artifact.workflow_run.id -ne '40342662951' -or $artifact.workflow_run.head_sha -ne '220bf3307fe62ff958a53f2b559a38ba618c452b') { throw 'Exact original candidate artifact differs' }
+        $encoded=gh api "repos/$env:GITHUB_REPOSITORY/contents/.github/workflows/windows-r141-reviewed.yml?ref=220bf3307fe62ff958a53f2b559a38ba618c452b" --jq .content
+        if ($LASTEXITCODE -ne 0) { throw 'Exact original build workflow retrieval failed' }
+        [IO.File]::WriteAllBytes((Join-Path $PWD 'validation-metadata/original-build-workflow.yml'),[Convert]::FromBase64String(($encoded -join '')))
+        if ((Get-FileHash validation-metadata/original-build-workflow.yml).Hash.ToLowerInvariant() -ne '61c1502f8cd7c6e5bfd60fd7b91857701fc9764606e66a892c2e06f4a4ea7780') { throw 'Exact original build workflow differs' }
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 300 --header "Authorization: Bearer $env:GH_TOKEN" --output incoming/original-candidate.zip --url "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/artifacts/12662975858/zip"
+        if ($LASTEXITCODE -ne 0) { throw 'Exact original candidate download failed' }
+        if ((Get-Item incoming/original-candidate.zip).Length -ne 1079484496 -or (Get-FileHash incoming/original-candidate.zip).Hash.ToLowerInvariant() -ne '3c68078b9c8490052f1f461a647b34d67c847c8720e26be5e842ee228c1f0e0e') { throw 'Exact original candidate ZIP bytes differ' }
+        @'
+        import hashlib,json,shutil,zipfile
+        from pathlib import Path,PurePosixPath
+        archive=Path('incoming/original-candidate.zip')
+        assert archive.stat().st_size==1079484496
+        with archive.open('rb') as stream:
+         assert hashlib.file_digest(stream,'sha256').hexdigest()=='3c68078b9c8490052f1f461a647b34d67c847c8720e26be5e842ee228c1f0e0e'
+        root=Path('candidate')
+        assert not root.exists(),'Candidate destination must be new'
+        with zipfile.ZipFile(archive) as bundle:
+         members={}
+         for entry in bundle.infolist():
+          name=entry.filename.rstrip('/')
+          pure=PurePosixPath(name)
+          assert name and not pure.is_absolute() and '..' not in pure.parts and '\\' not in name and ':' not in name,name
+          assert all(part not in ('','.','..') for part in name.split('/')),name
+          assert (entry.external_attr>>16)&0o170000 !=0o120000,'Candidate symlink rejected'
+          if entry.is_dir():continue
+          assert name not in members,'Duplicate candidate entry: '+name
+          assert name in {'Klipper-Farm-R141-setup.exe','KF-R141-FULL.zip','provenance.json'} or pure.parts[0] in {'release','scripts','proof'},name
+          members[name]=entry
+         assert {'Klipper-Farm-R141-setup.exe','KF-R141-FULL.zip','provenance.json'}.issubset(members)
+         root.mkdir()
+         for name,entry in members.items():
+          target=root/name
+          target.parent.mkdir(parents=True,exist_ok=True)
+          with bundle.open(entry) as source,target.open('wb') as destination:shutil.copyfileobj(source,destination)
+        origin=json.loads((root/'provenance.json').read_text(encoding='utf-8-sig'))
+        assert str(origin['runId'])=='40342662951' and origin['headSha']=='220bf3307fe62ff958a53f2b559a38ba618c452b'
+        assert origin['release']=='R141' and origin['sequence']==141 and origin['baselineSequence']==140
+        assert origin['buildId']=='V20.6-R14.1-PERFORMANCE-TELEMETRY-2026-10-26'
+        assert origin['patchSha256']=='1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c'
+        assert origin['releaseIdentitySha256']=='2abaffec709fcdcdb811726eb835a9fd1f6ea05bb0effe95165a13ae8a417ec8'
+        assert set(origin['assets'])=={'Klipper-Farm-R141-setup.exe','KF-R141-FULL.zip'}
+        for name,pin in origin['assets'].items():
+         target=root/name
+         assert target.stat().st_size==pin['sizeBytes'],name
+         with target.open('rb') as stream:assert hashlib.file_digest(stream,'sha256').hexdigest()==pin['sha256'],name
+        delta=json.loads((root/'proof/source-delta.json').read_text(encoding='utf-8-sig'))
+        assert delta['passed'] and delta['verifiedFiles']==1826 and delta['baselineFiles']==1811 and delta['extraSourceFiles']==0
+        assert delta['reviewedFeatureFiles']==32 and delta['releaseIdentityFiles']==5 and delta['allOtherSourceBytesPreserved']
+        print('Exact original successful-build candidate safely restored; original provenance preserved.')
+        '@ | python -
+        if ($LASTEXITCODE -ne 0) { throw 'Pinned candidate safety, source or original provenance verification failed' }
+        Copy-Item validation-metadata/* candidate/proof/
+
+        @'
+        import hashlib,json,shutil,os
+        from pathlib import Path
+        root=Path('candidate')
+        helper=root/'scripts/check-r141-installed-fullscreen.mjs'
+        original=helper.read_bytes()
+        assert hashlib.sha256(original).hexdigest()=='6da9e85505726e63cbd5fe8ad97ead4512ebed3b2fc1f991e7c518d095f058e6'
+        replacement=Path('r141-build/check-r141-installed-fullscreen.mjs').read_bytes()
+        assert hashlib.sha256(replacement).hexdigest()=='d5fba83e6f85fe205f348f210c9152d9060e3ea86d6a25f79ab0412ce7920da5'
+        assert hashlib.sha256((root/'scripts/check-r141-installed-fullscreen-window.ps1').read_bytes()).hexdigest()=='51a3d4153823d96357a5ded493a8758e955f981dd4f3d6889a64e2aea0a81375'
+        (root/'proof/original-installed-fullscreen-check.mjs').write_bytes(original)
+        (root/'proof/validation-installed-fullscreen-check.mjs').write_bytes(replacement)
+        helper.write_bytes(replacement)
+        origin=json.loads((root/'provenance.json').read_text())
+        for name,pin in origin['assets'].items():
+         with (root/name).open('rb') as stream:assert hashlib.file_digest(stream,'sha256').hexdigest()==pin['sha256']
+        receipt={'passed':True,'originalBuildRunId':'40342662951','originalBuildJobId':'121641207588','originalBuildHeadSha':'220bf3307fe62ff958a53f2b559a38ba618c452b','originalCandidateArtifactId':'12662975858','originalCandidateArtifactDigest':'sha256:3c68078b9c8490052f1f461a647b34d67c847c8720e26be5e842ee228c1f0e0e','validationRunId':os.environ['GITHUB_RUN_ID'],'validationHeadSha':os.environ['GITHUB_SHA'],'originalHelperSha256':hashlib.sha256(original).hexdigest(),'validationHelperSha256':hashlib.sha256(replacement).hexdigest(),'installerAndSourceUnchanged':True,'scope':'Only wait for exact physical Win32 bounds before unchanged strict assertions; retain all failure observations. No installer or source rebuild.'}
+        (root/'proof/validation-reuse.json').write_text(json.dumps(receipt,indent=2)+'\n')
+        print(json.dumps(receipt))
+        '@ | python -
+        if ($LASTEXITCODE -ne 0) { throw 'Exact original installer or validation-only helper binding failed' }
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+        if (-not (Test-Path $seven)) { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }
+        & $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R141-setup.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }
+        foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+          $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)
+          if ($items.Count -ne 1) { throw "Expected one extracted NSIS payload: $name" }
+          Write-Host "EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())"
+        }
+    - name: Clean install R141 and verify exact native payload and real WebView
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R141-clean'
+        New-Item -ItemType Directory -Force clean-smoke | Out-Null
+        $setup=(Resolve-Path Klipper-Farm-R141-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R141 clean install failed' }
+        node scripts/r141-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/clean-installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Clean installed bytes differ from exact NSIS bundle payload' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" clean-smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Clean installed R141 actual WebView startup failed' }
+    - name: Upgrade from exact R140 and verify payload, seven printers, stock and actual installed TV fullscreen
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R141-upgrade'
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+        gh release download r140-ota --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R140-setup.exe --dir old
+        if ($LASTEXITCODE -ne 0) { throw 'R140 installer download failed' }
+        $old=(Resolve-Path old/Klipper-Farm-R140-setup.exe).Path
+        if ((Get-Item $old).Length -ne 233591012 -or (Get-FileHash $old).Hash.ToLowerInvariant() -ne 'bb2a13681a16253ca3910c951053b2aa9ed781728fcec496803fb2a4e2fb9829') { throw 'R140 installer differs' }
+        $process=Start-Process $old -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R140 install failed' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Published R140 actual WebView startup failed' }
+
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+        $marker=Join-Path $dataDir 'r141-preservation.txt'
+        [IO.File]::WriteAllText($marker,'preserve-existing-data')
+        python scripts/r141-upgrade-data.py seed --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-seed.json
+        if ($LASTEXITCODE -ne 0) { throw 'Legacy seed failed' }
+        $setup=(Resolve-Path Klipper-Farm-R141-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R141 install over R140 failed' }
+        node scripts/r141-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed bytes differ from exact NSIS bundle payload' }
+        if ((Get-Content $marker -Raw) -ne 'preserve-existing-data') { throw 'Existing app data lost' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed WebView main-window smoke failed' }
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe" --report "$PWD/proof/headless-runtime.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry regression failed' }
+        python scripts/r141-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-before-fullscreen.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer configuration, stocks, usage, reserves or spools changed during upgrade' }
+        node scripts/check-r141-installed-fullscreen.mjs "$installDir/klipper-farm-client.exe" "$PWD/proof/installed-fullscreen"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed Windows TV fullscreen lifecycle failed' }
+        $fullscreen=Get-Content proof/installed-fullscreen/installed-fullscreen-report.json -Raw | ConvertFrom-Json
+        if ($fullscreen.passed -ne $true -or $fullscreen.passedCases -ne 5 -or @($fullscreen.cases).Count -ne 5 -or @($fullscreen.cases | Where-Object { $_.passed -ne $true }).Count -ne 0) { throw 'Expected five passed installed fullscreen cases' }
+        if ($fullscreen.actualFullscreenStateVerified -ne $true -or $fullscreen.actualInstalledWebView -ne $true -or $fullscreen.actualWindowsWindowManager -ne $true -or $fullscreen.nativeWindowCallsReal -ne $true -or $fullscreen.domFullscreenNeverUsed -ne $true -or $fullscreen.configuredPrinters -ne 7) { throw 'Actual Windows fullscreen evidence is incomplete' }
+        python scripts/r141-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-preserved.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer or filament data changed during installed TV fullscreen checks' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed R141 second actual WebView startup failed' }
+        python scripts/r141-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-after-restart.json
+        if ($LASTEXITCODE -ne 0) { throw 'Existing printer or filament data changed after installed app restart' }
+        node scripts/r141-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed exact payload changed after restart' }
+        @{release='R141';installedSequence=141;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;buildRunId='40342662951';buildHeadSha='220bf3307fe62ff958a53f2b559a38ba618c452b';upgradeFrom=140;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;costSettingsPreserved=$true;installedRestartVerified=$true;cleanInstallVerified=$true;actualFullscreenStateVerified=$true;installedTvFullscreenVerified=$true;actualWindowsWindowManagerVerified=$true;installedTvFullscreenCases=5} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+        Compress-Archive proof,smoke,clean-smoke R141-UI-proof.zip
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r141-ota-validated
+        path: 'candidate/Klipper-Farm-R141-setup.exe
+
+          candidate/KF-R141-FULL.zip
+
+          candidate/provenance.json
+
+          candidate/exact-validation.json
+
+          candidate/R141-UI-proof.zip'
+        retention-days: 14
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r141-ota-installed-evidence
+        path: 'candidate/proof
+
+          candidate/smoke
+
+          candidate/clean-smoke'
+        retention-days: 14
+    - name: Retain reviewed installer separately
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r141-reviewed-installer
+        path: 'candidate/Klipper-Farm-R141-setup.exe
+
+          candidate/provenance.json
+
+          candidate/exact-validation.json'
+        retention-days: 14
+        compression-level: 0
