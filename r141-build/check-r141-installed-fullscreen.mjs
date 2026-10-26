@@ -86,6 +86,7 @@ const win32=(mode='state',bounds)=>{
 const nativeState=()=>cdp.evaluate(`(async()=>{const invoke=window.__TAURI_INTERNALS__.invoke;const [fullscreen,maximized,position,size]=await Promise.all(['is_fullscreen','is_maximized','outer_position','outer_size'].map(name=>invoke('plugin:window|'+name,{label:'main'})));return{fullscreen,maximized,position,size,domFullscreen:document.fullscreenElement!==null,tvMounted:!!document.querySelector('.tvDashboard'),bodyOverflow:document.body.style.overflow,focusedTag:document.activeElement?.tagName,observedAt:Date.now()}})()`);
 const capture=async(label)=>{const state={label,native:await nativeState(),win32:win32()};assert.equal(state.native.domFullscreen,false,'TV must use the native host window, never DOM fullscreen');observations.push(state);return state};
 const sameBounds=(actual,expected)=>{for(const key of ['left','top','right','bottom'])assert.ok(Math.abs(actual[key]-expected[key])<=2,`Restored ${key} differs: ${actual[key]} versus ${expected[key]}`)};
+const waitRestoredBounds=expected=>waitFor(()=>win32(),state=>['left','top','right','bottom'].every(key=>Math.abs(state.bounds[key]-expected[key])<=2),'Windows finished restoring exact pre-TV bounds');
 const fullscreenBounds=state=>{assert.equal(state.native.fullscreen,true);for(const key of ['left','top','right','bottom'])assert.ok(Math.abs(state.win32.bounds[key]-state.win32.monitor[key])<=3,`Native fullscreen does not cover monitor: ${key}`)};
 const screenshot=async(name)=>{const result=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});const filename=name+'.png';fs.writeFileSync(path.join(proof,filename),Buffer.from(result.data,'base64'));screenshots.push(filename)};
 const click=async(selector,text)=>{
@@ -141,22 +142,26 @@ try{
   const maxBefore=await capture('maximized-before-TV');assert.equal(maxBefore.win32.isZoomed,true);
   await tvOpen();await enterTvFullscreen();const maxExpanded=await capture('maximized-TV-fullscreen');fullscreenBounds(maxExpanded);await screenshot('installed-maximized-owned-fullscreen');
   await tvClose();await waitFor(()=>nativeState(),state=>state.maximized&&!state.fullscreen,'X restores maximized window');
+  await waitRestoredBounds(maxBefore.win32.bounds);
   const maxAfter=await capture('maximized-after-X');assert.equal(maxAfter.win32.isZoomed,true);sameBounds(maxAfter.win32.bounds,maxBefore.win32.bounds);passed(currentCase,maxBefore,maxExpanded,maxAfter);
 
   currentCase='normal-owned-fullscreen-X-restores-bounds';
   const normalBefore=await restoreNormal();assert.equal(normalBefore.win32.isZoomed,false);
   await tvOpen();await enterTvFullscreen();const normalExpanded=await capture('normal-TV-fullscreen');fullscreenBounds(normalExpanded);await screenshot('installed-normal-owned-fullscreen');
   await tvClose();await waitFor(()=>nativeState(),state=>!state.fullscreen&&!state.maximized,'X restores normal window');
+  await waitRestoredBounds(normalBefore.win32.bounds);
   const normalAfter=await capture('normal-after-X');assert.equal(normalAfter.win32.isZoomed,false);sameBounds(normalAfter.win32.bounds,normalBefore.win32.bounds);passed(currentCase,normalBefore,normalExpanded,normalAfter);
 
   currentCase='normal-owned-fullscreen-Escape-restores-bounds';
   const escBefore=await capture('normal-before-Escape-case');await tvOpen();await enterTvFullscreen();const escExpanded=await capture('normal-before-Escape');fullscreenBounds(escExpanded);
   await escape();await waitFor(()=>nativeState(),state=>!state.fullscreen&&!state.maximized,'Escape restores normal window');
+  await waitRestoredBounds(escBefore.win32.bounds);
   const escAfter=await capture('normal-after-Escape');sameBounds(escAfter.win32.bounds,escBefore.win32.bounds);passed(currentCase,escBefore,escExpanded,escAfter);
 
   currentCase='reopen-after-Escape-X-restores-bounds';
   const reopenBefore=await capture('normal-before-reopen');await tvOpen();await enterTvFullscreen();const reopenExpanded=await capture('reopened-TV-fullscreen');fullscreenBounds(reopenExpanded);
   await tvClose();await waitFor(()=>nativeState(),state=>!state.fullscreen&&!state.maximized,'Reopened TV X restores normal window');
+  await waitRestoredBounds(reopenBefore.win32.bounds);
   const reopenAfter=await capture('normal-after-reopen-X');sameBounds(reopenAfter.win32.bounds,reopenBefore.win32.bounds);await screenshot('installed-normal-after-reopen-X');passed(currentCase,reopenBefore,reopenExpanded,reopenAfter);
 
   assert.deepEqual(runtimeErrors,[],'Unhandled errors in the installed WebView');assert.equal(sha(client),executableSha256);assert.equal(sha(helper),helperSha256);assert.equal(cases.length,5);
@@ -164,7 +169,7 @@ try{
   fs.writeFileSync(path.join(proof,'installed-fullscreen-report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify({passed:true,passedCases:cases.length,report:path.join(proof,'installed-fullscreen-report.json')}));
 }catch(error){
   let state;if(cdp){await screenshot('installed-fullscreen-failure').catch(()=>{});try{state=await capture('failure')}catch{}}
-  fs.writeFileSync(path.join(proof,'installed-fullscreen-failure.json'),JSON.stringify({currentCase,error:String(error.stack??error),state,cases,runtimeErrors,childExit,childError:childError?String(childError):undefined},null,2)+'\n');
+  fs.writeFileSync(path.join(proof,'installed-fullscreen-failure.json'),JSON.stringify({currentCase,error:String(error.stack??error),state,cases,observations,runtimeErrors,childExit,childError:childError?String(childError):undefined},null,2)+'\n');
   throw error;
 }finally{
   if(cdp){await windowCommand('close').catch(()=>{});cdp.close()}
