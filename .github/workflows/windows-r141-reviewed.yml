@@ -30,24 +30,24 @@ jobs:
     - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
       with:
         python-version: '3.12'
-    - name: Restore exact published R140 and apply frozen R141 feature31 plus identity5
+    - name: Restore exact published R140 and apply frozen R141 feature32 plus identity5
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
         $pins=[ordered]@{
-          'prepare-r141-identity.py'='291f854dded86ec1b1aff551676d0445ad44b8a157ca893a900b669e1ef3e75c'
-          'apply-r141-release.py'='2ffb625882565246fc4431656ebddd0f00b5e4fe31ff6efad32ecf9c10e5e912'
-          'r141-release-identity.json'='26bb489fada2656c857855a5d4bf46b126a6f739852e1bb36c37010414dd4269'
-          'r141-release-identity.sha256'='d3e6c6a683a616ed8b64537fe96e1129d7bdd284359ccc52c890a169f2fc8b9b'
-          'r141-required-tests.json'='17fb87aa9e236b03f966c6b1b5cefbd516cbf36f4f0b4d142e1828e6210d4294'
-          'r141-required-tests.sha256'='39bdc5434f3bbc60d8e1edbf1144112ec9cfbf63e1f58e028620975e0f1ce000'
-          'r141-build/check-r141-acceptance.py'='92b0eefe8936f91a2adaea083926edd5c9e66fc3d2f703c835f4ef3831da1898'
+          'prepare-r141-identity.py'='c84df5b860972ac8f7da600bfcc40f26f4a83a8430d4e411dcacf15ed81261ef'
+          'apply-r141-release.py'='6c1a6f78151f31800450317a9ec5eb0ef0a7f7b28f06106fb9dea9f28ff86242'
+          'r141-release-identity.json'='e4322e63ca75550d91f043aec1fb56db17383f8fab34e43b598a52046f3568c2'
+          'r141-release-identity.sha256'='c3ace4c2e86ab03eb9df0536ce1ab5a6fdbee5215bf4d373c4da127eb140aa3b'
+          'r141-required-tests.json'='03be587d1a70dffbd8aeb966c0c291f53ed1e78de42b809ae637d90a42ae51f7'
+          'r141-required-tests.sha256'='79b6846cf73a8f14a20d26446128ea15e0903a173986a741ad57a59458194356'
+          'r141-build/check-r141-acceptance.py'='868cc42f3acbff6122976e1f1b9e3072e73f6d8297eea8ffa991d40cc78244b5'
           'r141-build/r141-upgrade-data.py'='dd4a86d65885c28fe836376808bf5043cc49302a8430d942d24038dd259668d9'
           'r141-build/r141-check-installed-payload.mjs'='d5067f4c290ca8983e55055794e540a85c182a427b04e3f533903af4f059886c'
           'r141-build/check-r141-installed-fullscreen.mjs'='6da9e85505726e63cbd5fe8ad97ead4512ebed3b2fc1f991e7c518d095f058e6'
           'r141-build/check-r141-installed-fullscreen-window.ps1'='51a3d4153823d96357a5ded493a8758e955f981dd4f3d6889a64e2aea0a81375'
-          'r141-performance-patch.json'='436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d'
-          'r141-performance-patch.sha256'='c9bd3d10cd1dccb9d159c744dc952490c1e3d310c29cb6f4a81ba835bd9537a3'
+          'r141-performance-patch.json'='cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4'
+          'r141-performance-patch.sha256'='8db94b650fc7ea0004ff96e3f02137c86eddcdbe4cc955ebf997a2a88ecbb322'
           'r141-performance-report.json'='dee852a3588c65eee0b191c43ddd0bc7a604e2c0244162e6ccdad9426bc33e24'
           'r141-performance-build.json'='92798b7f72bc3725785b82d229d093bd99a6024833b3bdd0285c4b1bc7bcffd7'
         }
@@ -61,7 +61,7 @@ jobs:
         if ($LASTEXITCODE -ne 0) { throw 'Published R140 source download failed' }
         if ((Get-Item incoming/KF-R140-FULL.zip).Length -ne 582390782 -or (Get-FileHash incoming/KF-R140-FULL.zip).Hash.ToLowerInvariant() -ne 'cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04') { throw 'Published R140 archive differs' }
         python apply-r141-release.py incoming/KF-R140-FULL.zip work/app --proof proof/source-delta.json
-        if ($LASTEXITCODE -ne 0) { throw 'Approved R141 feature31 and identity5 application failed' }
+        if ($LASTEXITCODE -ne 0) { throw 'Approved R141 feature32 and identity5 application failed' }
         python apply-r141-release.py --verify work/app --proof proof/source-delta.json
         if ($LASTEXITCODE -ne 0) { throw 'Unreviewed source changed' }
         python r141-build/check-r141-acceptance.py r141-required-tests.json --source-root work/app --patch r141-performance-patch.json --identity r141-release-identity.json
@@ -177,7 +177,7 @@ jobs:
         Copy-Item ../../proof ../../candidate/proof -Recurse
         $manifest=@{}
         foreach ($name in @('Klipper-Farm-R141-setup.exe','KF-R141-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
-        @{release='R141';sequence=141;baselineSequence=140;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d';releaseIdentitySha256='26bb489fada2656c857855a5d4bf46b126a6f739852e1bb36c37010414dd4269';requiredTestsSha256='17fb87aa9e236b03f966c6b1b5cefbd516cbf36f4f0b4d142e1828e6210d4294';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+        @{release='R141';sequence=141;baselineSequence=140;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='cb183b8172c436a920630a12e7d37794128fb51bd39b2ae723bd53c60dfc05e4';releaseIdentitySha256='e4322e63ca75550d91f043aec1fb56db17383f8fab34e43b598a52046f3568c2';requiredTestsSha256='03be587d1a70dffbd8aeb966c0c291f53ed1e78de42b809ae637d90a42ae51f7';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
     - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: r141-ota-candidate
