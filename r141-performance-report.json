@@ -1047,7 +1047,7 @@
     "src/lib/telegram.ts": "5c06ec847808eeddd57bddf277c10b0bac5e185c0a9887b6c36f263f99df28d3",
     "src/lib/transactionalOperations.ts": "c9ffd79122780f388a956e278c43a8abf4022ea6af8519c7eb08e587c99b2f0c",
     "src/lib/tvDashboard.ts": "16ab32bcd4274120deb293973c1dd4d63baf54eed35cb2f524d3ba7c3932bd42",
-    "src/lib/tvFullscreen.ts": "8a8323c6c68504fdf0dd2f7a7a399af20ae22c83b68f79801890bd1ac05f88a5",
+    "src/lib/tvFullscreen.ts": "359d8d7af71f6f7b9cce1327eecb155b21f6c6a7f0da0afdc2681d0c840a9de6",
     "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97",
     "src/lib/useFilamentAccounting.ts": "b27d8e121c2e888a1de21be0accc793a0c332f46f9e7241eac34192da7b32f57",
     "src/lib/usePrinterVisualActivity.ts": "05119757f32a267ed86d2c4632b77a500a69dc2a2ddce9197188b015942b34ec",
@@ -1545,130 +1545,130 @@
         "assets/index-D5abHpda.js"
       ],
       "firstFarmReadyMs": {
-        "median": 561.4843449999971,
-        "minimum": 543.4731920000049,
-        "maximum": 874.5006510000094,
+        "median": 667.1788000000015,
+        "minimum": 463.36924400000134,
+        "maximum": 1108.4764750000031,
         "samples": [
-          543.4731920000049,
-          561.4843449999971,
-          874.5006510000094
+          1108.4764750000031,
+          463.36924400000134,
+          667.1788000000015
         ]
       },
       "firstHistoryReadyMs": {
-        "median": 126.11404199999379,
-        "minimum": 110.90359100000205,
-        "maximum": 145.72428599999694,
+        "median": 93.73692600000504,
+        "minimum": 84.24873200000002,
+        "maximum": 163.52767600000152,
         "samples": [
-          126.11404199999379,
-          110.90359100000205,
-          145.72428599999694
+          163.52767600000152,
+          93.73692600000504,
+          84.24873200000002
         ]
       },
       "clockWorkTaskMs": {
-        "median": 472.909,
-        "minimum": 441.342,
-        "maximum": 738.688,
+        "median": 357.21000000000004,
+        "minimum": 356.039,
+        "maximum": 395.10699999999997,
         "samples": [
-          738.688,
-          441.342,
-          472.909
+          356.039,
+          357.21000000000004,
+          395.10699999999997
         ]
       },
       "telemetryWorkTaskMs": {
-        "median": 84.30099999999996,
-        "minimum": 70.54499999999997,
-        "maximum": 96.10499999999999,
+        "median": 66.855,
+        "minimum": 57.71799999999999,
+        "maximum": 76.57799999999997,
         "samples": [
-          84.30099999999996,
-          96.10499999999999,
-          70.54499999999997
+          66.855,
+          76.57799999999997,
+          57.71799999999999
         ]
       },
       "clockJsHeapUsedBytes": {
-        "median": 4758460,
-        "minimum": 4756484,
-        "maximum": 4764112,
+        "median": 4756652,
+        "minimum": 4756464,
+        "maximum": 4764800,
         "samples": [
-          4764112,
-          4756484,
-          4758460
+          4764800,
+          4756652,
+          4756464
         ]
       },
       "telemetryJsHeapUsedBytes": {
-        "median": 4844472,
-        "minimum": 4842764,
-        "maximum": 4850596,
+        "median": 4842932,
+        "minimum": 4842552,
+        "maximum": 4850376,
         "samples": [
-          4850596,
-          4842764,
-          4844472
+          4850376,
+          4842932,
+          4842552
         ]
       }
     },
     "current": {
       "initialJavaScriptBytes": 809554,
-      "initialGzipBytes": 232564,
+      "initialGzipBytes": 232557,
       "initialJavaScriptFiles": [
-        "assets/index-B3-9SJfI.js"
+        "assets/index-CHOJy2k-.js"
       ],
       "firstFarmReadyMs": {
-        "median": 682.4918879999968,
-        "minimum": 560.5622219999932,
-        "maximum": 2241.2393169999996,
+        "median": 603.1713879999952,
+        "minimum": 494.5142130000022,
+        "maximum": 648.3273169999993,
         "samples": [
-          682.4918879999968,
-          2241.2393169999996,
-          560.5622219999932
+          648.3273169999993,
+          494.5142130000022,
+          603.1713879999952
         ]
       },
       "firstHistoryReadyMs": {
-        "median": 156.9148589999968,
-        "minimum": 123.2554480000108,
-        "maximum": 481.9195529999997,
+        "median": 117.51724200000172,
+        "minimum": 111.13700600000448,
+        "maximum": 125.1304719999971,
         "samples": [
-          156.9148589999968,
-          481.9195529999997,
-          123.2554480000108
+          125.1304719999971,
+          111.13700600000448,
+          117.51724200000172
         ]
       },
       "clockWorkTaskMs": {
-        "median": 493.21099999999996,
-        "minimum": 458.306,
-        "maximum": 1362.217,
+        "median": 505.69399999999996,
+        "minimum": 460.41299999999995,
+        "maximum": 571.6949999999999,
         "samples": [
-          1362.217,
-          458.306,
-          493.21099999999996
+          460.41299999999995,
+          571.6949999999999,
+          505.69399999999996
         ]
       },
       "telemetryWorkTaskMs": {
-        "median": 60.75300000000006,
-        "minimum": 42.90300000000003,
-        "maximum": 96.92200000000017,
+        "median": 68.68400000000008,
+        "minimum": 51.31700000000006,
+        "maximum": 70.47300000000001,
         "samples": [
-          96.92200000000017,
-          42.90300000000003,
-          60.75300000000006
+          70.47300000000001,
+          51.31700000000006,
+          68.68400000000008
         ]
       },
       "clockJsHeapUsedBytes": {
-        "median": 4681732,
-        "minimum": 4678612,
-        "maximum": 4690184,
+        "median": 4678552,
+        "minimum": 4678508,
+        "maximum": 4686576,
         "samples": [
-          4690184,
-          4681732,
-          4678612
+          4686576,
+          4678552,
+          4678508
         ]
       },
       "telemetryJsHeapUsedBytes": {
-        "median": 4907036,
-        "minimum": 4903796,
-        "maximum": 4915096,
+        "median": 4903920,
+        "minimum": 4903680,
+        "maximum": 4911864,
         "samples": [
-          4915096,
-          4907036,
-          4903796
+          4911864,
+          4903920,
+          4903680
         ]
       }
     }
@@ -1677,8 +1677,8 @@
     "baseline": {
       "app": [
         {
-          "firstFarmReadyMs": 543.4731920000049,
-          "firstHistoryReadyMs": 126.11404199999379,
+          "firstFarmReadyMs": 1108.4764750000031,
+          "firstHistoryReadyMs": 163.52767600000152,
           "loadedBefore": [
             "TvDashboard",
             "ControlPanel",
@@ -1695,8 +1695,8 @@
           ]
         },
         {
-          "firstFarmReadyMs": 561.4843449999971,
-          "firstHistoryReadyMs": 110.90359100000205,
+          "firstFarmReadyMs": 463.36924400000134,
+          "firstHistoryReadyMs": 93.73692600000504,
           "loadedBefore": [
             "TvDashboard",
             "ControlPanel",
@@ -1713,8 +1713,8 @@
           ]
         },
         {
-          "firstFarmReadyMs": 874.5006510000094,
-          "firstHistoryReadyMs": 145.72428599999694,
+          "firstFarmReadyMs": 667.1788000000015,
+          "firstHistoryReadyMs": 84.24873200000002,
           "loadedBefore": [
             "TvDashboard",
             "ControlPanel",
@@ -1740,10 +1740,10 @@
               "tvFilamentStats": 6,
               "filamentUsageInPeriod": 48
             },
-            "rendererTaskMs": 738.688,
-            "rendererScriptMs": 50.071999999999996,
-            "jsHeapUsedBytes": 4764112,
-            "jsHeapChangeBytes": 180296
+            "rendererTaskMs": 356.039,
+            "rendererScriptMs": 25.553,
+            "jsHeapUsedBytes": 4764800,
+            "jsHeapChangeBytes": 150616
           },
           "telemetry": {
             "counts": {
@@ -1752,10 +1752,10 @@
               "tvFilamentStats": 13,
               "filamentUsageInPeriod": 104
             },
-            "rendererTaskMs": 84.30099999999996,
-            "rendererScriptMs": 50.971999999999994,
-            "jsHeapUsedBytes": 4850596,
-            "jsHeapChangeBytes": 86536
+            "rendererTaskMs": 66.855,
+            "rendererScriptMs": 40.07500000000001,
+            "jsHeapUsedBytes": 4850376,
+            "jsHeapChangeBytes": 85628
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1771,10 +1771,10 @@
               "tvFilamentStats": 6,
               "filamentUsageInPeriod": 48
             },
-            "rendererTaskMs": 441.342,
-            "rendererScriptMs": 45.067,
-            "jsHeapUsedBytes": 4756484,
-            "jsHeapChangeBytes": 183312
+            "rendererTaskMs": 357.21000000000004,
+            "rendererScriptMs": 24.998,
+            "jsHeapUsedBytes": 4756652,
+            "jsHeapChangeBytes": 210508
           },
           "telemetry": {
             "counts": {
@@ -1783,9 +1783,9 @@
               "tvFilamentStats": 13,
               "filamentUsageInPeriod": 104
             },
-            "rendererTaskMs": 96.10499999999999,
-            "rendererScriptMs": 55.70199999999999,
-            "jsHeapUsedBytes": 4842764,
+            "rendererTaskMs": 76.57799999999997,
+            "rendererScriptMs": 45.907,
+            "jsHeapUsedBytes": 4842932,
             "jsHeapChangeBytes": 86368
           },
           "configuredPrinters": 7,
@@ -1802,10 +1802,10 @@
               "tvFilamentStats": 6,
               "filamentUsageInPeriod": 48
             },
-            "rendererTaskMs": 472.909,
-            "rendererScriptMs": 24.397,
-            "jsHeapUsedBytes": 4758460,
-            "jsHeapChangeBytes": 156728
+            "rendererTaskMs": 395.10699999999997,
+            "rendererScriptMs": 20.294,
+            "jsHeapUsedBytes": 4756464,
+            "jsHeapChangeBytes": 210728
           },
           "telemetry": {
             "counts": {
@@ -1814,10 +1814,10 @@
               "tvFilamentStats": 13,
               "filamentUsageInPeriod": 104
             },
-            "rendererTaskMs": 70.54499999999997,
-            "rendererScriptMs": 40.666999999999994,
-            "jsHeapUsedBytes": 4844472,
-            "jsHeapChangeBytes": 86100
+            "rendererTaskMs": 57.71799999999999,
+            "rendererScriptMs": 33.11,
+            "jsHeapUsedBytes": 4842552,
+            "jsHeapChangeBytes": 86176
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1830,24 +1830,24 @@
     "current": {
       "app": [
         {
-          "firstFarmReadyMs": 682.4918879999968,
-          "firstHistoryReadyMs": 156.9148589999968,
+          "firstFarmReadyMs": 648.3273169999993,
+          "firstHistoryReadyMs": 125.1304719999971,
           "loadedBefore": [],
           "loadedAfter": [
             "AnalyticsPanel"
           ]
         },
         {
-          "firstFarmReadyMs": 2241.2393169999996,
-          "firstHistoryReadyMs": 481.9195529999997,
+          "firstFarmReadyMs": 494.5142130000022,
+          "firstHistoryReadyMs": 111.13700600000448,
           "loadedBefore": [],
           "loadedAfter": [
             "AnalyticsPanel"
           ]
         },
         {
-          "firstFarmReadyMs": 560.5622219999932,
-          "firstHistoryReadyMs": 123.2554480000108,
+          "firstFarmReadyMs": 603.1713879999952,
+          "firstHistoryReadyMs": 117.51724200000172,
           "loadedBefore": [],
           "loadedAfter": [
             "AnalyticsPanel"
@@ -1860,10 +1860,10 @@
             "counts": {
               "tvFilamentCurrentStats": 6
             },
-            "rendererTaskMs": 1362.217,
-            "rendererScriptMs": 21.56,
-            "jsHeapUsedBytes": 4690184,
-            "jsHeapChangeBytes": 42592
+            "rendererTaskMs": 460.41299999999995,
+            "rendererScriptMs": 9.147,
+            "jsHeapUsedBytes": 4686576,
+            "jsHeapChangeBytes": 46948
           },
           "telemetry": {
             "counts": {
@@ -1871,10 +1871,10 @@
               "TvDashboard": 6,
               "TvPrinter": 7
             },
-            "rendererTaskMs": 96.92200000000017,
-            "rendererScriptMs": 35.849000000000004,
-            "jsHeapUsedBytes": 4915096,
-            "jsHeapChangeBytes": 224824
+            "rendererTaskMs": 70.47300000000001,
+            "rendererScriptMs": 23.942999999999998,
+            "jsHeapUsedBytes": 4911864,
+            "jsHeapChangeBytes": 225200
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1887,10 +1887,10 @@
             "counts": {
               "tvFilamentCurrentStats": 6
             },
-            "rendererTaskMs": 458.306,
-            "rendererScriptMs": 13.308,
-            "jsHeapUsedBytes": 4681732,
-            "jsHeapChangeBytes": 32724
+            "rendererTaskMs": 571.6949999999999,
+            "rendererScriptMs": 12.647,
+            "jsHeapUsedBytes": 4678552,
+            "jsHeapChangeBytes": 73868
           },
           "telemetry": {
             "counts": {
@@ -1898,10 +1898,10 @@
               "TvDashboard": 6,
               "TvPrinter": 7
             },
-            "rendererTaskMs": 42.90300000000003,
-            "rendererScriptMs": 19.407,
-            "jsHeapUsedBytes": 4907036,
-            "jsHeapChangeBytes": 225152
+            "rendererTaskMs": 51.31700000000006,
+            "rendererScriptMs": 22.746000000000002,
+            "jsHeapUsedBytes": 4903920,
+            "jsHeapChangeBytes": 225216
           },
           "configuredPrinters": 7,
           "cameraReady": true,
@@ -1914,10 +1914,10 @@
             "counts": {
               "tvFilamentCurrentStats": 6
             },
-            "rendererTaskMs": 493.21099999999996,
-            "rendererScriptMs": 22.038,
-            "jsHeapUsedBytes": 4678612,
-            "jsHeapChangeBytes": 22828
+            "rendererTaskMs": 505.69399999999996,
+            "rendererScriptMs": 11.904,
+            "jsHeapUsedBytes": 4678508,
+            "jsHeapChangeBytes": 50420
           },
           "telemetry": {
             "counts": {
@@ -1925,10 +1925,10 @@
               "TvDashboard": 6,
               "TvPrinter": 7
             },
-            "rendererTaskMs": 60.75300000000006,
-            "rendererScriptMs": 28.442,
-            "jsHeapUsedBytes": 4903796,
-            "jsHeapChangeBytes": 225032
+            "rendererTaskMs": 68.68400000000008,
+            "rendererScriptMs": 41.528000000000006,
+            "jsHeapUsedBytes": 4903680,
+            "jsHeapChangeBytes": 225020
           },
           "configuredPrinters": 7,
           "cameraReady": true,

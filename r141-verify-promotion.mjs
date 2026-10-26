@@ -13,10 +13,10 @@ const artifact=json('source-artifact.json'),inspection=json('source-inspection.j
 const manifest=json('update-v20.json');
 const previousRelease=json('previous-latest-release.json'),previousManifest=json('previous-stable-update.json');
 const repo='sanozhukov3737-oss/klipper-farm-updates',publicHex='28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb';
-const patchSha='1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c';
-const identitySha='2abaffec709fcdcdb811726eb835a9fd1f6ea05bb0effe95165a13ae8a417ec8';
+const patchSha='aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca';
+const identitySha='254a34bb0d1656d551f3d46c503e656e3a358eb28b231b56c0110a2e4795146c';
 const baselineSha='cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04';
-const requiredSha='693bf9e35b2b9a68a9c5259eed7d87a0f54a3da6f8ae80c76a10d8b4e5c56926';
+const requiredSha='d235ac2b198aeeb158e2f62930ba156f6b563964dd60da02176364b9d0532d22';
 const requirementsBytes=fs.readFileSync(new URL('./r141-required-tests.json',import.meta.url));
 assert.equal(crypto.createHash('sha256').update(requirementsBytes).digest('hex'),requiredSha);
 const requirements=JSON.parse(requirementsBytes.toString('utf8'));

@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
-  "revision": "performance-temperature-middle-frame-native-fullscreen-ast-probe-windows-fixture",
+  "revision": "native-window-physical-geometry-restoration",
   "baseline": "R140",
-  "status": "executed_draft_checks_passed_native_and_windows_validation_pending",
+  "status": "source-checked-awaiting-new-windows-installer",
   "passed": true,
   "scope": "Listed executed draft checks passed, with explicit current/retained provenance; native actor typecheck/integration and real Windows fullscreen validation remain pending.",
-  "featurePatchSha256": "1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c",
+  "featurePatchSha256": "aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca",
   "typescriptPassed": true,
   "frontendProductionBuildPassed": true,
   "securityCheckPassed": true,
@@ -954,7 +954,7 @@
     ],
     "installedWindowsTested": false
   },
-  "performanceReportSha256": "dee852a3588c65eee0b191c43ddd0bc7a604e2c0244162e6ccdad9426bc33e24",
+  "performanceReportSha256": "057c069a9cefd06d2c67257de136574a0f3ac5b9af394a404b6a504c426ce659",
   "performanceCases": [
     {
       "name": "matched-actual-seven-printer-app-and-tv-samples",
@@ -1457,7 +1457,7 @@
     ],
     "testedScriptHashContext": "Current feature32 plus the separate R141 release identity5; identity-specific check-r9-clean-installer.mjs matches its exact release payload."
   },
-  "performanceReferenceReusedBecauseAll801ProductionSrcBytesUnchanged": true,
+  "performanceReferenceReusedBecauseAll801ProductionSrcBytesUnchanged": false,
   "latestWindowsCandidateCi": {
     "runId": "40327646057",
     "status": "failed_in_browser_fixture_before_native_build",
@@ -1478,5 +1478,15 @@
     "productionSrcBytesChanged": false,
     "nativeRustBytesChanged": false,
     "actualWindowsWindowManagerRetestedLocally": false
-  }
+  },
+  "performanceRerunForCurrentSource": true,
+  "windowsRegressionCause": "Original installed candidate retained fullscreen bounds after maximized state was restored; fixed with a real unmaximize/maximize transition and saved normal geometry.",
+  "changedFromPreviousR141Feature": [
+    "ui-tests/r141-performance.mjs",
+    "src/lib/tvFullscreen.ts",
+    "src-tauri/capabilities/default.json",
+    "scripts/check-r141-tv-fullscreen.mjs",
+    "ui-tests/tv-fullscreen-r141.mjs",
+    "ui-tests/tv-fullscreen-r141.tsx"
+  ]
 }

@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
-  "revision": "performance-temperature-middle-frame-native-fullscreen-ast-probe-windows-fixture",
+  "revision": "native-window-physical-geometry-restoration",
   "baseline": "R140",
   "passed": true,
   "scope": "Exact source delta and preservation audit; this is not full native build or release validation.",
-  "featurePatchSha256": "1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c",
+  "featurePatchSha256": "aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca",
   "baseArchiveSha256": "cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04",
   "baselineFiles": 1811,
   "reviewedFiles": 32,
@@ -60,7 +60,7 @@
     {
       "path": "ui-tests/r141-performance.mjs",
       "beforeSha256": null,
-      "sha256": "a95c3a6e32dbb940779fe66e4b1f28cb645eb2e899a465e1aaa9f2f3343a3c01"
+      "sha256": "01e48e66a5159147e749b698d22fcc94d46d7a4cfb68736ce8ced870c3c67c96"
     },
     {
       "path": "ui-tests/r141-performance-app.html",
@@ -135,12 +135,12 @@
     {
       "path": "src/lib/tvFullscreen.ts",
       "beforeSha256": null,
-      "sha256": "8a8323c6c68504fdf0dd2f7a7a399af20ae22c83b68f79801890bd1ac05f88a5"
+      "sha256": "359d8d7af71f6f7b9cce1327eecb155b21f6c6a7f0da0afdc2681d0c840a9de6"
     },
     {
       "path": "src-tauri/capabilities/default.json",
       "beforeSha256": "3a7c3a3504328263dc73aca7fce67c53ba50389d5e3597e5e956411e7d7830f9",
-      "sha256": "048c3b39ce60c81648bb760cb35e003029bdb5b76b9a85eb142959c4c6e43422"
+      "sha256": "116182be3fdffd480cf4ffcefe18ad5faf951b3f559e8b4896e331e8ad4c43e8"
     },
     {
       "path": "scripts/check-security.mjs",
@@ -150,7 +150,7 @@
     {
       "path": "scripts/check-r141-tv-fullscreen.mjs",
       "beforeSha256": null,
-      "sha256": "16286e1a00deb14720363f6e1f6ac1fbe8111edef61cc99105392dd585984981"
+      "sha256": "2d1103c2f4191841cf55fd0e078de353e14bc8f174c28ede9e95d0ffcc86877a"
     },
     {
       "path": "ui-tests/tv-fullscreen-r141.html",
@@ -160,12 +160,12 @@
     {
       "path": "ui-tests/tv-fullscreen-r141.mjs",
       "beforeSha256": null,
-      "sha256": "d1c0e4ab7ea44ada485f0ad95047deb0ef3d66b608056eecfb50ae6cc6cdbdd8"
+      "sha256": "e56c42433357309ffc09ad306257e7981682b18a184c820547fd56c77988c4f7"
     },
     {
       "path": "ui-tests/tv-fullscreen-r141.tsx",
       "beforeSha256": null,
-      "sha256": "43e6c7632402f58c37d17575f4159d869d88bd4bb3c2e9ddf99dcbf465627efb"
+      "sha256": "afe76f482f647b04ff253d531985a09fb21c7cd217ac17346bbb519d3e7f95a5"
     },
     {
       "path": "ui-tests/tv-fullscreen-r141-window.ts",
@@ -228,9 +228,14 @@
     "doesNotProveFullNativeTypecheckOrExecution": true
   },
   "fullscreenNativeRuntimeTested": false,
-  "productionSrc801UnchangedFromPreviousR141Feature": true,
-  "nativeRustFilesUnchangedFromPreviousR141Feature": 61,
-  "fixtureOnlyChangedPaths": [
+  "productionSrc801UnchangedFromPreviousR141Feature": false,
+  "nativeRustFilesUnchangedFromPreviousR141Feature": true,
+  "fixtureOnlyChangedPaths": [],
+  "changedFromPreviousR141Feature": [
+    "ui-tests/r141-performance.mjs",
+    "src/lib/tvFullscreen.ts",
+    "src-tauri/capabilities/default.json",
+    "scripts/check-r141-tv-fullscreen.mjs",
     "ui-tests/tv-fullscreen-r141.mjs",
     "ui-tests/tv-fullscreen-r141.tsx"
   ]

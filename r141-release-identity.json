@@ -6,7 +6,7 @@
   "version": "1.14.5-r141",
   "productVersion": "1.14.5",
   "buildId": "V20.6-R14.1-PERFORMANCE-TELEMETRY-2026-10-26",
-  "featurePatchSha256": "1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c",
+  "featurePatchSha256": "aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca",
   "baseArchiveSha256": "cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04",
   "baseArchiveSize": 582390782,
   "archivePrefix": "Klipper-Farm-R140/",

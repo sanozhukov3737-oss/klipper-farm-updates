@@ -1,10 +1,10 @@
 {
-  "stage": "combined_r141_source_draft_fullscreen_checked_native_and_windows_validation_pending",
+  "stage": "new_native_geometry_fix_checked_windows_rebuild_pending",
   "baseline": "R140",
   "stableTag": "r140-ota",
   "branch": "r141-performance",
   "previousPublishedDraftCommit": "30372b7d79bcd4ad00c335fb2ff48ee7d7c43ae5",
-  "featureSha256": "1892b42dd303170cb705d740110508d9335ad448d78971c727528d898216417c",
+  "featureSha256": "aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca",
   "featureFiles": 32,
   "modifiedSourceFiles": 17,
   "newSourceFiles": 15,
@@ -51,7 +51,7 @@
     "physicalPrintersTested": false
   },
   "sourceReviewPassedPreviously": true,
-  "performanceReportSha256": "dee852a3588c65eee0b191c43ddd0bc7a604e2c0244162e6ccdad9426bc33e24",
+  "performanceReportSha256": "057c069a9cefd06d2c67257de136574a0f3ac5b9af394a404b6a504c426ce659",
   "installerBuilt": false,
   "releasePublished": false,
   "astProbeHarnessRepair": {
@@ -74,5 +74,13 @@
     "Real Windows window manager validation of fullscreen/maximized/windowed transitions, close/reopen, Escape and permission failures.",
     "Windows installer, clean installation and upgrade from R140; signed stable channel only after complete release validation."
   ],
-  "updatedAt": "2026-10-26T13:20:26.623420+00:00"
+  "updatedAt": "2026-10-26T13:20:26.623420+00:00",
+  "changedFromPreviousR141Feature": [
+    "ui-tests/r141-performance.mjs",
+    "src/lib/tvFullscreen.ts",
+    "src-tauri/capabilities/default.json",
+    "scripts/check-r141-tv-fullscreen.mjs",
+    "ui-tests/tv-fullscreen-r141.mjs",
+    "ui-tests/tv-fullscreen-r141.tsx"
+  ]
 }

@@ -966,7 +966,7 @@
     "src/lib/telegram.ts": "5c06ec847808eeddd57bddf277c10b0bac5e185c0a9887b6c36f263f99df28d3",
     "src/lib/transactionalOperations.ts": "c9ffd79122780f388a956e278c43a8abf4022ea6af8519c7eb08e587c99b2f0c",
     "src/lib/tvDashboard.ts": "16ab32bcd4274120deb293973c1dd4d63baf54eed35cb2f524d3ba7c3932bd42",
-    "src/lib/tvFullscreen.ts": "8a8323c6c68504fdf0dd2f7a7a399af20ae22c83b68f79801890bd1ac05f88a5",
+    "src/lib/tvFullscreen.ts": "359d8d7af71f6f7b9cce1327eecb155b21f6c6a7f0da0afdc2681d0c840a9de6",
     "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97",
     "src/lib/useFilamentAccounting.ts": "b27d8e121c2e888a1de21be0accc793a0c332f46f9e7241eac34192da7b32f57",
     "src/lib/usePrinterVisualActivity.ts": "05119757f32a267ed86d2c4632b77a500a69dc2a2ddce9197188b015942b34ec",
@@ -985,9 +985,9 @@
     },
     "current": {
       "initialJavaScriptBytes": 809554,
-      "initialGzipBytes": 232564,
+      "initialGzipBytes": 232557,
       "initialJavaScriptFiles": [
-        "assets/index-B3-9SJfI.js"
+        "assets/index-CHOJy2k-.js"
       ]
     }
   }
