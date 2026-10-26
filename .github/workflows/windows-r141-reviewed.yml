@@ -158,8 +158,25 @@ jobs:
       run: |
         $ErrorActionPreference='Stop'
         Set-Location work/app
+        Copy-Item src-tauri/Cargo.toml ../../proof/r141-cargo-before-build.toml
         node scripts/build-and-install-windows.mjs --build-only
         if ($LASTEXITCODE -ne 0) { throw 'Windows native checks and build failed' }
+        Copy-Item src-tauri/Cargo.toml ../../proof/r141-cargo-after-build.toml
+        # Tauri CLI 2.11.4 reformats Cargo.toml during bundle generation.
+        # Restore reviewed bytes only when the complete parsed TOML is identical.
+        @'
+        import hashlib,json,tomllib
+        from pathlib import Path
+        before=Path('../../proof/r141-cargo-before-build.toml').read_bytes()
+        after=Path('src-tauri/Cargo.toml').read_bytes()
+        assert hashlib.sha256(before).hexdigest()=='b88b67da331cc78cbbf7f5e30c353bb4065e75fefe63ca24531c78810943eb02', 'Reviewed Cargo manifest differs before build'
+        assert tomllib.loads(before.decode())==tomllib.loads(after.decode()), 'Tauri changed Cargo manifest semantics; do not restore or publish'
+        Path('src-tauri/Cargo.toml').write_bytes(before)
+        report={'passed':True,'completeTomlSemanticsEqual':True,'reviewedBytesRestored':True,'beforeSha256':hashlib.sha256(before).hexdigest(),'afterBuildSha256':hashlib.sha256(after).hexdigest(),'restoredSha256':hashlib.sha256(Path('src-tauri/Cargo.toml').read_bytes()).hexdigest()}
+        Path('../../proof/r141-cargo-normalization.json').write_text(json.dumps(report,indent=2)+'\n')
+        print(json.dumps(report))
+        '@ | python -
+        if ($LASTEXITCODE -ne 0) { throw 'Tauri Cargo manifest semantic or exact-source restoration check failed' }
         $nativeLog=Join-Path $PWD '.klipper-build-cache/target/v20-rust-tests-last.log'
         Copy-Item $nativeLog ../../proof/r141-native-tests.log
         Set-Location $env:GITHUB_WORKSPACE
