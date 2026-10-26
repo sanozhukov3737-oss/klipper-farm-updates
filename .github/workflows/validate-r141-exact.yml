@@ -55,8 +55,32 @@ jobs:
         if ($LASTEXITCODE -ne 0) { throw 'Exact original build workflow retrieval failed' }
         [IO.File]::WriteAllBytes((Join-Path $PWD 'validation-metadata/original-build-workflow.yml'),[Convert]::FromBase64String(($encoded -join '')))
         if ((Get-FileHash validation-metadata/original-build-workflow.yml).Hash.ToLowerInvariant() -ne '61c1502f8cd7c6e5bfd60fd7b91857701fc9764606e66a892c2e06f4a4ea7780') { throw 'Exact original build workflow differs' }
-        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 300 --header "Authorization: Bearer $env:GH_TOKEN" --output incoming/original-candidate.zip --url "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/artifacts/12662975858/zip"
-        if ($LASTEXITCODE -ne 0) { throw 'Exact original candidate download failed' }
+        $downloadRoot=$PWD.Path
+        0..3 | ForEach-Object -Parallel {
+          $ErrorActionPreference='Stop'
+          $index=$_
+          $start=[long][Math]::Floor($index*1079484496.0/4)
+          $end=[long][Math]::Floor(($index+1)*1079484496.0/4)-1
+          $part=Join-Path $using:downloadRoot "incoming/candidate-part-$index.zip"
+          curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --range "$start-$end" --max-time 300 --header "Authorization: Bearer $env:GH_TOKEN" --output $part --url "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/artifacts/12662975858/zip"
+          if ($LASTEXITCODE -ne 0 -or (Get-Item $part).Length -ne ($end-$start+1)) { throw "Exact candidate range $index failed" }
+          Write-Host "Exact candidate range $index downloaded: $($end-$start+1) bytes"
+        } -ThrottleLimit 4
+        @'
+        import shutil,hashlib
+        from pathlib import Path
+        destination=Path('incoming/original-candidate.zip')
+        with destination.open('wb') as output:
+          for index in range(4):
+            part=Path(f'incoming/candidate-part-{index}.zip')
+            assert part.stat().st_size==1079484496//4
+            with part.open('rb') as stream:shutil.copyfileobj(stream,output)
+        assert destination.stat().st_size==1079484496
+        with destination.open('rb') as stream:assert hashlib.file_digest(stream,'sha256').hexdigest()=='3c68078b9c8490052f1f461a647b34d67c847c8720e26be5e842ee228c1f0e0e'
+        for index in range(4):Path(f'incoming/candidate-part-{index}.zip').unlink()
+        print('Four exact ranges reassembled and full original artifact SHA-256 verified')
+        '@ | python -
+        if ($LASTEXITCODE -ne 0) { throw 'Exact ranged candidate download verification failed' }
         if ((Get-Item incoming/original-candidate.zip).Length -ne 1079484496 -or (Get-FileHash incoming/original-candidate.zip).Hash.ToLowerInvariant() -ne '3c68078b9c8490052f1f461a647b34d67c847c8720e26be5e842ee228c1f0e0e') { throw 'Exact original candidate ZIP bytes differ' }
         @'
         import hashlib,json,shutil,zipfile
