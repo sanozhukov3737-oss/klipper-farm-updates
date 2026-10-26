@@ -1,0 +1,231 @@
+name: Publish verified R141 without rebuilding installer
+'on':
+  push:
+    branches:
+    - r141-performance
+    paths:
+    - .github/workflows/promote-r141.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+env:
+  PYTHONUTF8: '1'
+concurrency:
+  group: promote-r141
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+    - name: Download exact validated artifact and inspect source and installed Windows proof
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ($env:GITHUB_REPOSITORY -ne 'sanozhukov3737-oss/klipper-farm-updates') { throw 'Wrong repository' }
+        $reviewedInputs=[ordered]@{
+          'r141-promotion-contract.json'='8dfb0e4f17a10a7ea7742e5ccf0048dd29ad9b5ba25d4107716c71f0246e5f0c'
+          'r141-signed-update.json'='9e42eb9ea6974e70af734cade5b2ce459a10bf4e283ead38d210dd2efe85d283'
+          'r141-promotion-contract.py'='3c82003fbdb4e97c51ac09a0d78a8d0f605a29aa56319cfd9a08614ad05ee2ea'
+          'r141-extract-candidate.py'='f4c452bc4ffc9b4dbf226826828ad7c9265dbc7a7773b1b861cdf2c8dd9fd5f3'
+          'r141-inspect-promotion.py'='02c20cef2c9d1d52819555c6133a1edcb0913331a3bca4cc670b91314e5a1e67'
+          'r141-verify-promotion.mjs'='e28d0f65196804c613fb14a73ff20530fe484bd876a16499fca852dac3c55f23'
+          'r141-verify-update-sequence.mjs'='2fd7d7f32b9e66f72e1326ad6e5f3f00e47696a7b1135a2882f849d1a6cbf823'
+          'r141-required-tests.json'='d235ac2b198aeeb158e2f62930ba156f6b563964dd60da02176364b9d0532d22'
+          'r141-build/check-r141-acceptance.py'='c430fa69545a312d5487f58dfb5fc1e77c05fcaba1fed4ac27a6e37085ccab54'
+          'r141-performance-patch.json'='aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca'
+          'r141-release-identity.json'='254a34bb0d1656d551f3d46c503e656e3a358eb28b231b56c0110a2e4795146c'
+          'r141-release-notes.md'='102de2ee79b99abd73a1dd1f6bb0f3135f2cfd8e2de718662351792c9e5ec05c'
+        }
+        foreach ($entry in $reviewedInputs.GetEnumerator()) {
+          if ((Get-FileHash $entry.Key).Hash.ToLowerInvariant() -ne $entry.Value) { throw "Reviewed promotion input differs: $($entry.Key)" }
+        }
+        New-Item -ItemType Directory -Force incoming,verified | Out-Null
+        Copy-Item r141-promotion-contract.json,r141-release-notes.md incoming/
+        Copy-Item r141-signed-update.json incoming/update-v20.json
+        $pins=Get-Content r141-promotion-contract.json -Raw | ConvertFrom-Json
+        function Save-Api([string]$endpoint,[string]$name) {
+         $body=gh api $endpoint
+         if ($LASTEXITCODE -ne 0) { throw "Metadata read failed: $name" }
+         [IO.File]::WriteAllText((Join-Path $PWD "incoming/$name"),($body -join "`n"),[Text.UTF8Encoding]::new($false))
+        }
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)" 'build-run.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/runs/$($pins.buildRunId)/jobs?per_page=100" 'build-jobs.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/releases/latest" 'previous-latest-release.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($pins.sourceArtifactId)" 'source-artifact.json'
+        Save-Api "repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($pins.buildEvidenceArtifactId)" 'build-evidence-artifact.json'
+        $encoded=gh api "repos/$env:GITHUB_REPOSITORY/contents/.github/workflows/windows-r141-reviewed.yml?ref=$($pins.buildHeadSha)" --jq .content
+        if ($LASTEXITCODE -ne 0) { throw 'Exact build workflow retrieval failed' }
+        [IO.File]::WriteAllBytes((Join-Path $PWD 'incoming/build-workflow.yml'),[Convert]::FromBase64String(($encoded -join '')))
+        $downloadRoot=$PWD.Path
+        $downloadSize=[long]$pins.sourceArtifactSizeBytes
+        $downloadArtifactId=[string]$pins.sourceArtifactId
+        0..3 | ForEach-Object -Parallel {
+          $ErrorActionPreference='Stop'
+          $index=$_
+          $start=[long][Math]::Floor($index*$using:downloadSize/4.0)
+          $end=[long][Math]::Floor(($index+1)*$using:downloadSize/4.0)-1
+          $part=Join-Path $using:downloadRoot "incoming/validated-part-$index.zip"
+          curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --range "$start-$end" --max-time 300 --header "Authorization: Bearer $env:GH_TOKEN" --output $part --url "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/artifacts/$using:downloadArtifactId/zip"
+          if ($LASTEXITCODE -ne 0 -or (Get-Item $part).Length -ne ($end-$start+1)) { throw "Validated artifact range $index failed" }
+          Write-Host "Validated artifact range $index downloaded"
+        } -ThrottleLimit 4
+        @'
+        import hashlib,json,shutil
+        from pathlib import Path
+        pins=json.loads(Path('r141-promotion-contract.json').read_text())
+        size=pins['sourceArtifactSizeBytes']
+        archive=Path('incoming/validated-artifact.zip')
+        with archive.open('wb') as output:
+          for index in range(4):
+            part=Path(f'incoming/validated-part-{index}.zip')
+            assert part.stat().st_size==(index+1)*size//4-index*size//4
+            with part.open('rb') as stream:shutil.copyfileobj(stream,output)
+        assert archive.stat().st_size==size
+        with archive.open('rb') as stream:assert 'sha256:'+hashlib.file_digest(stream,'sha256').hexdigest()==pins['sourceArtifactDigest']
+        for index in range(4):Path(f'incoming/validated-part-{index}.zip').unlink()
+        print('Complete validated archive reassembled and exact GitHub artifact digest verified')
+        '@ | python -
+        if ($LASTEXITCODE -ne 0) { throw 'Complete validated artifact download verification failed' }
+        python r141-extract-candidate.py incoming r141-promotion-contract.json
+        if ($LASTEXITCODE -ne 0) { throw 'Validated artifact digest or archive inventory differs' }
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 90 --header "Authorization: Bearer $env:GH_TOKEN" --output incoming/build-evidence.zip --url "https://api.github.com/repos/$env:GITHUB_REPOSITORY/actions/artifacts/$($pins.buildEvidenceArtifactId)/zip"
+        if ($LASTEXITCODE -ne 0 -or ('sha256:'+(Get-FileHash incoming/build-evidence.zip).Hash.ToLowerInvariant()) -ne $pins.buildEvidenceArtifactDigest) { throw 'Build evidence differs' }
+        gh release download r140-ota --repo $env:GITHUB_REPOSITORY --dir incoming --pattern KF-R140-FULL.zip
+        if ($LASTEXITCODE -ne 0) { throw 'Exact published R140 baseline download failed' }
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 90 --output incoming/previous-stable-update.json --url "https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download/update-v20.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Previous stable application endpoint unavailable' }
+        foreach ($asset in $pins.assets.PSObject.Properties) {
+         if ((Get-FileHash "incoming/$($asset.Name)").Hash.ToLowerInvariant() -ne $asset.Value.sha256 -or (Get-Item "incoming/$($asset.Name)").Length -ne $asset.Value.sizeBytes) { throw "Candidate bytes differ: $($asset.Name)" }
+        }
+        python r141-inspect-promotion.py incoming r141-performance-patch.json r141-release-identity.json
+        if ($LASTEXITCODE -ne 0) { throw 'Exact source or installed Windows proof inspection failed' }
+    - name: Verify signature with the production Rust updater and installed sequence
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $incoming=Join-Path $PWD 'incoming'
+        Expand-Archive incoming/KF-R141-FULL.zip native-source
+        $source=Join-Path $PWD 'native-source/Klipper-Farm-R141'
+        Set-Location $source
+        tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+        if ($LASTEXITCODE -ne 0) { throw 'Reviewed offline Rust dependencies extraction failed' }
+        $env:CARGO_TARGET_DIR=Join-Path $env:RUNNER_TEMP 'r141-update-native'
+        cargo test --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --lib
+        if ($LASTEXITCODE -ne 0) { throw 'Native updater integrity and anti-rollback tests failed' }
+        $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+        $output=cargo run --quiet --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --example verify_bundle -- "$incoming/update-v20.json" "$incoming/Klipper-Farm-R141-setup.exe" 28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb stable $now
+        if ($LASTEXITCODE -ne 0) { throw 'Production Rust updater rejected signed R141' }
+        [IO.File]::WriteAllText((Join-Path $incoming 'native-bundle-verification.txt'),($output -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
+        Copy-Item (Join-Path $env:CARGO_TARGET_DIR 'debug/examples/verify_bundle.exe') (Join-Path $env:GITHUB_WORKSPACE 'verified/verify_bundle.exe')
+        Set-Location $env:GITHUB_WORKSPACE
+        node r141-verify-update-sequence.mjs incoming $source
+        if ($LASTEXITCODE -ne 0) { throw 'Installed updater sequence behavior differs' }
+        node r141-verify-promotion.mjs incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Pinned candidate or root signature verification failed' }
+        $files=@('Klipper-Farm-R141-setup.exe','KF-R141-FULL.zip','R141-UI-proof.zip','provenance.json','exact-validation.json','update-v20.json','SHA256SUMS.txt','promotion-attestation.json','r141-promotion-contract.json','r141-release-notes.md','native-bundle-verification.txt','update-sequence-verification.json','source-inspection.json','artifact-archive-verification.json')
+        foreach ($name in $files) { Copy-Item "incoming/$name" verified/ }
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r141-verified-stable
+        path: verified
+        retention-days: 30
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r141-promotion-evidence
+        path: |-
+          incoming/*.json
+          incoming/*.yml
+          incoming/native-bundle-verification.txt
+        retention-days: 30
+  promote:
+    needs: verify
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r141-verified-stable
+        path: verified
+    - name: Publish exact validated bytes and verify public application endpoint
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location verified
+        $proof=Get-Content promotion-attestation.json -Raw | ConvertFrom-Json
+        $pins=Get-Content r141-promotion-contract.json -Raw | ConvertFrom-Json
+        if (-not $proof.passed -or -not $proof.ed25519SignatureVerified -or -not $proof.nativeUpdaterModuleVerified -or -not $proof.embeddedInstalledSequenceVerified -or -not $proof.compiledArtifactBoundToInstalledValidation -or $proof.sequence -ne 141 -or $proof.promotionHeadSha -ne $env:GITHUB_SHA -or $proof.buildHeadSha -ne $pins.buildHeadSha -or $proof.buildRunId -ne $pins.buildRunId -or -not $proof.singleSuccessfulBuildAndValidationRunVerified -or $proof.buildRunConclusion -ne 'success') { throw 'Verification provenance differs' }
+        function Check-PreviousStable {
+         $previous=gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | ConvertFrom-Json
+         if ($LASTEXITCODE -ne 0 -or $previous.id -ne 423883842 -or $previous.tag_name -ne 'r140-ota' -or $previous.prerelease -or $previous.draft) { throw 'Stable channel changed while R141 was being verified' }
+         $manifest=@($previous.assets | Where-Object name -eq 'update-v20.json')
+         if ($manifest.Count -ne 1 -or $manifest[0].digest -ne 'sha256:fed4ad7c93d0d1c861e1a3522a33b07e5c4ee3504b46aadb8cf1636a370ae7b2') { throw 'Previous stable manifest changed' }
+        }
+        Check-PreviousStable
+        foreach ($asset in $proof.assets.PSObject.Properties) {
+         if ((Get-FileHash $asset.Name).Hash.ToLowerInvariant() -ne $asset.Value.sha256 -or (Get-Item $asset.Name).Length -ne $asset.Value.sizeBytes) { throw "Verified bytes changed: $($asset.Name)" }
+        }
+        $files=@('Klipper-Farm-R141-setup.exe','KF-R141-FULL.zip','R141-UI-proof.zip','provenance.json','exact-validation.json','update-v20.json','SHA256SUMS.txt','promotion-attestation.json','r141-promotion-contract.json','native-bundle-verification.txt','update-sequence-verification.json','source-inspection.json','artifact-archive-verification.json')
+        $upload=@{}
+        foreach ($name in $files) { $upload[$name]=@{sha256=(Get-FileHash $name).Hash.ToLowerInvariant();sizeBytes=(Get-Item $name).Length} }
+        gh release create r141-ota @files --repo $env:GITHUB_REPOSITORY --target $pins.buildHeadSha --prerelease --latest=false --title 'Klipper Farm R141 — температуры, TV и оптимизация' --notes-file r141-release-notes.md
+        if ($LASTEXITCODE -ne 0) { throw 'Verified R141 staging failed; stable channel remains unchanged' }
+        $candidate=gh api "repos/$env:GITHUB_REPOSITORY/releases/tags/r141-ota" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or $candidate.draft -or -not $candidate.prerelease -or $candidate.target_commitish -ne $pins.buildHeadSha) { throw 'Staged release differs' }
+        foreach ($name in $upload.Keys) {
+         $asset=@($candidate.assets | Where-Object name -eq $name)
+         if ($asset.Count -ne 1 -or $asset[0].digest -ne ('sha256:'+$upload[$name].sha256) -or $asset[0].size -ne $upload[$name].sizeBytes) { throw "Uploaded asset differs: $name" }
+        }
+        $tag=gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/r141-ota" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0) { throw 'Release tag unavailable' }
+        $object=$tag.object
+        if ($object.type -eq 'tag') {
+         $annotated=gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$($object.sha)" | ConvertFrom-Json
+         if ($LASTEXITCODE -ne 0) { throw 'Annotated tag unavailable' }
+         $object=$annotated.object
+        }
+        if ($object.type -ne 'commit' -or $object.sha -ne $pins.buildHeadSha) { throw 'Release tag differs from validated build' }
+        Check-PreviousStable
+        gh release edit r141-ota --repo $env:GITHUB_REPOSITORY --prerelease=false --latest --title 'Klipper Farm R141 — температуры, TV и оптимизация' --notes-file r141-release-notes.md
+        if ($LASTEXITCODE -ne 0) { throw 'Stable R141 publication failed' }
+        $latest=gh api "repos/$env:GITHUB_REPOSITORY/releases/latest" | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or $latest.id -ne $candidate.id -or $latest.prerelease -or $latest.draft) { throw 'Stable latest release differs' }
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 90 --output public-update-v20.json --url "https://github.com/$env:GITHUB_REPOSITORY/releases/latest/download/update-v20.json"
+        if ($LASTEXITCODE -ne 0 -or (Get-FileHash public-update-v20.json).Hash.ToLowerInvariant() -ne $proof.assets.'update-v20.json'.sha256) { throw 'Public application update manifest differs' }
+        $manifest=Get-Content public-update-v20.json -Raw | ConvertFrom-Json
+        curl.exe -q --fail --silent --show-error --location --proto '=https' --proto-redir '=https' --max-time 180 --output public-installer.exe --url $manifest.artifact.url
+        if ($LASTEXITCODE -ne 0) { throw 'Signed public installer URL unavailable' }
+        & ./verify_bundle.exe public-update-v20.json public-installer.exe 28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb stable ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())
+        if ($LASTEXITCODE -ne 0) { throw 'Native updater rejected actual public channel download' }
+        @{passed=$true;sequence=141;releaseId=$latest.id;manifestSha256=(Get-FileHash public-update-v20.json).Hash.ToLowerInvariant();installerSha256=(Get-FileHash public-installer.exe).Hash.ToLowerInvariant();publicApplicationEndpointVerified=$true;productionRustUpdaterVerified=$true;verifiedAt=[DateTimeOffset]::UtcNow.ToString('o')} | ConvertTo-Json | Set-Content public-channel-verification.json -Encoding utf8NoBOM
+        gh release upload r141-ota public-channel-verification.json --repo $env:GITHUB_REPOSITORY
+        if ($LASTEXITCODE -ne 0) { throw 'Public channel verification report upload failed' }
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r141-public-channel-verification
+        path: |-
+          verified/public-update-v20.json
+          verified/public-channel-verification.json
+        retention-days: 30
