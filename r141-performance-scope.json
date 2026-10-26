@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
-  "revision": "performance-temperature-middle-frame",
+  "revision": "performance-temperature-middle-frame-native-fullscreen",
   "baseline": "R140",
   "passed": true,
   "scope": "Exact source delta and preservation audit; this is not full native build or release validation.",
-  "featurePatchSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
+  "featurePatchSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
   "baseArchiveSha256": "cbbc7d2c2d043cacd953191281d0c7d5ce8d650064576263ad87a5a8c544cf04",
   "baselineFiles": 1811,
-  "reviewedFiles": 23,
-  "modifiedFiles": 14,
-  "newFiles": 9,
-  "expectedPrebuildSourceFiles": 1820,
-  "unchangedNonGeneratedBaselineFiles": 1291,
+  "reviewedFiles": 31,
+  "modifiedFiles": 16,
+  "newFiles": 15,
+  "expectedPrebuildSourceFiles": 1826,
+  "unchangedNonGeneratedBaselineFiles": 1289,
   "excludedBaselineDistFiles": 506,
   "unreviewedStaticFiles": [],
   "ignoredTransientFileCount": 2,
@@ -35,7 +35,7 @@
     {
       "path": "src/components/TvDashboard.tsx",
       "beforeSha256": "5567b0679db4c30156adc764c3733a3f1c2f7dc31772247f0e06a2896119963a",
-      "sha256": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68"
+      "sha256": "e081359b87afce7c5a97bc8c5415ab8697cca8a25d5e405e3c60d257d1b97fe7"
     },
     {
       "path": "src/lib/tvSpotlight.ts",
@@ -131,6 +131,46 @@
       "path": "scripts/check-r141-temperature-merge.mjs",
       "beforeSha256": null,
       "sha256": "da6e6c6560af2db1bcb653762e13e65221474060885e0d57f82aa707a22dbbc9"
+    },
+    {
+      "path": "src/lib/tvFullscreen.ts",
+      "beforeSha256": null,
+      "sha256": "8a8323c6c68504fdf0dd2f7a7a399af20ae22c83b68f79801890bd1ac05f88a5"
+    },
+    {
+      "path": "src-tauri/capabilities/default.json",
+      "beforeSha256": "3a7c3a3504328263dc73aca7fce67c53ba50389d5e3597e5e956411e7d7830f9",
+      "sha256": "048c3b39ce60c81648bb760cb35e003029bdb5b76b9a85eb142959c4c6e43422"
+    },
+    {
+      "path": "scripts/check-security.mjs",
+      "beforeSha256": "cdd4181c2612fbe7e54bb9ceb5ad37f748a2c16ae5a82f7eb81bbe7b584a6348",
+      "sha256": "660fd6e7aff4565df34db554afc47a67270e7c3af61a2cb993cc83eb5e0c69c7"
+    },
+    {
+      "path": "scripts/check-r141-tv-fullscreen.mjs",
+      "beforeSha256": null,
+      "sha256": "16286e1a00deb14720363f6e1f6ac1fbe8111edef61cc99105392dd585984981"
+    },
+    {
+      "path": "ui-tests/tv-fullscreen-r141.html",
+      "beforeSha256": null,
+      "sha256": "91b90714baa104f087b701bf6eaa0b90cfb1a01444c556626a2c854c87b149aa"
+    },
+    {
+      "path": "ui-tests/tv-fullscreen-r141.mjs",
+      "beforeSha256": null,
+      "sha256": "8d42c0259966d5537d7661c5030f342e993528a17db36f676905808cdf603915"
+    },
+    {
+      "path": "ui-tests/tv-fullscreen-r141.tsx",
+      "beforeSha256": null,
+      "sha256": "1602c0021877582d3ac167ffb44d6e9328772f952e4b67cdfe3e69d287159d84"
+    },
+    {
+      "path": "ui-tests/tv-fullscreen-r141-window.ts",
+      "beforeSha256": null,
+      "sha256": "f696c80093225e1a0441f982ef7d9963964ec80f730ae0132f965d3aff26a491"
     }
   ],
   "preserved": {
@@ -163,20 +203,21 @@
   "sourceVersionMetadata": "R140 retained; R141 release identity has not been applied",
   "applyValidation": {
     "passed": true,
-    "fullSmokeFeatureSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
+    "fullSmokeFeatureSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
     "freshPublishedArchiveApplied": true,
-    "firstApplyFiles": 23,
+    "firstApplyFiles": 31,
     "idempotentApplyFiles": 0,
-    "completeVerifiedFiles": 1820,
-    "reviewedPayloadRowsVerified": 23,
+    "completeVerifiedFiles": 1826,
+    "reviewedPayloadRowsVerified": 31,
     "scope": "Fresh full published R140 archive applied and then reapplied idempotently with the final combined payload."
   },
   "sourceReview": {
     "passed": true,
-    "scope": "Manual source review of per-heater provenance, strict decimal parsing, delayed/cache ordering and bounded recovery paths.",
+    "scope": "Previously completed manual source review of unchanged per-heater provenance, strict decimal parsing, delayed/cache ordering and bounded recovery paths; not rerun as native execution.",
     "healthyResponseAdditionalQueriesReviewed": 0,
     "missingHeaterRecoveryAdditionalTimeoutBoundMs": 6000,
     "fanIpAndStartDispatchReviewedAsPreserved": true,
     "doesNotProveFullNativeTypecheckOrExecution": true
-  }
+  },
+  "fullscreenNativeRuntimeTested": false
 }

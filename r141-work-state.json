@@ -1,16 +1,16 @@
 {
-  "stage": "combined_r141_source_draft_checked_native_actor_integration_pending",
+  "stage": "combined_r141_source_draft_fullscreen_checked_native_and_windows_validation_pending",
   "baseline": "R140",
   "stableTag": "r140-ota",
   "branch": "r141-performance",
-  "previousPublishedDraftCommit": "4905c791",
-  "featureSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
-  "featureFiles": 23,
-  "modifiedSourceFiles": 14,
-  "newSourceFiles": 9,
-  "expectedPrebuildSourceFiles": 1820,
+  "previousPublishedDraftCommit": "c91e6c22b178f7548a62aaf203a23ed6fc27062a",
+  "featureSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
+  "featureFiles": 31,
+  "modifiedSourceFiles": 16,
+  "newSourceFiles": 15,
+  "expectedPrebuildSourceFiles": 1826,
   "validation": {
-    "totalPassed": 122,
+    "totalPassed": 157,
     "testCounts": {
       "filamentData": 32,
       "cacheBoundaries": 9,
@@ -19,21 +19,45 @@
       "actualAppAddressAndSettings": 5,
       "performance": 13,
       "temperatureMerge": 16,
-      "nativeHelper": 7
+      "nativeHelper": 7,
+      "fullscreenHelper": 22,
+      "fullscreenBrowser": 13
+    },
+    "proofLineage": {
+      "currentSnapshotRerun": [
+        "tvBrowser",
+        "cameraBrowser",
+        "performance",
+        "fullscreenHelper",
+        "fullscreenBrowser",
+        "temperatureMerge",
+        "cacheBoundaries"
+      ],
+      "currentSnapshotCaseCount": 113,
+      "retainedPreviousSnapshot": [
+        "filamentData",
+        "actualAppAddressAndSettings",
+        "nativeHelper"
+      ],
+      "retainedCaseCount": 44,
+      "retainedNativeSyntaxFiles": 6,
+      "retainedProofPolicy": "Prior executed results are retained explicitly; relevant recorded source hashes still match. They are not claimed as repeated runs. Temperature/cache structured case reports are retained and their current rerun exit/hash proofs are in rootChecks."
     },
     "nativeSyntaxFilesParsed": 6,
     "fullNativeActorTypecheck": false,
     "fullNativeActorIntegrationExecuted": false,
+    "actualWindowsWindowManagerTested": false,
     "installedWindowsTested": false,
     "physicalPrintersTested": false
   },
-  "sourceReviewPassed": true,
-  "performanceReportSha256": "4b86c73c7d90fdd40211ad678c4d40426a4f3fb5267dd4bad8bb0bc76ea32f79",
+  "sourceReviewPassedPreviously": true,
+  "performanceReportSha256": "dee852a3588c65eee0b191c43ddd0bc7a604e2c0244162e6ccdad9426bc33e24",
   "installerBuilt": false,
   "releasePublished": false,
   "pending": [
     "Full native actor/journal compilation and all native regression tests, including five new actor tests and two extended tests.",
+    "Real Windows window manager validation of fullscreen/maximized/windowed transitions, close/reopen, Escape and permission failures.",
     "Windows installer, clean installation and upgrade from R140; signed stable channel only after complete release validation."
   ],
-  "updatedAt": "2026-10-26T11:25:27.191694+00:00"
+  "updatedAt": "2026-10-26T12:01:19.604129+00:00"
 }

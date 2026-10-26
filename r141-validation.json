@@ -1,16 +1,17 @@
 {
   "schemaVersion": 1,
   "release": "R141-PERFORMANCE-DRAFT",
-  "revision": "performance-temperature-middle-frame",
+  "revision": "performance-temperature-middle-frame-native-fullscreen",
   "baseline": "R140",
-  "status": "executed_draft_checks_passed_full_native_validation_pending",
+  "status": "executed_draft_checks_passed_native_and_windows_validation_pending",
   "passed": true,
-  "scope": "All listed executed draft checks passed; full native actor typecheck/integration and Windows release validation remain pending.",
-  "featurePatchSha256": "9b06cabe0f214a0b1f7f2e079671f5b239596262b5329cae609a4f0d9e9325ae",
+  "scope": "Listed executed draft checks passed, with explicit current/retained provenance; native actor typecheck/integration and real Windows fullscreen validation remain pending.",
+  "featurePatchSha256": "436e725e9a724265068edafbbd062dd057612e10c2e5933080ae6b097e0e7e4d",
   "typescriptPassed": true,
   "frontendProductionBuildPassed": true,
-  "discoveryDisplayCheckPassed": true,
-  "rustStructureCheckPassed": true,
+  "securityCheckPassed": true,
+  "discoveryDisplayCheckPassedPreviously": true,
+  "rustStructureCheckPassedPreviously": true,
   "testCounts": {
     "filamentData": 32,
     "cacheBoundaries": 9,
@@ -19,9 +20,31 @@
     "actualAppAddressAndSettings": 5,
     "performance": 13,
     "temperatureMerge": 16,
-    "nativeHelper": 7
+    "nativeHelper": 7,
+    "fullscreenHelper": 22,
+    "fullscreenBrowser": 13
   },
-  "totalPassed": 122,
+  "totalPassed": 157,
+  "proofLineage": {
+    "currentSnapshotRerun": [
+      "tvBrowser",
+      "cameraBrowser",
+      "performance",
+      "fullscreenHelper",
+      "fullscreenBrowser",
+      "temperatureMerge",
+      "cacheBoundaries"
+    ],
+    "currentSnapshotCaseCount": 113,
+    "retainedPreviousSnapshot": [
+      "filamentData",
+      "actualAppAddressAndSettings",
+      "nativeHelper"
+    ],
+    "retainedCaseCount": 44,
+    "retainedNativeSyntaxFiles": 6,
+    "retainedProofPolicy": "Prior executed results are retained explicitly; relevant recorded source hashes still match. They are not claimed as repeated runs. Temperature/cache structured case reports are retained and their current rerun exit/hash proofs are in rootChecks."
+  },
   "reports": {
     "filamentData": {
       "passed": 32,
@@ -298,7 +321,7 @@
       "runtimeErrors": [],
       "externalRequests": [],
       "productionSources": {
-        "src/components/TvDashboard.tsx": "34083e35f08f3b463be1f736730c23c4d91caab9ed6f37744012b207e5b6ab68",
+        "src/components/TvDashboard.tsx": "e081359b87afce7c5a97bc8c5415ab8697cca8a25d5e405e3c60d257d1b97fe7",
         "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
         "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97"
       },
@@ -701,9 +724,229 @@
       "fullNativeBuildRun": false,
       "installedWindowsTested": false,
       "physicalPrintersTested": false
+    },
+    "fullscreenHelper": {
+      "passed": 22,
+      "cases": [
+        {
+          "name": "owned native fullscreen restores a previously maximized main window on close",
+          "passed": true
+        },
+        {
+          "name": "owned native fullscreen preserves a previously normal window without maximizing",
+          "passed": true
+        },
+        {
+          "name": "borrowed native fullscreen is never switched off or maximized by TV",
+          "passed": true
+        },
+        {
+          "name": "manual native arrow restores the window and keeps the TV session open",
+          "passed": true
+        },
+        {
+          "name": "rapid repeated toggles coalesce into one in-flight native transition",
+          "passed": true
+        },
+        {
+          "name": "dispose before a queued native entry prevents all window mutations",
+          "passed": true
+        },
+        {
+          "name": "dispose during native state reads prevents entry after those reads resolve",
+          "passed": true
+        },
+        {
+          "name": "close and reopen serialize delayed entry and restore before the next state read",
+          "passed": true
+        },
+        {
+          "name": "listener registration resolving after unmount is removed exactly once",
+          "passed": true
+        },
+        {
+          "name": "external native fullscreen exit closes TV while preserving prior maximization",
+          "passed": true
+        },
+        {
+          "name": "stale resize reads cannot close a session after manual transition or disposal",
+          "passed": true
+        },
+        {
+          "name": "native permissions failure rejects entry without browser fullscreen fallback",
+          "passed": true
+        },
+        {
+          "name": "partial native entry failure immediately restores original ownership before retry",
+          "passed": true
+        },
+        {
+          "name": "rejected restore after a partial entry retains ownership until a successful retry",
+          "passed": true
+        },
+        {
+          "name": "native listener rejection does not poison later close and entry",
+          "passed": true
+        },
+        {
+          "name": "native state-read permission rejection leaves all window modes unchanged",
+          "passed": true
+        },
+        {
+          "name": "rejected external resize read stays contained and later close still restores",
+          "passed": true
+        },
+        {
+          "name": "failed dispose restore is repaired before the next session reads its starting state",
+          "passed": true
+        },
+        {
+          "name": "browser manual fullscreen exit keeps TV open and dispose does not exit twice",
+          "passed": true
+        },
+        {
+          "name": "browser external fullscreen exit reports close once and leaves no listener",
+          "passed": true
+        },
+        {
+          "name": "browser disposal waits for a pending fullscreen entry and then exits it",
+          "passed": true
+        },
+        {
+          "name": "browser denied fullscreen never reports expanded and can still dispose",
+          "passed": true
+        }
+      ],
+      "source": {
+        "file": "src/lib/tvFullscreen.ts",
+        "sha256": "8a8323c6c68504fdf0dd2f7a7a399af20ae22c83b68f79801890bd1ac05f88a5"
+      },
+      "scope": "Runtime-transpiled production helper with native-window and DOM ports; controlled IPC delays and failures. No physical printer or real Windows window."
+    },
+    "fullscreenBrowser": {
+      "passed": 13,
+      "cases": [
+        {
+          "name": "native-maximized-fullscreen-X-restores-main-window-and-focus",
+          "passed": true
+        },
+        {
+          "name": "native-normal-window-X-does-not-force-maximize",
+          "passed": true
+        },
+        {
+          "name": "native-borrowed-fullscreen-X-does-not-alter-main-window",
+          "passed": true
+        },
+        {
+          "name": "native-manual-arrow-leaves-TV-open-and-restores-maximize",
+          "passed": true
+        },
+        {
+          "name": "native-Escape-closes-and-restores-owned-fullscreen",
+          "passed": true
+        },
+        {
+          "name": "native-external-fullscreen-exit-closes-TV-without-DOM-fullscreen",
+          "passed": true
+        },
+        {
+          "name": "native-permission-denial-remains-inline-and-never-enters-DOM-fullscreen",
+          "passed": true
+        },
+        {
+          "name": "native-delayed-entry-close-reopen-restores-before-new-entry",
+          "passed": true
+        },
+        {
+          "name": "native-listener-resolving-after-TV-close-is-unsubscribed",
+          "passed": true
+        },
+        {
+          "name": "browser-real-DOM-fullscreen-X-exits-and-restores-focus",
+          "passed": true
+        },
+        {
+          "name": "browser-real-DOM-fullscreen-manual-arrow-keeps-TV-open",
+          "passed": true
+        },
+        {
+          "name": "browser-external-DOM-fullscreen-exit-closes-TV",
+          "passed": true
+        },
+        {
+          "name": "browser-Escape-closes-TV-and-repeated-open-close-leaks-no-fullscreen",
+          "passed": true
+        }
+      ],
+      "sources": {
+        "src/lib/tvFullscreen.ts": "8a8323c6c68504fdf0dd2f7a7a399af20ae22c83b68f79801890bd1ac05f88a5",
+        "src/components/TvDashboard.tsx": "e081359b87afce7c5a97bc8c5415ab8697cca8a25d5e405e3c60d257d1b97fe7",
+        "src/components/TvDashboard.css": "426589cb7205541bc5e7f59e65f723f057d6bbde8e7fc401e403ca3bbfef1e40",
+        "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97"
+      },
+      "browserVersion": "151.0.7922.34",
+      "runtimeErrors": [],
+      "externalRequests": [],
+      "scope": "Actual React TvDashboard and production fullscreen helper; real Chromium browser Fullscreen API, actual Tauri core.isTauri with a module-level native-window port mock. Seven fixture printers; no physical printers or Windows window manager exercised."
     }
   },
-  "performanceReportSha256": "4b86c73c7d90fdd40211ad678c4d40426a4f3fb5267dd4bad8bb0bc76ea32f79",
+  "rootChecks": {
+    "schemaVersion": 1,
+    "checks": [
+      {
+        "name": "productionBuild",
+        "command": "npm run build",
+        "exitCode": 0,
+        "passed": true,
+        "sourceHashes": {
+          "src/components/TvDashboard.tsx": "e081359b87afce7c5a97bc8c5415ab8697cca8a25d5e405e3c60d257d1b97fe7",
+          "src/lib/tvFullscreen.ts": "8a8323c6c68504fdf0dd2f7a7a399af20ae22c83b68f79801890bd1ac05f88a5"
+        },
+        "outputSha256": "8aa416fffa5454bc9c4c590909f52a467a7451eb71a56e9c0bf40dbee2844561",
+        "scope": "Actual completed local check; exit status confirmed by exec session. Raw logs omitted."
+      },
+      {
+        "name": "security",
+        "command": "node scripts/check-security.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "sourceHashes": {
+          "scripts/check-security.mjs": "660fd6e7aff4565df34db554afc47a67270e7c3af61a2cb993cc83eb5e0c69c7",
+          "src-tauri/capabilities/default.json": "048c3b39ce60c81648bb760cb35e003029bdb5b76b9a85eb142959c4c6e43422"
+        },
+        "outputSha256": "e59c80e559c46b78345a1e9b4fef14d8da7921652dd9a8c347413459abee4f05",
+        "scope": "Actual completed local check; exit status confirmed by exec session. Raw logs omitted."
+      },
+      {
+        "name": "temperatureMerge",
+        "command": "node scripts/check-r141-temperature-merge.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "sourceHashes": {
+          "scripts/check-r141-temperature-merge.mjs": "da6e6c6560af2db1bcb653762e13e65221474060885e0d57f82aa707a22dbbc9",
+          "src/lib/moonraker.ts": "0a0f1ac9f0cd1e25e320ba9b78be11da495d156156b6d931005adf8fd1762520",
+          "src/types.ts": "9f8c0696860f3bdbcc7bdda3a95ff266082c75293e6e8e9cf0ac661b8eac52f7"
+        },
+        "outputSha256": "87044e2f9e2726970c4a6f6a3f32e5bf8a0bcb9c2774146f12baa0ffc7ad26c4",
+        "scope": "Actual completed local check; exit status confirmed by exec session. Raw logs omitted."
+      },
+      {
+        "name": "cacheBoundaries",
+        "command": "node scripts/check-r141-tv-projection.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "sourceHashes": {
+          "scripts/check-r141-tv-projection.mjs": "ddb20cefd5812eac02fbd9c199584055ef5c77892b65d37a9d43d4e4fb156b23",
+          "src/lib/tvSpotlight.ts": "9e6cf140de2a9f19491a6c881a4661d63ef07700a62f771f03ff6adb45129b97"
+        },
+        "outputSha256": "15f7122e4e4d297d23c09b29e6400cfad7b4c14e703aaf48c8753f385907c29b",
+        "scope": "Actual completed local check; exit status confirmed by exec session. Raw logs omitted."
+      }
+    ],
+    "installedWindowsTested": false
+  },
+  "performanceReportSha256": "dee852a3588c65eee0b191c43ddd0bc7a604e2c0244162e6ccdad9426bc33e24",
   "performanceCases": [
     {
       "name": "matched-actual-seven-printer-app-and-tv-samples",
@@ -785,7 +1028,7 @@
   "performanceScope": "Headless Chromium on Linux with actual production React components, seven synthetic printers, local camera frame and exact approved spool renderer. Renderer task CPU time and JavaScript heap only; not installed Windows startup, total process RAM or the user computer.",
   "sourceReview": {
     "passed": true,
-    "scope": "Manual source review of per-heater provenance, strict decimal parsing, delayed/cache ordering and bounded recovery paths.",
+    "scope": "Previously completed manual source review of unchanged per-heater provenance, strict decimal parsing, delayed/cache ordering and bounded recovery paths; not rerun as native execution.",
     "healthyResponseAdditionalQueriesReviewed": 0,
     "missingHeaterRecoveryAdditionalTimeoutBoundMs": 6000,
     "fanIpAndStartDispatchReviewedAsPreserved": true,
@@ -954,6 +1197,9 @@
       "No installed Windows build or physical printer temperature validation was performed."
     ]
   },
+  "fullscreenNativePortMocked": true,
+  "browserDomFullscreenActuallyExercised": true,
+  "actualWindowsWindowManagerTested": false,
   "readyForWindowsRelease": false,
   "approvedSpoolRendererUnchanged": true,
   "approvedMiddleFrameCssDelta": true,
