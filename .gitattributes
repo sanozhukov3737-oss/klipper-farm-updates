@@ -100,3 +100,12 @@ r140-tv-* -text
 apply-r140-tv.py -text
 R140-TV.md -text
 KF-R140-TV-checkpoint.zip -text
+
+# Reviewed R140 Windows release inputs
+r140-* -text
+R140-* -text
+apply-r140-release.py -text
+prepare-r140-identity.py -text
+r140-build/** -text
+.github/workflows/windows-r140-reviewed.yml -text
+.github/workflows/promote-r140.yml -text
