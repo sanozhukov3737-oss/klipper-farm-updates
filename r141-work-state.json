@@ -1,7 +1,7 @@
 {
-  "stage": "new_native_geometry_fix_checked_windows_rebuild_pending",
+  "stage": "published_stable",
   "baseline": "R140",
-  "stableTag": "r140-ota",
+  "stableTag": "r141-ota",
   "branch": "r141-performance",
   "previousPublishedDraftCommit": "30372b7d79bcd4ad00c335fb2ff48ee7d7c43ae5",
   "featureSha256": "aa815014c1868d5b748693cde4da180a0a17e1707b99c5b65d06ca897648f0ca",
@@ -9,7 +9,39 @@
   "modifiedSourceFiles": 17,
   "newSourceFiles": 15,
   "expectedPrebuildSourceFiles": 1826,
-  "validation": {
+  "sourceReviewPassedPreviously": true,
+  "performanceReportSha256": "057c069a9cefd06d2c67257de136574a0f3ac5b9af394a404b6a504c426ce659",
+  "installerBuilt": true,
+  "releasePublished": true,
+  "astProbeHarnessRepair": {
+    "failedCiRunId": "40325073205",
+    "inheritedNodeChecksPassed": 31,
+    "productionSrcFilesUnchanged": 801,
+    "typescriptPassed": true
+  },
+  "fullscreenFixtureIsolation": {
+    "failedCiRunId": "40327646057",
+    "helperCasesRerun": 22,
+    "browserCasesRerun": 13,
+    "strictNoWriteGuardRetained": true,
+    "productionSrcFilesUnchanged": 801,
+    "nativeRustFilesUnchanged": 61
+  },
+  "pending": [],
+  "updatedAt": "2026-10-26T17:27:07.250202+00:00",
+  "changedFromPreviousR141Feature": [
+    "ui-tests/r141-performance.mjs",
+    "src/lib/tvFullscreen.ts",
+    "src-tauri/capabilities/default.json",
+    "scripts/check-r141-tv-fullscreen.mjs",
+    "ui-tests/tv-fullscreen-r141.mjs",
+    "ui-tests/tv-fullscreen-r141.tsx"
+  ],
+  "releaseId": 424546028,
+  "buildRunId": 40359204447,
+  "promotionRunId": 40366886692,
+  "publicEndpointVerified": true,
+  "previousValidation": {
     "totalPassed": 157,
     "testCounts": {
       "filamentData": 32,
@@ -50,37 +82,23 @@
     "installedWindowsTested": false,
     "physicalPrintersTested": false
   },
-  "sourceReviewPassedPreviously": true,
-  "performanceReportSha256": "057c069a9cefd06d2c67257de136574a0f3ac5b9af394a404b6a504c426ce659",
-  "installerBuilt": false,
-  "releasePublished": false,
-  "astProbeHarnessRepair": {
-    "failedCiRunId": "40325073205",
-    "inheritedNodeChecksPassed": 31,
-    "productionSrcFilesUnchanged": 801,
-    "typescriptPassed": true
+  "validation": {
+    "nativeTestsPassed": 232,
+    "nativeTestsFailed": 0,
+    "nativeTestsIgnored": 2,
+    "acceptanceCases": 233,
+    "installedTvFullscreenCases": 5,
+    "fullNativeActorTypecheck": true,
+    "fullNativeActorIntegrationExecuted": true,
+    "actualWindowsWindowManagerTested": true,
+    "installedWindowsTested": true,
+    "upgradeFromR140Passed": true,
+    "testPrintersPreserved": 7,
+    "testSpoolsPreserved": 2,
+    "productionPublicUpdaterVerified": true,
+    "physicalPrintersTested": false,
+    "buildRunId": 40359204447,
+    "promotionRunId": 40366886692
   },
-  "fullscreenFixtureIsolation": {
-    "failedCiRunId": "40327646057",
-    "helperCasesRerun": 22,
-    "browserCasesRerun": 13,
-    "strictNoWriteGuardRetained": true,
-    "productionSrcFilesUnchanged": 801,
-    "nativeRustFilesUnchanged": 61
-  },
-  "pending": [
-    "Rerun complete Windows candidate CI after camera-free fullscreen fixture isolation.",
-    "Full native actor/journal compilation and all native regression tests, including five new actor tests and two extended tests.",
-    "Real Windows window manager validation of fullscreen/maximized/windowed transitions, close/reopen, Escape and permission failures.",
-    "Windows installer, clean installation and upgrade from R140; signed stable channel only after complete release validation."
-  ],
-  "updatedAt": "2026-10-26T13:20:26.623420+00:00",
-  "changedFromPreviousR141Feature": [
-    "ui-tests/r141-performance.mjs",
-    "src/lib/tvFullscreen.ts",
-    "src-tauri/capabilities/default.json",
-    "scripts/check-r141-tv-fullscreen.mjs",
-    "ui-tests/tv-fullscreen-r141.mjs",
-    "ui-tests/tv-fullscreen-r141.tsx"
-  ]
+  "releaseUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/tag/r141-ota"
 }
