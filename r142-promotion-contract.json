@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "sequence": 142,
+  "tag": "r142-ota",
+  "buildRunId": "40461131653",
+  "buildHeadSha": "3e8efce24b59982c2e5c5b1c553bb8345cfad580",
+  "buildWorkflowSha256": "9f33b2f8dbf6cb5c902bd7ade9e23210bcfff1000cb1a7d606203f19c5dfd520",
+  "jobs": {
+    "build": "122045756723",
+    "validate": "122052871074"
+  },
+  "sourceArtifactId": "12715412499",
+  "sourceArtifactDigest": "sha256:f767b46f852f920c5c7c5ff9d3200ad40f40d0e193fe18af59b9ad11ce56fe35",
+  "sourceArtifactSizeBytes": 824240769,
+  "buildEvidenceArtifactId": "12715461486",
+  "buildEvidenceArtifactDigest": "sha256:02f5d14fbe40b53fb1e1a36656c6210478e6d9c6f6844a8022d410c5e24bd3bc",
+  "buildEvidenceArtifactSizeBytes": 7510327,
+  "patchSha256": "f78f37f93f8b72e38d8f54ae574a97c47dc8fc511ed28fed58c33aab4e96cfc9",
+  "releaseIdentitySha256": "9e6553aac3e0e6468cfff058d24be0b5131919a0e29b23185d24b53fc4ff8812",
+  "baselineSourceSha256": "abf4ffe061e203237f921b11f624ae04f821587d6fcf5410f83b4d28ba114878",
+  "assets": {
+    "KF-R142-FULL.zip": {
+      "sha256": "fcbc447944bf8c96d2ecc7f8b27d623e655681cccd71381d8833e49693ca36b4",
+      "sizeBytes": 582467357
+    },
+    "Klipper-Farm-R142-setup.exe": {
+      "sha256": "d44bad2f409995ab9371af2984ff4da29cb00a49814e07d6101d0454944dffa4",
+      "sizeBytes": 233611051
+    }
+  },
+  "metadata": {
+    "provenance.json": {
+      "sha256": "200de5ef3eb11ce70cacb4a05b9eae9395791361bba7557b0b1fd2183083150e",
+      "sizeBytes": 822
+    },
+    "exact-validation.json": {
+      "sha256": "da35857fdc37f01094dbb247b4d28021a11d4afe301a80232327e82a0f2e4c72",
+      "sizeBytes": 723
+    }
+  }
+}

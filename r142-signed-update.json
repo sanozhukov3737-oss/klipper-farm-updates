@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 142,
+  "version": "1.14.5-r142",
+  "publishedAt": 1793084510989,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r142-ota/Klipper-Farm-R142-setup.exe",
+    "sha256": "d44bad2f409995ab9371af2984ff4da29cb00a49814e07d6101d0454944dffa4",
+    "sizeBytes": 233611051
+  },
+  "releaseNotes": "## Что изменилось\n\n- «Моя флешка» и файловое окно используют общую графитовую палитру приложения.\n- Убраны синие фоны панелей и карточек; цветные акценты сохранены на активных элементах.\n- Размеры, расположение блоков, скругления и доступность действий сохранены.\n\nОбновление устанавливается поверх R141 с сохранением принтеров, катушек, запасов пластика и настроек.\n",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "038ee9af185b5dab2bbbd4faba647abcaecafbbf3266263d54d77e1248fd06f08fab1145ca72253c33eacc1e9dea63f3d02e0cc426945ccb02119a985ffe9701"
+}
