@@ -1,0 +1,208 @@
+{
+  "passed": 18,
+  "cases": [
+    {
+      "theme": "dark",
+      "width": 1536,
+      "height": 960,
+      "scenario": "remote-cache",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 9,
+      "minimumDisabledContrast": 7.621654649528551
+    },
+    {
+      "theme": "dark",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    },
+    {
+      "theme": "dark",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local-offline",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 2,
+      "minimumDisabledContrast": 7.621654649528551
+    },
+    {
+      "theme": "dark",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local-empty",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    },
+    {
+      "theme": "dark",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local-loading",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 3,
+      "minimumDisabledContrast": 7.621654649528551
+    },
+    {
+      "theme": "dark",
+      "width": 910,
+      "height": 640,
+      "scenario": "remote-cache",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 9,
+      "minimumDisabledContrast": 7.621654649528551
+    },
+    {
+      "theme": "dark",
+      "width": 910,
+      "height": 640,
+      "scenario": "local",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "scenario": "remote-cache",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 9,
+      "minimumDisabledContrast": 7.621654649528551
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "scenario": "local",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    },
+    {
+      "theme": "light",
+      "width": 1536,
+      "height": 960,
+      "scenario": "remote-cache",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 9,
+      "minimumDisabledContrast": 4.048238719241643
+    },
+    {
+      "theme": "light",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    },
+    {
+      "theme": "light",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local-offline",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 2,
+      "minimumDisabledContrast": 4.048238719241643
+    },
+    {
+      "theme": "light",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local-empty",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    },
+    {
+      "theme": "light",
+      "width": 1536,
+      "height": 960,
+      "scenario": "local-loading",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 3,
+      "minimumDisabledContrast": 4.048238719241643
+    },
+    {
+      "theme": "light",
+      "width": 910,
+      "height": 640,
+      "scenario": "remote-cache",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 9,
+      "minimumDisabledContrast": 4.048238719241643
+    },
+    {
+      "theme": "light",
+      "width": 910,
+      "height": 640,
+      "scenario": "local",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "scenario": "remote-cache",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 9,
+      "minimumDisabledContrast": 4.048238719241643
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "scenario": "local",
+      "passed": true,
+      "geometryPreserved": true,
+      "availabilityPreserved": true,
+      "disabledControls": 0,
+      "minimumDisabledContrast": null
+    }
+  ],
+  "runtimeErrors": [],
+  "externalRequests": [],
+  "actualReactComponents": true,
+  "baselineCssSha256": "ef7693a89d44d40fd30faa81ae52a16b759b29ec901bcb80ae04512422b35c48",
+  "scope": "Synthetic file storage and printer responses; unchanged R138 geometry/control availability, dark storage uses the shared application palette. No physical printers or Windows installer tested."
+}

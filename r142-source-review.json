@@ -1,12 +1,13 @@
 {
   "baseline": "published R141",
   "sourceChangedFiles": [
-    "src/styles.css"
+    "src/styles.css",
+    "ui-tests/files-contrast-r139.mjs"
   ],
-  "unchangedNonGeneratedSourceFiles": 1319,
+  "unchangedNonGeneratedSourceFiles": 1318,
   "nativeRustFilesChanged": 0,
   "typescriptFilesChanged": 0,
-  "sourceScope": "Palette variable assignments and comment only. CSS rules for layout and sizes unchanged.",
+  "sourceScope": "One product CSS palette token change and its existing visual acceptance contract. Product layout and behavior unchanged.",
   "typescriptAndProductionBuildPassed": true,
   "visualCasesPassed": 12,
   "geometryPreserved": true,
@@ -15,5 +16,13 @@
   "installedWindowsTested": false,
   "installerBuilt": false,
   "releasePublished": false,
-  "stableTag": "r141-ota"
+  "stableTag": "r141-ota",
+  "productionChangedFiles": [
+    "src/styles.css"
+  ],
+  "validationChangedFiles": [
+    "ui-tests/files-contrast-r139.mjs"
+  ],
+  "existingVisualCasesPassed": 18,
+  "totalVisualCasesPassed": 30
 }

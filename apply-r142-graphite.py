@@ -46,7 +46,7 @@ def main():
         if sha(data) != row['sha256']:
             raise SystemExit('Patch digest mismatch: ' + row['path'])
         destination.write_bytes(data)
-    print('Applied one palette-only file. Rebuild the frontend before packaging; this is not a Windows installer.')
+    print('Applied the reviewed palette and its existing visual check. Rebuild the frontend before packaging; this is not a Windows installer.')
 
 if __name__ == '__main__':
     main()

@@ -20,3 +20,26 @@
  }
  :root[data-theme='light'] #root :is(.printerFilesPanel,.printerFileDialog){
    --files-bg:#edf1f6;--files-surface:#ffffff;--files-raised:#f5f7fb;
+--- a/ui-tests/files-contrast-r139.mjs
++++ b/ui-tests/files-contrast-r139.mjs
+@@ -84,8 +84,9 @@
+       for(const key of ['x','y','width','height'])assert.ok(Math.abs(after[key]-before[key])<=1,'R138 geometry changed '+JSON.stringify({theme,width,scenario,before,after,key}));
+     }
+     if(theme==='dark'){
+-      assert.ok(luminance(states.r139.panel.background)>luminance(states.r138.panel.background),'Dark dialog did not become brighter');
+-      if(states.r139.card)assert.ok(luminance(states.r139.card.background)>luminance(states.r138.card.background),'Dark cards did not become brighter');
++      const sharedColors=states.r139.globalTokens.slice(0,2).map(value=>'rgb('+value.trim().slice(1).match(/../g).map(part=>parseInt(part,16)).join(', ')+')');
++      assert.equal(states.r139.panel.background,sharedColors[0],'Dark storage dialog must use the shared application background');
++      if(states.r139.card)assert.equal(states.r139.card.background,sharedColors[1],'Dark storage cards must use the shared application surface');
+     }
+     for(const disabled of states.r139.disabled){
+       const expected='rgb('+[1,3,5].map(index=>parseInt(states.r139.disabledBackground.slice(index,index+2),16)).join(', ')+')';
+@@ -97,7 +98,7 @@
+     console.log('PASS '+theme+' '+width+' '+scenario);
+   }
+   assert.deepEqual(errors,[]);assert.deepEqual(network,[]);
+-  const report={passed:cases.length,cases,runtimeErrors:errors,externalRequests:network,actualReactComponents:true,baselineCssSha256:cssRow.sha256,scope:'Synthetic file storage and printer responses; unchanged R138 geometry/control availability, isolated file palette. No physical printers or Windows installer tested.'};
++  const report={passed:cases.length,cases,runtimeErrors:errors,externalRequests:network,actualReactComponents:true,baselineCssSha256:cssRow.sha256,scope:'Synthetic file storage and printer responses; unchanged R138 geometry/control availability, dark storage uses the shared application palette. No physical printers or Windows installer tested.'};
+   fs.mkdirSync(path.dirname(reportPath),{recursive:true});
+   fs.writeFileSync(reportPath,JSON.stringify(report,null,2)+'\n');
+   console.log(JSON.stringify(report));
