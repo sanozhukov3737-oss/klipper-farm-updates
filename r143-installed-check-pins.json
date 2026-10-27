@@ -1,0 +1,8 @@
+{
+  "r143-installed-performance.mjs": "ceb4e87ece3f0f02498e8c443bd3e1ce24a82b066a8fc805dad8d0b6d1c120a3",
+  "r143-installed-fullscreen.mjs": "34bfa1b693bc889dc3528f1753ece49358d37a658f58a5815a2a083c86b3bc01",
+  "r143-process-tree-sampler.ps1": "7d709d4367b38c5cff2273b1c2d18b69c9e1a6785b26264d0b988ffbc36c3441",
+  "r143-check-installed-payload.mjs": "23ebb9b737b4611e73b9e5ae2dac5cfb400f81721d7a84d586a36d6187ddb771",
+  "r143-compare-installed-performance.mjs": "fe91e68e3ba0a1995096c4848af97afefe9b9fe2928397d80df2b6f805eb85a6",
+  "r143-validate-installed.ps1": "bfa95228136618fd9898b716d6943b419060d20aba5272ac8a8731a481a8d292"
+}
