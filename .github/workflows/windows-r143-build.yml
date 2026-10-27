@@ -41,6 +41,7 @@ jobs:
         run: |
           if ((Get-FileHash r143-prepare-windows.ps1).Hash.ToLowerInvariant() -ne '9e642430a2e10cbb2291813e1c7c74e6e39aa546a9cd431aafda6a7326b62eff') { throw 'Preparation script differs' }
           ./r143-prepare-windows.ps1
+          foreach ($name in @('KF_PERF_BASELINE_SOURCE','KF_R143_PROOF','KF_UI_SCREENSHOTS')) { "$name=$([Environment]::GetEnvironmentVariable($name))" | Out-File $env:GITHUB_ENV -Append -Encoding utf8 }
       - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
         with:
           toolchain: 1.98.0
@@ -143,6 +144,7 @@ jobs:
             /apply-r143-maintenance.py
             /r142-build.zip
             /r142-required-tests.json
+            /r138-live-ui-patch.json
             /.github/workflows/windows-r143-build.yml
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -155,10 +157,13 @@ jobs:
         run: |
           if ((Get-FileHash r143-prepare-windows.ps1).Hash.ToLowerInvariant() -ne '9e642430a2e10cbb2291813e1c7c74e6e39aa546a9cd431aafda6a7326b62eff') { throw 'Preparation script differs' }
           ./r143-prepare-windows.ps1 -Browser
+          foreach ($name in @('KF_PERF_BASELINE_SOURCE','KF_R143_PROOF','KF_UI_SCREENSHOTS','CHROMIUM_EXECUTABLE','PLAYWRIGHT_MODULE_PATH')) { "$name=$([Environment]::GetEnvironmentVariable($name))" | Out-File $env:GITHUB_ENV -Append -Encoding utf8 }
       - name: Run the fresh inherited node and browser cases
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          if ((Get-FileHash r138-live-ui-patch.json).Hash.ToLowerInvariant() -ne 'f00d0eee45ccc36fbee60077526e7fceae099f302adaf574ab01d5f6a7d70fa1') { throw 'Pinned visual baseline differs' }
+          $env:KF_R138_REVIEW_PATCH=(Resolve-Path r138-live-ui-patch.json).Path
           foreach ($kind in @('node','browser','verify')) {
             python r143-run-inherited-checks.py --source work/app --proof proof --kind $kind
             if ($LASTEXITCODE -ne 0) { throw "Fresh inherited suite failed: $kind" }
