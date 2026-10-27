@@ -1,0 +1,180 @@
+name: Validate R143 maintenance candidate without publishing
+'on':
+  push:
+    branches: [r143-code-maintenance]
+    paths: [.github/workflows/windows-r143-build.yml]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+env:
+  PYTHONUTF8: '1'
+concurrency:
+  group: windows-r143-maintenance
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r143-*
+            /apply-r143-maintenance.py
+            /r142-build.zip
+            /r142-required-tests.json
+            /.github/workflows/windows-r143-build.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Restore the pinned R142 baseline and reviewed R143 source
+        shell: pwsh
+        run: |
+          if ((Get-FileHash r143-prepare-windows.ps1).Hash.ToLowerInvariant() -ne '9e642430a2e10cbb2291813e1c7c74e6e39aa546a9cd431aafda6a7326b62eff') { throw 'Preparation script differs' }
+          ./r143-prepare-windows.ps1
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Verify type safety, unchanged native bodies and core regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          node node_modules/typescript/bin/tsc --noEmit
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+          foreach ($script in @('check-module-refactor.mjs','check-spool-geometry-buffer.mjs','check-rust-structure.mjs','check-frontend-contract.mjs')) {
+            $arguments=@("scripts/$script")
+            if ($script -eq 'check-frontend-contract.mjs') { $arguments+='--self-test' }
+            node @arguments
+            if ($LASTEXITCODE -ne 0) { throw "Contract failed: $script" }
+          }
+          foreach ($script in @('check-approved-filament.mjs','check-r138-visual-activity.mjs','check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-search-art.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs','check-legacy-library-routing.mjs','check-upload-actor-identity.mjs','check-local-library-print-target.mjs','check-printer-files-start-recovery.mjs','check-print-filename-preservation.mjs','check-launch-auto-recovery.mjs','check-r135-print-start-runtime.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+          }
+          Set-Location $env:GITHUB_WORKSPACE
+          python r143-run-inherited-checks.py --source work/app --proof proof --kind node
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh node acceptance failed' }
+      - name: Build the actual frontend and complete source archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
+          foreach ($script in @('lock-v20-6-dist.mjs','generate-release-manifests.mjs','check-release-portability.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Frontend/source freeze failed: $script" }
+          }
+          $env:KF_ARCHIVE_ROOT='Klipper-Farm-R143'
+          $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'candidate/KF-R143-FULL.zip'
+          New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+          node scripts/build-reproducible-zip.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Complete source packaging failed' }
+      - name: Compile Windows binaries, run the full native suite and build NSIS
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          Copy-Item src-tauri/Cargo.toml ../../proof/cargo-before-build.toml
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Native Windows tests or packaging failed' }
+          @'
+          import json,tomllib
+          from pathlib import Path
+          before=Path('../../proof/cargo-before-build.toml').read_bytes()
+          assert tomllib.loads(before.decode())==tomllib.loads(Path('src-tauri/Cargo.toml').read_text()), 'Native manifest semantics changed'
+          Path('src-tauri/Cargo.toml').write_bytes(before)
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Native source restoration failed' }
+          Copy-Item .klipper-build-cache/target/v20-rust-tests-last.log ../../proof/native-tests.log
+          Set-Location $env:GITHUB_WORKSPACE
+          python r143-run-inherited-checks.py --source work/app --proof proof --kind native --native-log proof/native-tests.log
+          if ($LASTEXITCODE -ne 0) { throw 'Native232/2 or required cases differ' }
+          New-Item -ItemType Directory -Force candidate/scripts,candidate/release | Out-Null
+          $setup=@(Get-ChildItem work/app/INSTALLER -Filter '*.exe')
+          if ($setup.Count -ne 1) { throw 'Exactly one reviewed NSIS installer is required' }
+          Copy-Item $setup[0].FullName candidate/Klipper-Farm-R143-candidate.exe
+          Copy-Item work/app/.klipper-build-cache/target/release/klipper-farm-ipc-probe.exe candidate/release/
+          foreach ($name in @('check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item "work/app/scripts/$name" candidate/scripts/ }
+          Copy-Item r142-build/* candidate/scripts/
+          Copy-Item r143-source-changes.json,proof/source-delta.json candidate/
+          $assets=@{}
+          foreach ($name in @('Klipper-Farm-R143-candidate.exe','KF-R143-FULL.zip')) { $file=Get-Item "candidate/$name"; $assets[$name]=@{sizeBytes=$file.Length;sha256=(Get-FileHash $file.FullName).Hash.ToLowerInvariant()} }
+          @{candidate='R143';sequence=143;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;sourcePatchSha256=(Get-FileHash r143-source-changes.json).Hash.ToLowerInvariant();baselineTag='r142-ota';assets=$assets;stablePublished=$false} | ConvertTo-Json -Depth 8 | Set-Content candidate/provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r143-compiled-candidate
+          path: candidate
+          compression-level: 0
+          retention-days: 30
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r143-native-build-evidence
+          path: |
+            proof
+            work/app/.klipper-build-cache/logs
+          retention-days: 30
+  browser:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r143-*
+            /apply-r143-maintenance.py
+            /r142-build.zip
+            /r142-required-tests.json
+            /.github/workflows/windows-r143-build.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Restore source and browser dependencies
+        shell: pwsh
+        run: |
+          if ((Get-FileHash r143-prepare-windows.ps1).Hash.ToLowerInvariant() -ne '9e642430a2e10cbb2291813e1c7c74e6e39aa546a9cd431aafda6a7326b62eff') { throw 'Preparation script differs' }
+          ./r143-prepare-windows.ps1 -Browser
+      - name: Run the fresh inherited node and browser cases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach ($kind in @('node','browser','verify')) {
+            python r143-run-inherited-checks.py --source work/app --proof proof --kind $kind
+            if ($LASTEXITCODE -ne 0) { throw "Fresh inherited suite failed: $kind" }
+          }
+      - name: Compare the approved spool, thirty theme layouts and renderer resource budgets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          foreach ($script in @('r143-spool-staging.mjs','r143-theme-equivalence.mjs','r143-performance.mjs')) {
+            node "ui-tests/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Maintenance acceptance failed: $script" }
+          }
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r143-browser-performance-evidence
+          path: proof
+          retention-days: 30
