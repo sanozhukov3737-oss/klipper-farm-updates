@@ -1,0 +1,668 @@
+{
+  "baseline": "published R141",
+  "baselineCssSha256": "7feee00fb4602ce492270809f20f34ac5ec6718d4f272abc8f09c215d6e71c27",
+  "cases": [
+    {
+      "theme": "dark",
+      "width": 1920,
+      "height": 1200,
+      "scenario": "local",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(34, 43, 54)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "header": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 84, 105)"
+        },
+        "hero": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "folder": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "file": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(17, 19, 24)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "header": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(48, 54, 64)"
+        },
+        "hero": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "folder": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "file": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 1920,
+      "height": 1200,
+      "scenario": "remote-cache",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(34, 43, 54)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "header": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 84, 105)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(17, 19, 24)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "header": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(48, 54, 64)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 910,
+      "height": 640,
+      "scenario": "local",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(34, 43, 54)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "header": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 84, 105)"
+        },
+        "hero": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "folder": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "file": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(17, 19, 24)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "header": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(48, 54, 64)"
+        },
+        "hero": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "folder": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "file": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 910,
+      "height": 640,
+      "scenario": "remote-cache",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(34, 43, 54)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "header": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 84, 105)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(17, 19, 24)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "header": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(48, 54, 64)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "scenario": "local",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(34, 43, 54)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "header": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 84, 105)"
+        },
+        "hero": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "folder": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "file": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(17, 19, 24)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "header": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(48, 54, 64)"
+        },
+        "hero": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "folder": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "file": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "width": 390,
+      "height": 844,
+      "scenario": "remote-cache",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(34, 43, 54)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        },
+        "header": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 84, 105)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(44, 55, 70)",
+          "color": "rgb(237, 242, 248)",
+          "border": "rgb(83, 105, 129)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(17, 19, 24)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        },
+        "header": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(48, 54, 64)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(26, 29, 35)",
+          "color": "rgb(244, 246, 249)",
+          "border": "rgb(66, 74, 87)"
+        }
+      }
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "height": 1200,
+      "scenario": "local",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "folder": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "folder": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        }
+      }
+    },
+    {
+      "theme": "light",
+      "width": 1920,
+      "height": 1200,
+      "scenario": "remote-cache",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(5, 7, 11)",
+          "border": "rgb(200, 210, 224)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(5, 7, 11)",
+          "border": "rgb(200, 210, 224)"
+        }
+      }
+    },
+    {
+      "theme": "light",
+      "width": 910,
+      "height": 640,
+      "scenario": "local",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "folder": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "folder": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        }
+      }
+    },
+    {
+      "theme": "light",
+      "width": 910,
+      "height": 640,
+      "scenario": "remote-cache",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(5, 7, 11)",
+          "border": "rgb(200, 210, 224)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(5, 7, 11)",
+          "border": "rgb(200, 210, 224)"
+        }
+      }
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "scenario": "local",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "folder": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "folder": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        }
+      }
+    },
+    {
+      "theme": "light",
+      "width": 390,
+      "height": 844,
+      "scenario": "remote-cache",
+      "geometryDeltas": [],
+      "overflow": [],
+      "controlsUnchanged": true,
+      "before": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(5, 7, 11)",
+          "border": "rgb(200, 210, 224)"
+        }
+      },
+      "after": {
+        "panel": {
+          "background": "rgb(237, 241, 246)",
+          "color": "rgb(37, 52, 72)",
+          "border": "rgb(200, 210, 224)"
+        },
+        "header": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(17, 24, 39)",
+          "border": "rgb(220, 227, 237)"
+        },
+        "hero": null,
+        "folder": null,
+        "file": {
+          "background": "rgb(255, 255, 255)",
+          "color": "rgb(5, 7, 11)",
+          "border": "rgb(200, 210, 224)"
+        }
+      }
+    }
+  ],
+  "runtimeErrors": [],
+  "externalRequests": []
+}

@@ -1,0 +1,22 @@
+--- a/src/styles.css
++++ b/src/styles.css
+@@ -4503,13 +4503,13 @@
+ :root[data-theme] .discoveryHistory{min-width:0}
+ @media(max-width:760px){:root[data-theme] .discoveryReportGrid{grid-template-columns:minmax(0,1fr)}}
+ 
+-/* Printer storage uses the same rounded graphite surfaces as the farm. */
++/* Printer storage inherits the farm palette; blue is reserved for accents. */
+ :root[data-theme] #root :is(.printerFilesPanel,.printerFileDialog){
+-  --files-bg:#222b36;--files-surface:#2c3746;--files-raised:#354357;
+-  --files-border:#536981;--files-soft:#425469;--files-text:#edf2f8;
+-  --files-muted:#bdccde;--files-accent:#91b1ff;--files-primary:#527bd2;
+-  --files-accent-soft:#91b1ff1c;--files-shadow:#00000030;
+-  --files-disabled-bg:#2a3544;--files-disabled-border:#3f536d;--files-disabled-text:#9cadc4;
++  --files-bg:var(--ui-bg);--files-surface:var(--ui-surface);--files-raised:var(--ui-surface-2);
++  --files-border:var(--ui-border-strong);--files-soft:var(--ui-border);--files-text:var(--ui-text);
++  --files-muted:var(--ui-muted);--files-accent:var(--ui-accent);--files-primary:#527bd2;
++  --files-accent-soft:var(--ui-accent-soft);--files-shadow:#00000030;
++  --files-disabled-bg:var(--ui-surface-2);--files-disabled-border:var(--ui-border);--files-disabled-text:var(--ui-muted);
+ }
+ :root[data-theme='light'] #root :is(.printerFilesPanel,.printerFileDialog){
+   --files-bg:#edf1f6;--files-surface:#ffffff;--files-raised:#f5f7fb;

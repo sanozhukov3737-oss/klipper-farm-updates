@@ -1,0 +1,155 @@
+{
+  "scope": "Short headless Linux renderer measurement, 7 synthetic printers and a static local camera image. Not a long-duration Windows or physical-printer test. JS heap is not whole-process RAM. Synthetic fixture logging is included.",
+  "browser": "156.0.8078.47",
+  "resource": [
+    {
+      "mode": "app",
+      "seconds": 90,
+      "samples": [
+        {
+          "elapsedSeconds": 0,
+          "jsHeapUsedBytes": 5335380,
+          "jsHeapTotalBytes": 9494528,
+          "taskDurationSeconds": 0.001083,
+          "nodes": 915,
+          "documents": 6,
+          "layoutCount": 0
+        },
+        {
+          "elapsedSeconds": 15,
+          "jsHeapUsedBytes": 6345852,
+          "jsHeapTotalBytes": 8183808,
+          "taskDurationSeconds": 0.199674,
+          "nodes": 1025,
+          "documents": 6,
+          "layoutCount": 32
+        },
+        {
+          "elapsedSeconds": 30,
+          "jsHeapUsedBytes": 6241408,
+          "jsHeapTotalBytes": 7659520,
+          "taskDurationSeconds": 0.382947,
+          "nodes": 897,
+          "documents": 2,
+          "layoutCount": 62
+        },
+        {
+          "elapsedSeconds": 45,
+          "jsHeapUsedBytes": 6346664,
+          "jsHeapTotalBytes": 7659520,
+          "taskDurationSeconds": 0.544446,
+          "nodes": 897,
+          "documents": 2,
+          "layoutCount": 92
+        },
+        {
+          "elapsedSeconds": 60,
+          "jsHeapUsedBytes": 6122680,
+          "jsHeapTotalBytes": 7921664,
+          "taskDurationSeconds": 0.683502,
+          "nodes": 897,
+          "documents": 2,
+          "layoutCount": 121
+        },
+        {
+          "elapsedSeconds": 75,
+          "jsHeapUsedBytes": 6294164,
+          "jsHeapTotalBytes": 7659520,
+          "taskDurationSeconds": 0.843175,
+          "nodes": 897,
+          "documents": 2,
+          "layoutCount": 151
+        },
+        {
+          "elapsedSeconds": 90,
+          "jsHeapUsedBytes": 6501544,
+          "jsHeapTotalBytes": 7659520,
+          "taskDurationSeconds": 0.985694,
+          "nodes": 897,
+          "documents": 2,
+          "layoutCount": 181
+        }
+      ],
+      "state": {
+        "configuredPrinters": 7,
+        "unexpectedNativeCalls": []
+      }
+    },
+    {
+      "mode": "tv",
+      "seconds": 90,
+      "samples": [
+        {
+          "elapsedSeconds": 0,
+          "jsHeapUsedBytes": 4053620,
+          "jsHeapTotalBytes": 7659520,
+          "taskDurationSeconds": 0.000014,
+          "nodes": 539,
+          "documents": 4,
+          "layoutCount": 0
+        },
+        {
+          "elapsedSeconds": 15,
+          "jsHeapUsedBytes": 143160328,
+          "jsHeapTotalBytes": 201625600,
+          "taskDurationSeconds": 1.616344,
+          "nodes": 691,
+          "documents": 1,
+          "layoutCount": 20
+        },
+        {
+          "elapsedSeconds": 30,
+          "jsHeapUsedBytes": 4026416,
+          "jsHeapTotalBytes": 6873088,
+          "taskDurationSeconds": 1.707253,
+          "nodes": 437,
+          "documents": 1,
+          "layoutCount": 38
+        },
+        {
+          "elapsedSeconds": 45,
+          "jsHeapUsedBytes": 4661420,
+          "jsHeapTotalBytes": 5562368,
+          "taskDurationSeconds": 1.771428,
+          "nodes": 613,
+          "documents": 1,
+          "layoutCount": 55
+        },
+        {
+          "elapsedSeconds": 60,
+          "jsHeapUsedBytes": 4802608,
+          "jsHeapTotalBytes": 7135232,
+          "taskDurationSeconds": 1.839444,
+          "nodes": 991,
+          "documents": 1,
+          "layoutCount": 72
+        },
+        {
+          "elapsedSeconds": 75,
+          "jsHeapUsedBytes": 4961168,
+          "jsHeapTotalBytes": 6610944,
+          "taskDurationSeconds": 1.90543,
+          "nodes": 1192,
+          "documents": 1,
+          "layoutCount": 90
+        },
+        {
+          "elapsedSeconds": 90,
+          "jsHeapUsedBytes": 4599100,
+          "jsHeapTotalBytes": 6086656,
+          "taskDurationSeconds": 1.984334,
+          "nodes": 629,
+          "documents": 1,
+          "layoutCount": 108
+        }
+      ],
+      "state": {
+        "cardCount": 0
+      }
+    }
+  ],
+  "runtimeErrors": [],
+  "externalRequests": [],
+  "physicalPrintersTested": false,
+  "installedWindowsTested": false
+}

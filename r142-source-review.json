@@ -1,0 +1,19 @@
+{
+  "baseline": "published R141",
+  "sourceChangedFiles": [
+    "src/styles.css"
+  ],
+  "unchangedNonGeneratedSourceFiles": 1319,
+  "nativeRustFilesChanged": 0,
+  "typescriptFilesChanged": 0,
+  "sourceScope": "Palette variable assignments and comment only. CSS rules for layout and sizes unchanged.",
+  "typescriptAndProductionBuildPassed": true,
+  "visualCasesPassed": 12,
+  "geometryPreserved": true,
+  "shortResourceObservationSecondsPerView": 90,
+  "physicalPrintersTested": false,
+  "installedWindowsTested": false,
+  "installerBuilt": false,
+  "releasePublished": false,
+  "stableTag": "r141-ota"
+}
