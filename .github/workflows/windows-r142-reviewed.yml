@@ -1,0 +1,338 @@
+name: Build and validate reviewed R142 graphite file theme (candidate only)
+'on':
+  push:
+    branches:
+    - r142-graphite
+    paths:
+    - .github/workflows/windows-r142-reviewed.yml
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: windows-r142-reviewed-candidate
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      with:
+        persist-credentials: false
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - name: Restore exact published R141 and apply reviewed palette2 plus identity5
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        if ((Get-FileHash r142-build.zip).Hash.ToLowerInvariant() -ne '5cd0ca3227de93b894cd2ce0bd0a8d3bcb9f1660b8415144c620ba2c5d815369') { throw 'Reviewed Windows validation helpers differ' }
+        Expand-Archive r142-build.zip r142-build
+        $pins=[ordered]@{
+          'prepare-r142-identity.py'='7be849477e0106a30b873af35543667c3fc777021bf8a7cada4d41071060a733'
+          'apply-r142-release.py'='4ee99ccec93ce611085ce47fc662cf50bf721fe8cc06485f99fa77520f75725c'
+          'r142-release-feature.json'='f78f37f93f8b72e38d8f54ae574a97c47dc8fc511ed28fed58c33aab4e96cfc9'
+          'r142-release-feature.sha256'='68f67dd715615fa54b3f85915dc5bf9fdd22a942dcfa1417f64bd976eda9d7d7'
+          'r142-release-identity.json'='9e6553aac3e0e6468cfff058d24be0b5131919a0e29b23185d24b53fc4ff8812'
+          'r142-release-identity.sha256'='7f865f744d982b572fae3be7c7ca65051f467806d7838ce44781b34da1939f3f'
+          'r142-required-tests.json'='2fad3b15c11c24167f88c4bfd1d96b4938b5741a9a8b71218cd74bd2093d6623'
+          'r142-required-tests.sha256'='857ebb2a2951450e9437dae6516f7a25fe54c854ba341b408ae6c51b00a3447b'
+          'r142-build/check-r142-acceptance.py'='fa7e077beaba123ea31d8c984d9a498489ce626abf5a7983dcd5be6e9b7e5dc5'
+          'r142-build/check-r142-installed-fullscreen-window.ps1'='690b2002a6eaabcc469e426152ac0be08bd9fc86ffa30c57902d21133c053f63'
+          'r142-build/check-r142-installed-fullscreen.mjs'='e252933ee268fd50ea8e6883da15f0b73e09d8ba6d51621c2baceb0c91566b85'
+          'r142-build/r142-check-installed-payload.mjs'='3064bdfc6369b37bc49e1570352a89cdd1ff9f90825e99f8e00a75c214d8c9f1'
+          'r142-build/r142-upgrade-data.py'='286a62580cfd00ab3cb688a98c2c5faf4759a70051040675b8b631602bf53aaf'
+          'r142-build.zip'='5cd0ca3227de93b894cd2ce0bd0a8d3bcb9f1660b8415144c620ba2c5d815369'
+        }
+        foreach ($entry in $pins.GetEnumerator()) {
+         if ((Get-FileHash $entry.Key).Hash.ToLowerInvariant() -ne $entry.Value) { throw "Reviewed release input differs: $($entry.Key)" }
+        }
+        Copy-Item r142-build ci -Recurse
+        New-Item -ItemType Directory -Force incoming,proof | Out-Null
+        gh release download r141-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R141-FULL.zip --dir incoming
+        if ($LASTEXITCODE -ne 0) { throw 'Published R141 source download failed' }
+        if ((Get-Item incoming/KF-R141-FULL.zip).Length -ne 582467387 -or (Get-FileHash incoming/KF-R141-FULL.zip).Hash.ToLowerInvariant() -ne 'abf4ffe061e203237f921b11f624ae04f821587d6fcf5410f83b4d28ba114878') { throw 'Published R141 archive differs' }
+        python apply-r142-release.py incoming/KF-R141-FULL.zip work/app --proof proof/source-delta.json
+        if ($LASTEXITCODE -ne 0) { throw 'Approved R142 palette2 and identity5 application failed' }
+        python apply-r142-release.py --verify work/app --proof proof/source-delta.json
+        if ($LASTEXITCODE -ne 0) { throw 'Unreviewed source changed' }
+        python r142-build/check-r142-acceptance.py r142-required-tests.json --source-root work/app --patch r142-release-feature.json --identity r142-release-identity.json
+        if ($LASTEXITCODE -ne 0) { throw 'R142 source or inherited acceptance contract differs' }
+    - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+      with:
+        toolchain: 1.98.0
+        components: clippy
+    - name: Check approved accounting, automatic launch recovery and existing regressions
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm ci --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+        node node_modules/typescript/bin/tsc --noEmit
+        if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+        $env:KF_R128_FINISH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-finish-core.json'
+        $env:KF_R127_PRINT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-print-start.json'
+        $env:KF_R127_SOUND_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-sound-core.json'
+        $env:KF_R138_VISUAL_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-visual-activity.json'
+        $env:KF_R127_CORE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-filament-core.json'
+        node scripts/check-approved-filament.mjs | Tee-Object -FilePath (Join-Path $env:GITHUB_WORKSPACE 'proof/r139-approved-accounting.json')
+        if ($LASTEXITCODE -ne 0) { throw 'Approved filament accounting failed' }
+        foreach ($script in @('check-r138-visual-activity.mjs','check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-search-art.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+        }
+
+        $env:KF_AUTO_RETRY_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-auto-retry-core.json'
+        node scripts/check-filament-auto-retry.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Automatic late-data accounting failed' }
+        $env:KF_NATIVE_POLICY_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-native-history-policy.json'
+        node scripts/check-filament-history-policy.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Native single-job history permission checks failed' }
+
+        foreach ($script in @('check-legacy-library-routing.mjs','check-upload-actor-identity.mjs','check-local-library-print-target.mjs','check-printer-files-start-recovery.mjs','check-print-filename-preservation.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "Print transfer regression failed: $script" }
+        }
+
+        $env:KF_R135_CLIENT_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/r139-client-start-runtime.json'
+        foreach ($script in @('check-launch-auto-recovery.mjs','check-r135-print-start-runtime.mjs')) {
+         node "scripts/$script"
+         if ($LASTEXITCODE -ne 0) { throw "R139 launch regression failed: $script" }
+        }
+    - name: Run current R142 and inherited node/browser acceptance
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $contract=Join-Path $env:GITHUB_WORKSPACE 'r142-required-tests.json'
+        $checker=Join-Path $env:GITHUB_WORKSPACE 'r142-build/check-r142-acceptance.py'
+        $patch=Join-Path $env:GITHUB_WORKSPACE 'r142-release-feature.json'
+        $identity=Join-Path $env:GITHUB_WORKSPACE 'r142-release-identity.json'
+        $source=Join-Path $env:GITHUB_WORKSPACE 'work/app'
+        $proof=Join-Path $env:GITHUB_WORKSPACE 'proof'
+        python $checker $contract --source-root $source --proof-directory $proof --patch $patch --identity $identity --run-checks node
+        if ($LASTEXITCODE -ne 0) { throw 'Current R142 and inherited node acceptance failed' }
+        Set-Location $source
+        npm ci --prefix ui-tests --no-audit --no-fund
+        if ($LASTEXITCODE -ne 0) { throw 'Locked browser test dependencies failed' }
+        $env:CHROMIUM_EXECUTABLE=Join-Path ${env:ProgramFiles(x86)} 'Microsoft/Edge/Application/msedge.exe'
+        $playwrightPath=(Resolve-Path ui-tests/node_modules/playwright/index.mjs).Path
+        $env:PLAYWRIGHT_MODULE_PATH=([System.Uri]::new($playwrightPath)).AbsoluteUri
+        $env:KF_UI_SCREENSHOTS=$proof
+        $env:KF_R138_REVIEW_PATCH=Join-Path $env:GITHUB_WORKSPACE 'r138-live-ui-patch.json'
+        python $checker $contract --source-root $source --proof-directory $proof --patch $patch --identity $identity --run-checks browser
+        if ($LASTEXITCODE -ne 0) { throw 'Current R142 and inherited browser acceptance failed' }
+        Remove-Item ui-tests/node_modules -Recurse -Force
+        Set-Location $env:GITHUB_WORKSPACE
+        python $checker $contract --source-root work/app --patch r142-release-feature.json --identity r142-release-identity.json
+        if ($LASTEXITCODE -ne 0) { throw 'Exact source changed during current acceptance checks' }
+      timeout-minutes: 20
+    - name: Compile frontend and freeze complete R142 source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        npm run build
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
+        node scripts/lock-v20-6-dist.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend source contract failed' }
+        node scripts/generate-release-manifests.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Manifest generation failed' }
+        node scripts/check-release-portability.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Source portability failed' }
+        $env:KF_ARCHIVE_ROOT='Klipper-Farm-R142'
+        $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'candidate/KF-R142-FULL.zip'
+        New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+        node scripts/build-reproducible-zip.mjs
+        if ($LASTEXITCODE -ne 0) { throw 'Complete R142 source archive failed' }
+    - name: Build Windows installer and verify complete native232/2 acceptance
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location work/app
+        Copy-Item src-tauri/Cargo.toml ../../proof/r142-cargo-before-build.toml
+        node scripts/build-and-install-windows.mjs --build-only
+        if ($LASTEXITCODE -ne 0) { throw 'Windows native checks and build failed' }
+        Copy-Item src-tauri/Cargo.toml ../../proof/r142-cargo-after-build.toml
+        # Tauri CLI 2.11.4 reformats Cargo.toml during bundle generation.
+        # Restore reviewed bytes only when the complete parsed TOML is identical.
+        @'
+        import hashlib,json,tomllib
+        from pathlib import Path
+        before=Path('../../proof/r142-cargo-before-build.toml').read_bytes()
+        after=Path('src-tauri/Cargo.toml').read_bytes()
+        assert hashlib.sha256(before).hexdigest()=='b88b67da331cc78cbbf7f5e30c353bb4065e75fefe63ca24531c78810943eb02', 'Reviewed Cargo manifest differs before build'
+        assert tomllib.loads(before.decode())==tomllib.loads(after.decode()), 'Tauri changed Cargo manifest semantics; do not restore or publish'
+        Path('src-tauri/Cargo.toml').write_bytes(before)
+        report={'passed':True,'completeTomlSemanticsEqual':True,'reviewedBytesRestored':True,'beforeSha256':hashlib.sha256(before).hexdigest(),'afterBuildSha256':hashlib.sha256(after).hexdigest(),'restoredSha256':hashlib.sha256(Path('src-tauri/Cargo.toml').read_bytes()).hexdigest()}
+        Path('../../proof/r142-cargo-normalization.json').write_text(json.dumps(report,indent=2)+'\n')
+        print(json.dumps(report))
+        '@ | python -
+        if ($LASTEXITCODE -ne 0) { throw 'Tauri Cargo manifest semantic or exact-source restoration check failed' }
+        $nativeLog=Join-Path $PWD '.klipper-build-cache/target/v20-rust-tests-last.log'
+        Copy-Item $nativeLog ../../proof/r142-native-tests.log
+        Set-Location $env:GITHUB_WORKSPACE
+        python r142-build/check-r142-acceptance.py r142-required-tests.json --source-root work/app --proof-directory proof --patch r142-release-feature.json --identity r142-release-identity.json --native-log proof/r142-native-tests.log
+        if ($LASTEXITCODE -ne 0) { throw 'Native232/2, all reviewed native cases or current acceptance reports differ' }
+        Set-Location work/app
+        $release=Join-Path $PWD '.klipper-build-cache/target/release'
+        New-Item -ItemType Directory -Force ../../candidate/release,../../candidate/scripts | Out-Null
+        foreach ($file in @('klipper-farm-client.exe','klipper-farmd.exe','klipper-farm-ipc-probe.exe')) { Copy-Item (Join-Path $release $file) ../../candidate/release/ }
+        foreach ($file in @('check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item "scripts/$file" ../../candidate/scripts/ }
+        foreach ($file in @('r142-upgrade-data.py','r142-check-installed-payload.mjs','check-r142-installed-fullscreen.mjs','check-r142-installed-fullscreen-window.ps1')) { Copy-Item "../../ci/$file" ../../candidate/scripts/ }
+        $setup=@(Get-ChildItem INSTALLER -Filter '*.exe')
+        if ($setup.Count -ne 1) { throw 'Expected exactly one R142 installer' }
+        Copy-Item $setup[0].FullName ../../candidate/Klipper-Farm-R142-setup.exe
+        Copy-Item ../../proof ../../candidate/proof -Recurse
+        $manifest=@{}
+        foreach ($name in @('Klipper-Farm-R142-setup.exe','KF-R142-FULL.zip')) { $item=Get-Item "../../candidate/$name"; $manifest[$name]=@{sha256=(Get-FileHash $item.FullName).Hash.ToLowerInvariant();sizeBytes=$item.Length} }
+        @{release='R142';sequence=142;baselineSequence=141;buildId=(Get-Content RELEASE-BUILD-ID.txt -Raw).Trim();headSha=$env:GITHUB_SHA;runId=$env:GITHUB_RUN_ID;patchSha256='f78f37f93f8b72e38d8f54ae574a97c47dc8fc511ed28fed58c33aab4e96cfc9';releaseIdentitySha256='9e6553aac3e0e6468cfff058d24be0b5131919a0e29b23185d24b53fc4ff8812';requiredTestsSha256='2fad3b15c11c24167f88c4bfd1d96b4938b5741a9a8b71218cd74bd2093d6623';assets=$manifest} | ConvertTo-Json -Depth 8 | Set-Content ../../candidate/provenance.json -Encoding utf8NoBOM
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r142-ota-candidate
+        path: candidate
+        retention-days: 14
+        compression-level: 0
+    - name: Retain build evidence
+      if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r142-ota-build-evidence
+        path: |-
+          proof
+          work/app/.klipper-build-cache/*.log
+          work/app/.klipper-build-cache/target/*last.log
+          work/app/.klipper-build-cache/logs/*
+        retention-days: 14
+        include-hidden-files: true
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      with:
+        node-version: 22
+    - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+      with:
+        python-version: '3.12'
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      with:
+        name: r142-ota-candidate
+        path: candidate
+    - name: Extract exact NSIS payload for complete installed-byte comparison
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
+        if (-not (Test-Path $seven)) { $seven=(Get-Command 7z.exe -ErrorAction Stop).Source }
+        & $seven x '-y' '-ocandidate/extracted-nsis' candidate/Klipper-Farm-R142-setup.exe
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract exact NSIS installer payload' }
+        foreach ($name in @('klipper-farm-client.exe','klipper-farmd.exe')) {
+          $items=@(Get-ChildItem candidate/extracted-nsis -Recurse -File -Filter $name)
+          if ($items.Count -ne 1) { throw "Expected one extracted NSIS payload: $name" }
+          Write-Host "EXTRACTED $name size=$($items[0].Length) sha256=$((Get-FileHash $items[0].FullName).Hash.ToLowerInvariant())"
+        }
+    - name: Clean install R142 and verify exact native payload and real WebView
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R142-clean'
+        New-Item -ItemType Directory -Force clean-smoke | Out-Null
+        $setup=(Resolve-Path Klipper-Farm-R142-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R142 clean install failed' }
+        node scripts/r142-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/clean-installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Clean installed bytes differ from exact NSIS bundle payload' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" clean-smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Clean installed R142 actual WebView startup failed' }
+    - name: Upgrade from exact R141 and verify payload, seven printers, stock and actual installed TV fullscreen
+      shell: pwsh
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-Location candidate
+        $installDir=Join-Path $env:RUNNER_TEMP 'KF-R142-upgrade'
+        New-Item -ItemType Directory -Force old,smoke | Out-Null
+        gh release download r141-ota --repo $env:GITHUB_REPOSITORY --pattern Klipper-Farm-R141-setup.exe --dir old
+        if ($LASTEXITCODE -ne 0) { throw 'R141 installer download failed' }
+        $old=(Resolve-Path old/Klipper-Farm-R141-setup.exe).Path
+        if ((Get-Item $old).Length -ne 233624207 -or (Get-FileHash $old).Hash.ToLowerInvariant() -ne '40d29a17414611869e450577c367b57e7a047f2bf2c5fafa7d6e76f5a50fd2d2') { throw 'R141 installer differs' }
+        $process=Start-Process $old -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R141 install failed' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Published R141 actual WebView startup failed' }
+
+        $dataDir=Join-Path $env:APPDATA 'app.klipper.farm'
+        New-Item -ItemType Directory -Force $dataDir | Out-Null
+        $marker=Join-Path $dataDir 'r142-preservation.txt'
+        [IO.File]::WriteAllText($marker,'preserve-existing-data')
+        python scripts/r142-upgrade-data.py seed --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-seed.json
+        if ($LASTEXITCODE -ne 0) { throw 'Legacy seed failed' }
+        $setup=(Resolve-Path Klipper-Farm-R142-setup.exe).Path
+        $process=Start-Process $setup -ArgumentList ('/S /D='+$installDir) -Wait -PassThru
+        if ($process.ExitCode -ne 0) { throw 'R142 install over R141 failed' }
+        node scripts/r142-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed bytes differ from exact NSIS bundle payload' }
+        if ((Get-Content $marker -Raw) -ne 'preserve-existing-data') { throw 'Existing app data lost' }
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed WebView main-window smoke failed' }
+        node scripts/check-headless-telemetry-runtime.mjs --daemon "$installDir/klipper-farmd.exe" --probe "$PWD/release/klipper-farm-ipc-probe.exe" --report "$PWD/proof/headless-runtime.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed telemetry regression failed' }
+        python scripts/r142-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-before-fullscreen.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer configuration, stocks, usage, reserves or spools changed during upgrade' }
+        node scripts/check-r142-installed-fullscreen.mjs "$installDir/klipper-farm-client.exe" "$PWD/proof/installed-fullscreen"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed Windows TV fullscreen lifecycle failed' }
+        $fullscreen=Get-Content proof/installed-fullscreen/installed-fullscreen-report.json -Raw | ConvertFrom-Json
+        if ($fullscreen.passed -ne $true -or $fullscreen.passedCases -ne 5 -or @($fullscreen.cases).Count -ne 5 -or @($fullscreen.cases | Where-Object { $_.passed -ne $true }).Count -ne 0) { throw 'Expected five passed installed fullscreen cases' }
+        if ($fullscreen.actualFullscreenStateVerified -ne $true -or $fullscreen.actualInstalledWebView -ne $true -or $fullscreen.actualWindowsWindowManager -ne $true -or $fullscreen.nativeWindowCallsReal -ne $true -or $fullscreen.domFullscreenNeverUsed -ne $true -or $fullscreen.configuredPrinters -ne 7) { throw 'Actual Windows fullscreen evidence is incomplete' }
+        python scripts/r142-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-preserved.json
+        if ($LASTEXITCODE -ne 0) { throw 'Printer or filament data changed during installed TV fullscreen checks' }
+
+        node scripts/check-desktop-startup-smoke.mjs "$installDir/klipper-farm-client.exe" "$installDir/klipper-farmd.exe" smoke
+        if ($LASTEXITCODE -ne 0) { throw 'Installed R142 second actual WebView startup failed' }
+        python scripts/r142-upgrade-data.py verify --database (Join-Path $dataDir 'farm.sqlite3') --proof proof/upgrade-data-after-restart.json
+        if ($LASTEXITCODE -ne 0) { throw 'Existing printer or filament data changed after installed app restart' }
+        node scripts/r142-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
+        if ($LASTEXITCODE -ne 0) { throw 'Installed exact payload changed after restart' }
+        @{release='R142';installedSequence=142;embeddedUpdateChannelVerified=$true;passed=$true;runId=$env:GITHUB_RUN_ID;headSha=$env:GITHUB_SHA;upgradeFrom=141;exactInstallerPayloadVerified=$true;installedBinaryHashesMatch=$true;desktopWebViewLoaded=$true;legacyDataPreserved=$true;printerConfigurationPreserved=$true;filamentInventoryPreserved=$true;costSettingsPreserved=$true;installedRestartVerified=$true;cleanInstallVerified=$true;actualFullscreenStateVerified=$true;installedTvFullscreenVerified=$true;actualWindowsWindowManagerVerified=$true;installedTvFullscreenCases=5} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+        Compress-Archive proof,smoke,clean-smoke R142-UI-proof.zip
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r142-ota-validated
+        path: |-
+          candidate/Klipper-Farm-R142-setup.exe
+          candidate/KF-R142-FULL.zip
+          candidate/provenance.json
+          candidate/exact-validation.json
+          candidate/R142-UI-proof.zip
+        retention-days: 14
+        compression-level: 0
+    - if: always()
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r142-ota-installed-evidence
+        path: |-
+          candidate/proof
+          candidate/smoke
+          candidate/clean-smoke
+        retention-days: 14
+    - name: Retain reviewed installer separately
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: r142-reviewed-installer
+        path: |-
+          candidate/Klipper-Farm-R142-setup.exe
+          candidate/provenance.json
+          candidate/exact-validation.json
+        retention-days: 14
+        compression-level: 0
