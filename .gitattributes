@@ -133,3 +133,9 @@ prepare-r142-identity.py -text
 r142-build/** -text
 .github/workflows/windows-r142-reviewed.yml -text
 .github/workflows/promote-r142.yml -text
+
+# Reviewed R143 maintenance candidate inputs
+r143-* -text
+R143-* -text
+apply-r143-maintenance.py -text
+.github/workflows/windows-r143-*.yml -text
