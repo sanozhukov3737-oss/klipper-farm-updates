@@ -1,0 +1,54 @@
+{
+  "passed": true,
+  "release": "R142",
+  "baseline": "R141",
+  "baseArchiveSha256": "abf4ffe061e203237f921b11f624ae04f821587d6fcf5410f83b4d28ba114878",
+  "featurePatchSha256": "f78f37f93f8b72e38d8f54ae574a97c47dc8fc511ed28fed58c33aab4e96cfc9",
+  "releaseIdentitySha256": "9e6553aac3e0e6468cfff058d24be0b5131919a0e29b23185d24b53fc4ff8812",
+  "buildId": "V20.6-R14.2-GRAPHITE-FILES-2026-10-27",
+  "baselineFiles": 1856,
+  "verifiedFiles": 1856,
+  "reviewedFeatureFiles": 2,
+  "releaseIdentityFiles": 5,
+  "allOtherSourceBytesPreserved": true,
+  "extraSourceFiles": 0,
+  "featureFiles": [
+    {
+      "path": "src/styles.css",
+      "beforeSha256": "7feee00fb4602ce492270809f20f34ac5ec6718d4f272abc8f09c215d6e71c27",
+      "sha256": "1200c5bb114b77d53d78cbc8f9fd5dd98b85cdbdafc3e0375600e8dd8bd2f122"
+    },
+    {
+      "path": "ui-tests/files-contrast-r139.mjs",
+      "beforeSha256": "992efd85fd38022262ccec6320300618559d5c536e46439a71c9b1cd541abd56",
+      "sha256": "f57b41d3ccefa1f39fa09ca6917ea97ea1584766c6cbd374fdb9aa39089b960b"
+    }
+  ],
+  "identityFiles": [
+    {
+      "path": "RELEASE-BUILD-ID.txt",
+      "beforeSha256": "f35d4f61841c3f855499997a206d4f53ecf33b02993dfbc767120a2bc7d500c8",
+      "sha256": "c693c510687c3b2fc2e86462471995c0f40aece68c0f95ae046a7c17bddcc1a3"
+    },
+    {
+      "path": "UPDATE-CHANNEL.json",
+      "beforeSha256": "742881476466ea636f1393a9c80a76225462b4859fa451ad588b84a82c01f71a",
+      "sha256": "d3f20a0d60b531f6b3dd869f8b7d8bb15dae81ec8a29f1e7af389465cf9d3585"
+    },
+    {
+      "path": "scripts/build-and-install-windows.mjs",
+      "beforeSha256": "0b3dc5f9ff34b0e5c41de4698e432e47a8a5cf59d1c5b8857d1e55ccf321226b",
+      "sha256": "047412db895f4929b2cfa820e928f36439785fbf4139b005945278623cd5f0a9"
+    },
+    {
+      "path": "scripts/check-r9-clean-installer.mjs",
+      "beforeSha256": "52e660a81e63cc135699e79a807d168257a831ce4624dc1d2746be31a6f6e308",
+      "sha256": "367d154d8d415d54972ac3ed95097112db20e00e861f64cd4d57a9375ce8e91b"
+    },
+    {
+      "path": "scripts/check-release-portability.mjs",
+      "beforeSha256": "ef6670b4ce4493d1ae4bb7f3eb5a802f7e85947fde60098dfae74b1b2f453928",
+      "sha256": "17a1b586f2d6a67189671e224fcf26028a774bf8a009a826f2f5cc2da77c1206"
+    }
+  ]
+}

@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "release": "R142",
+  "baseline": "R141",
+  "sequence": 142,
+  "buildId": "V20.6-R14.2-GRAPHITE-FILES-2026-10-27",
+  "featurePatchSha256": "f78f37f93f8b72e38d8f54ae574a97c47dc8fc511ed28fed58c33aab4e96cfc9",
+  "releaseIdentitySha256": "9e6553aac3e0e6468cfff058d24be0b5131919a0e29b23185d24b53fc4ff8812",
+  "expectedRootPassed": 232,
+  "expectedRootIgnored": 2,
+  "baselineRootPassed": 232,
+  "newTests": [],
+  "tests": [
+    "transactional_core::backup::tests::automatic_backup_survives_restarts_and_obeys_daily_boundary",
+    "transactional_core::backup::tests::automatic_backup_ignores_future_empty_corrupt_truncated_and_foreign_files",
+    "transactional_core::backup::tests::schedule_inspection_and_restore_use_immutable_paths_with_spaces_unicode_and_uri_characters",
+    "transactional_core::backup::tests::abandoned_temporary_cleanup_removes_only_owned_regular_files_and_orphan_sidecars",
+    "transactional_core::backup::tests::concurrent_automatic_requests_publish_one_copy_and_manual_wal_backup_stays_available",
+    "transactional_core::backup::tests::temporary_guards_remove_base_wal_shm_and_journal_after_failure_or_commit",
+    "transactional_core::backup::tests::missing_or_wrong_schema_live_database_never_publishes_or_rotates_backups",
+    "transactional_core::backup::tests::restore_failure_removes_temporary_copy_without_touching_live_data",
+    "transactional_core::backup::tests::retention_preserves_current_snapshot_and_ignores_foreign_files_and_directories",
+    "transactional_core::backup::tests::backup_cleanup_and_schedule_work_through_windows_directory_junction",
+    "transactional_core::backup::tests::retention_continues_after_an_old_locked_file_cannot_be_removed",
+    "transactional_core::actor::tests::explicit_fan_readback_updates_cache_without_inventing_other_freshness_or_events",
+    "transactional_core::actor::tests::fan_catalogue_from_another_endpoint_never_enters_status_queries",
+    "transactional_core::actor::tests::fan_telemetry_catalogue_is_bounded_and_excludes_automatic_heater_fans",
+    "transactional_core::actor::tests::known_fan_objects_reconcile_actual_speed_alongside_core_telemetry",
+    "transactional_core::actor::tests::physical_address_change_discards_old_telemetry_but_port_failover_preserves_it",
+    "transactional_core::actor::tests::rejected_optional_fan_preserves_core_fallback_and_next_temperature_query",
+    "transactional_core::tests::bootstrap_marks_every_duplicate_address_without_choosing_first_card",
+    "transactional_core::tests::physical_address_claim_allows_same_printer_failover_and_rejects_other_ids",
+    "transactional_core::tests::physical_address_claim_excludes_ports_but_keeps_distinct_ips_and_scopes",
+    "transactional_core::actor::tests::acknowledged_start_recovers_observation_over_rest_after_ws_failure",
+    "transactional_core::actor::tests::preadmission_disconnected_ws_dispatches_exactly_one_rest_start",
+    "transactional_core::actor::tests::admitted_or_ambiguous_ws_start_is_never_dispatched_again_over_rest",
+    "transactional_core::async_websocket::tests::expired_queued_print_start_never_reaches_the_websocket_wire",
+    "transactional_core::temperature::tests::temperature_accepts_finite_numeric_json_and_vendor_strings",
+    "transactional_core::temperature::tests::temperature_rejects_absent_malformed_and_nonfinite_readings",
+    "transactional_core::temperature::tests::temperature_core_freshness_requires_both_observations_and_uses_older_one",
+    "transactional_core::types::tests::temperature_legacy_actor_wire_fields_do_not_invent_provenance",
+    "transactional_core::actor::tests::temperature_numeric_strings_advance_only_actual_core_freshness",
+    "transactional_core::actor::tests::temperature_partial_heater_delta_keeps_other_heater_provenance",
+    "transactional_core::actor::tests::temperature_repair_restores_heaters_after_job_only_grouped_reply",
+    "transactional_core::actor::tests::temperature_repair_uses_alternate_transport_for_still_missing_heater",
+    "transactional_core::actor::tests::temperature_repair_failure_keeps_stale_readings_and_freshness_honest"
+  ],
+  "extendedExistingTests": [],
+  "nodeChecks": [
+    {
+      "script": "scripts/check-r139-fan-control.mjs",
+      "proofEnv": "KF_R139_FAN_PROOF",
+      "report": "r139-fan-core.json"
+    },
+    {
+      "script": "scripts/check-r139-address-recovery.mjs",
+      "proofEnv": "KF_R139_ADDRESS_PROOF",
+      "report": "r139-address-core.json"
+    },
+    {
+      "script": "scripts/check-tv-spotlight.mjs",
+      "proofEnv": "KF_TV_SPOTLIGHT_PROOF",
+      "report": "tv-spotlight-data.json"
+    },
+    {
+      "script": "scripts/check-r141-temperature-merge.mjs",
+      "proofEnv": "KF_R141_TEMPERATURE_MERGE_PROOF",
+      "report": "r141-temperature-merge.json"
+    },
+    {
+      "script": "scripts/check-r141-tv-projection.mjs",
+      "proofEnv": "KF_R141_TV_PROJECTION_PROOF",
+      "report": "r141-tv-projection.json"
+    },
+    {
+      "script": "scripts/check-r141-tv-fullscreen.mjs",
+      "proofEnv": "KF_R141_FULLSCREEN_PROOF",
+      "report": "r141-fullscreen-helper.json"
+    }
+  ],
+  "browserChecks": [
+    {
+      "script": "ui-tests/files-contrast-r139.mjs",
+      "proofEnv": "KF_R139_FILES_PROOF",
+      "report": "r139-files-ui.json"
+    },
+    {
+      "script": "ui-tests/fan-control-r139.mjs",
+      "proofEnv": "KF_R139_FAN_UI_PROOF",
+      "report": "r139-fan-ui.json"
+    },
+    {
+      "script": "ui-tests/address-recovery-r139.mjs",
+      "proofEnv": "KF_R139_ADDRESS_UI_PROOF",
+      "report": "r139-address-ui.json"
+    },
+    {
+      "script": "ui-tests/tv-spotlight-r140.mjs",
+      "proofEnv": "KF_R140_TV_UI_PROOF",
+      "report": "tv-spotlight-r140-report.json"
+    },
+    {
+      "script": "ui-tests/tv-camera.mjs",
+      "proofEnv": "KF_UI_SCREENSHOTS",
+      "proofTarget": "directory",
+      "report": "tv-camera-report.json"
+    },
+    {
+      "script": "ui-tests/tv-fullscreen-r141.mjs",
+      "proofEnv": "KF_R141_FULLSCREEN_UI_PROOF_DIR",
+      "proofTarget": "directory",
+      "report": "tv-fullscreen-r141-report.json"
+    }
+  ],
+  "acceptanceReports": [
+    {
+      "filename": "r139-fan-core.json",
+      "count": 34,
+      "casesField": "report",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "r139-address-core.json",
+      "count": 19,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "r139-files-ui.json",
+      "count": 18,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "externalRequests"
+      ]
+    },
+    {
+      "filename": "r139-fan-ui.json",
+      "count": 12,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "externalRequests"
+      ]
+    },
+    {
+      "filename": "r139-address-ui.json",
+      "count": 5,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "extraNetworkRequests"
+      ]
+    },
+    {
+      "filename": "tv-spotlight-data.json",
+      "count": 32,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "tv-spotlight-r140-report.json",
+      "count": 20,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "externalRequests"
+      ]
+    },
+    {
+      "filename": "tv-camera-report.json",
+      "count": 20,
+      "casesField": "report",
+      "passedField": "passed",
+      "caseStatusField": "status",
+      "caseStatusValue": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "r141-temperature-merge.json",
+      "count": 16,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "r141-tv-projection.json",
+      "count": 9,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "r141-fullscreen-helper.json",
+      "count": 22,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": []
+    },
+    {
+      "filename": "tv-fullscreen-r141-report.json",
+      "count": 13,
+      "casesField": "cases",
+      "passedField": "passed",
+      "errorFields": [
+        "runtimeErrors",
+        "externalRequests"
+      ]
+    }
+  ],
+  "freshAcceptanceCases": 220,
+  "totalAcceptanceCases": 220,
+  "executionLedgers": {
+    "node": "r142-node-executions.json",
+    "browser": "r142-browser-executions.json"
+  },
+  "scope": "Fresh acceptance from the exact R142 source, complete Windows native suite, and installed Windows lifecycle. R142 changes the file palette only; historical R141 performance measurements are not claimed as new R142 evidence."
+}

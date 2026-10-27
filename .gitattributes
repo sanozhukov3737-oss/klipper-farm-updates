@@ -123,3 +123,13 @@ prepare-r141-identity.py -text
 r141-build/** -text
 .github/workflows/windows-r141-reviewed.yml -text
 .github/workflows/promote-r141.yml -text
+
+# Reviewed R142 graphite release inputs
+r142-* -text
+R142-* -text
+KF-R142-* -text
+apply-r142-release.py -text
+prepare-r142-identity.py -text
+r142-build/** -text
+.github/workflows/windows-r142-reviewed.yml -text
+.github/workflows/promote-r142.yml -text

@@ -1,0 +1,25 @@
+{
+  "stage": "source_verified_waiting_windows",
+  "release": "R142",
+  "sequence": 142,
+  "baseline": "R141",
+  "branch": "r142-graphite",
+  "featureSha256": "f78f37f93f8b72e38d8f54ae574a97c47dc8fc511ed28fed58c33aab4e96cfc9",
+  "identitySha256": "9e6553aac3e0e6468cfff058d24be0b5131919a0e29b23185d24b53fc4ff8812",
+  "requiredTestsSha256": "2fad3b15c11c24167f88c4bfd1d96b4938b5741a9a8b71218cd74bd2093d6623",
+  "buildWorkflowSha256": "9f33b2f8dbf6cb5c902bd7ade9e23210bcfff1000cb1a7d606203f19c5dfd520",
+  "verifiedPrebuildSourceFiles": 1856,
+  "productionChangedFiles": [
+    "src/styles.css"
+  ],
+  "validationChangedFiles": [
+    "ui-tests/files-contrast-r139.mjs"
+  ],
+  "metadataFiles": 5,
+  "expectedNativePassed": 232,
+  "expectedNativeIgnored": 2,
+  "expectedFreshAcceptanceCases": 220,
+  "installerBuilt": false,
+  "releasePublished": false,
+  "physicalPrintersTested": false
+}
