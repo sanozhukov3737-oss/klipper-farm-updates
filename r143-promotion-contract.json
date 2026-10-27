@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "sequence": 143,
+  "tag": "r143-ota",
+  "buildRunId": 40493325596,
+  "buildHeadSha": "f0301942b97aadb1ca4ee12c84ee7a8a1fbb9011",
+  "validationRunId": 40493679785,
+  "validationHeadSha": "7e9bc5176e44626fb59a67bd6fb68c9c2ab6b52a",
+  "sourcePatchSha256": "7f7b70c0f34937589a2e1c2559c13652a9372c6acc665659e2079f1f6e045d8a",
+  "baselineArchiveSha256": "fcbc447944bf8c96d2ecc7f8b27d623e655681cccd71381d8833e49693ca36b4",
+  "signedManifestSha256": "137f0e6cde892c5220a14f8313ca955316225d0d6ccdfeadd8e35641030f3d50",
+  "assets": {
+    "KF-R143-FULL.zip": {
+      "sha256": "dd03dbaa50f61c95e056950323325fb92037ddd3582067b83535ec1eda5664d4",
+      "sizeBytes": 582494022
+    },
+    "Klipper-Farm-R143-setup.exe": {
+      "sha256": "59daf302b0f7ffdee53711b574a93568320ec18c3a5601191fb90de9da92b063",
+      "sizeBytes": 233640135
+    }
+  },
+  "previousReleaseId": 425128047,
+  "previousTag": "r142-ota",
+  "previousManifestSha256": "6bbda9d8edc715ecf990b9810ffa508ee37169135510c6664ec9434a66dec811"
+}

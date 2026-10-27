@@ -2,8 +2,8 @@
   "candidate": "R143",
   "branch": "r143-code-maintenance",
   "stableRelease": "R142",
-  "stage": "local_checks_passed_preparing_windows",
-  "sourcePatchSha256": "8fe051a79851d09cb8eb461e6c6bf0ad1e0b287c2c8b39082f3244152273d896",
+  "stage": "revision2_windows_browser_passed_native_build_running",
+  "sourcePatchSha256": "7f7b70c0f34937589a2e1c2559c13652a9372c6acc665659e2079f1f6e045d8a",
   "sourceFilesChanged": 31,
   "nativeCommandBodiesPreserved": 16,
   "cssDeclarationsRemoved": 690,
@@ -12,5 +12,12 @@
   "nativeWindowsBuildPassed": false,
   "installedWindowsPerformanceVerified": false,
   "stablePublished": false,
-  "physicalPrintersTested": false
+  "physicalPrintersTested": false,
+  "buildRunId": 40493325596,
+  "buildHeadSha": "f0301942b97aadb1ca4ee12c84ee7a8a1fbb9011",
+  "installedRunId": 40493679785,
+  "functionalCasesPassed": 220,
+  "windowsRendererPerformanceBudgetsPassed": 9,
+  "sourceRevision": 2,
+  "stablePublicationAuthorized": true
 }
