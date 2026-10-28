@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "validationRunId": 40655616440,
+  "validationHeadSha": "6e5542acfcd797e3c9c42cd3c022baf1f179aa55",
+  "repository": "sanozhukov3737-oss/klipper-farm-updates",
+  "sequence": 144,
+  "tag": "r144-ota",
+  "buildRunId": 40651986181,
+  "buildHeadSha": "db63ee207c3e3e61b236e28b803b34d628e52414",
+  "sourcePatchSha256": "62b914009542c00f1279520888852e480030dc1082af8f10d881eef331da8a65",
+  "baselineArchiveSha256": "dd03dbaa50f61c95e056950323325fb92037ddd3582067b83535ec1eda5664d4",
+  "previousReleaseId": 425394838,
+  "previousTag": "r143-ota",
+  "previousManifestSha256": "137f0e6cde892c5220a14f8313ca955316225d0d6ccdfeadd8e35641030f3d50",
+  "assets": {
+    "Klipper-Farm-R144-setup.exe": {
+      "sha256": "273d55a7a93d76d9d56b45e0c47bd119e4ac32430587365e5bf512457c2f292e",
+      "sizeBytes": 233668427
+    },
+    "KF-R144-FULL.zip": {
+      "sha256": "c7c52debd6e09ab4f266b4f0a2426aa10ec738e41e7e138dc7a292a4480f81cc",
+      "sizeBytes": 582509062
+    }
+  },
+  "signedManifestSha256": "631533701d2e61a698b4cc5696201209982eaf1a0c7c6c79d1528707903b2654"
+}

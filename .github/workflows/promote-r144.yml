@@ -1,0 +1,119 @@
+name: Verify and publish signed R144 from exact Windows evidence
+'on':
+  push:
+    branches: [r144-printer-fault-recovery]
+    paths: [.github/workflows/promote-r144.yml]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: klipper-farm-stable-promotion
+  cancel-in-progress: false
+env:
+  PYTHONUTF8: '1'
+  KF_R144_CONTRACT_SHA256: '2f4df70ecf094bf24ac500b87bc378055a9c5713269505c0bc89199d58120212'
+jobs:
+  verify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r144-*
+            /r142-build.zip
+            /r142-required-tests.json
+            /.github/workflows/promote-r144.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+      - name: Bind exact source, completed Windows runs and installed data preservation
+        shell: pwsh
+        run: |
+          python r144-ci-publish.py prepare
+          if ($LASTEXITCODE -ne 0) { throw 'Exact candidate or source-bound Windows evidence differs' }
+      - name: Verify the signed installer with the production Rust updater
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $incoming=Join-Path $PWD 'incoming'
+          Set-Location native-source/Klipper-Farm-R144
+          tar -xzf offline-tools/rust/rust-vendor-v1144.tar.gz -C .
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned offline Rust sources extraction failed' }
+          $env:CARGO_TARGET_DIR=Join-Path $env:RUNNER_TEMP 'r144-updater-native'
+          cargo test --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --lib
+          if ($LASTEXITCODE -ne 0) { throw 'Production Rust updater regressions failed' }
+          $now=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+          $output=cargo run --quiet --offline --locked --manifest-path src-tauri/Cargo.toml -p kf-update --example verify_bundle -- "$incoming/update-v20.json" "$incoming/Klipper-Farm-R144-setup.exe" 28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb stable $now
+          if ($LASTEXITCODE -ne 0) { throw 'Production Rust updater rejected signed R144 installer' }
+          [IO.File]::WriteAllText((Join-Path $incoming 'native-bundle-verification.txt'),($output -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
+          Set-Location $env:GITHUB_WORKSPACE
+          python r144-ci-publish.py bundle
+          if ($LASTEXITCODE -ne 0) { throw 'Signature, sequence or verified bundle changed' }
+          Copy-Item (Join-Path $env:CARGO_TARGET_DIR 'debug/examples/verify_bundle.exe') verified/verify_bundle.exe
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-verified-stable
+          path: verified
+          compression-level: 0
+          retention-days: 30
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-promotion-evidence
+          path: |
+            incoming/*.json
+            incoming/native-bundle-verification.txt
+          retention-days: 30
+  promote:
+    needs: verify
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r144-ci-publish.py
+            /r144-promotion-contract.json
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: r144-verified-stable
+          path: verified
+      - name: Publish exact verified files and validate the public application channel
+        shell: pwsh
+        run: |
+          python r144-ci-publish.py publish
+          if ($LASTEXITCODE -ne 0) { throw 'Stable publication or public native updater verification failed' }
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-public-channel-verification
+          path: |
+            verified/public-update-v20.json
+            verified/public-channel-verification.json
+          retention-days: 30

@@ -97,8 +97,8 @@ assert native_report['result']['rootPassed']==238 and native_report['result']['r
 assert sha(find(native,'native-tests.log'))==native_report['result']['nativeLogSha256']
 installed=incoming/'installed-evidence';validation=load(find(installed,'exact-validation.json'))
 assert validation['candidate']=='R144' and validation['passed'] is True and validation['upgradeFrom']==143
-for name in ['buildRunId','validationRunId']:assert str(validation[name])==str(contract['buildRunId'])
-for name in ['buildHeadSha','validationHeadSha']:assert validation[name]==contract['buildHeadSha']
+for name in ['buildRunId','validationRunId']:assert str(validation[name])==str(contract[name])
+for name in ['buildHeadSha','validationHeadSha']:assert validation[name]==contract[name]
 for flag in ['cleanInstallVerified','exactInstalledBytesVerified','installedRestartVerified','businessDataPreserved']:assert validation[flag] is True
 for name in ['clean-installed-payload.json','installed-payload.json','installed-payload-after-restart.json']:
     payload=load(find(installed,name));assert payload['passed'] is True and payload['installedSequence']==144 and payload['embeddedUpdateChannelVerified'] is True
