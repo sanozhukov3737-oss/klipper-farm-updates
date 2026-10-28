@@ -1,0 +1,71 @@
+name: Verify voice inside installed Windows application
+'on':
+  push:
+    branches: [r145-offline-voice-assistant]
+    paths: [.github/workflows/windows-r145-installed-voice.yml]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+jobs:
+  installed-voice:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r145-check-installed-voice.mjs
+            /r145-installed-voice-audio.zip
+            /.github/workflows/windows-r145-installed-voice.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Require exact reviewed Windows preview build
+        shell: pwsh
+        run: |
+          $ready=$false
+          for ($attempt=0;$attempt -lt 150;$attempt++) {
+            $run=gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/40668446419" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Build status unavailable' }
+            if ($run.head_sha -ne '2ba1dece84d152abf31e3291c70a0552a077641c' -or $run.head_branch -ne 'r145-offline-voice-assistant') { throw 'Build identity differs' }
+            if ($run.status -eq 'completed') { if ($run.conclusion -ne 'success') { throw 'Pinned Windows build failed' }; $ready=$true;break }
+            Start-Sleep -Seconds 8
+          }
+          if (-not $ready) { throw 'Pinned Windows build did not complete' }
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: Klipper-Farm-Voice-Preview-Windows
+          run-id: 40668446419
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: candidate
+      - name: Install exact candidate and verify actual offline voice assets and worklet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $proof=Get-Content candidate/preview-provenance.json -Raw | ConvertFrom-Json
+          $setup=(Resolve-Path candidate/Klipper-Farm-Voice-Preview-setup.exe).Path
+          if ($proof.buildRunId -ne '40668446419' -or $proof.buildHeadSha -ne '2ba1dece84d152abf31e3291c70a0552a077641c' -or $proof.installer.bytes -ne (Get-Item $setup).Length -or $proof.installer.sha256 -ne (Get-FileHash $setup).Hash.ToLowerInvariant()) { throw 'Candidate bytes or provenance differ' }
+          if ((Get-FileHash r145-check-installed-voice.mjs).Hash.ToLowerInvariant() -ne '2c50b43d5626fea0a1f56bc602f205046e89c105d9e26386ca63329ad0cd881b') { throw 'Reviewed installed voice helper differs' }
+          if ((Get-FileHash r145-installed-voice-audio.zip).Hash.ToLowerInvariant() -ne '877fcb4eed482e345c7b48bf3cf903944355e2b400ce0d7c8336b96563d296ce') { throw 'Reviewed synthetic voice audio differs' }
+          Expand-Archive r145-installed-voice-audio.zip voice-audio
+          $install=Join-Path $env:RUNNER_TEMP 'KF-Installed-Voice'
+          $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Native preview installation failed' }
+          node r145-check-installed-voice.mjs "$install/klipper-farm-client.exe" voice-audio/stock.wav proof
+          if ($LASTEXITCODE -ne 0) { throw 'Actual installed WebView offline voice test failed' }
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Installed-Voice-Evidence
+          path: |
+            proof/*.json
+            proof/*.png
+          retention-days: 30
