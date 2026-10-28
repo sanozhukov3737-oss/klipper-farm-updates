@@ -1,0 +1,213 @@
+name: Build and verify R144 printer fault recovery on Windows
+'on':
+  push:
+    branches: [r144-printer-fault-recovery]
+    paths: [.github/workflows/windows-r144.yml]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+env:
+  PYTHONUTF8: '1'
+concurrency:
+  group: windows-r144-fault-recovery
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r144-*
+            /r142-build.zip
+            /r142-required-tests.json
+            /.github/workflows/windows-r144.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Restore the exact published R143 and reviewed R144 source
+        shell: pwsh
+        run: |
+          if ((Get-FileHash r144-source-changes.json).Hash.ToLowerInvariant() -ne '62b914009542c00f1279520888852e480030dc1082af8f10d881eef331da8a65') { throw 'Reviewed source delta differs' }
+          ./r144-prepare-windows.ps1
+          "KF_UI_SCREENSHOTS=$env:KF_UI_SCREENSHOTS" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Type safety and print, file, notification and recovery regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          node node_modules/typescript/bin/tsc --noEmit
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+          node scripts/check-frontend-contract.mjs --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Native command verifier failed' }
+          foreach ($script in @('check-printer-health.mjs','check-printer-connection-bridge.mjs','check-spool-geometry-buffer.mjs','check-rust-structure.mjs','check-approved-filament.mjs','check-r138-visual-activity.mjs','check-r128-finish.mjs','check-r127-print-confirmation.mjs','check-r127-notification-sound.mjs','check-r127-filament.mjs','check-r126-files-profile.mjs','check-r126-file-sync.mjs','check-printer-catalog.mjs','check-printer-catalog-images.mjs','check-search-art.mjs','check-gcode-validation.mjs','check-printer-config-persistence.mjs','check-security.mjs','check-moonraker-compat.mjs','check-filament-inventory.mjs','check-filament-telemetry.mjs','check-local-library.mjs','check-print-start-confirmation.mjs','check-r9-clean-installer.mjs','check-update-gate.mjs','check-legacy-library-routing.mjs','check-upload-actor-identity.mjs','check-local-library-print-target.mjs','check-printer-files-start-recovery.mjs','check-print-filename-preservation.mjs','check-launch-auto-recovery.mjs','check-r135-print-start-runtime.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+          }
+          Set-Location $env:GITHUB_WORKSPACE
+          python r144-checks.py --source work/app --proof proof --kind node
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh node and fault acceptance failed' }
+      - name: Build the frontend and complete source archive
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Frontend build failed' }
+          foreach ($script in @('lock-v20-6-dist.mjs','generate-release-manifests.mjs','check-release-portability.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Frontend/source freeze failed: $script" }
+          }
+          $env:KF_ARCHIVE_ROOT='Klipper-Farm-R144'
+          $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'candidate/KF-R144-FULL.zip'
+          New-Item -ItemType Directory -Force (Split-Path $env:KF_SOURCE_ZIP) | Out-Null
+          node scripts/build-reproducible-zip.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Complete source packaging failed' }
+      - name: Full Windows native suite, Clippy and actual NSIS build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          Copy-Item src-tauri/Cargo.toml ../../proof/cargo-before-build.toml
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Native Windows tests or packaging failed' }
+          @'
+          import tomllib
+          from pathlib import Path
+          before=Path('../../proof/cargo-before-build.toml').read_bytes()
+          assert tomllib.loads(before.decode())==tomllib.loads(Path('src-tauri/Cargo.toml').read_text()),'Native manifest semantics changed'
+          Path('src-tauri/Cargo.toml').write_bytes(before)
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Native source restoration failed' }
+          Copy-Item .klipper-build-cache/target/v20-rust-tests-last.log ../../proof/native-tests.log
+          Set-Location $env:GITHUB_WORKSPACE
+          python r144-checks.py --source work/app --proof proof --kind native --native-log proof/native-tests.log
+          if ($LASTEXITCODE -ne 0) { throw 'Required Windows native fault cases differ' }
+          New-Item -ItemType Directory -Force candidate/scripts,candidate/release | Out-Null
+          $setup=@(Get-ChildItem work/app/INSTALLER -Filter '*.exe')
+          if ($setup.Count -ne 1) { throw 'Exactly one reviewed installer required' }
+          Copy-Item $setup[0].FullName candidate/Klipper-Farm-R144-setup.exe
+          Copy-Item work/app/.klipper-build-cache/target/release/klipper-farm-ipc-probe.exe candidate/release/
+          foreach ($name in @('check-desktop-startup-smoke.mjs','check-headless-telemetry-runtime.mjs','hardware-emulator.mjs')) { Copy-Item "work/app/scripts/$name" candidate/scripts/ }
+          Copy-Item r142-build/r142-upgrade-data.py candidate/scripts/upgrade-data.py
+          $assets=@{}
+          foreach ($name in @('Klipper-Farm-R144-setup.exe','KF-R144-FULL.zip')) { $file=Get-Item "candidate/$name"; $assets[$name]=@{sizeBytes=$file.Length;sha256=(Get-FileHash $file.FullName).Hash.ToLowerInvariant()} }
+          @{candidate='R144';sequence=144;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;sourcePatchSha256=(Get-FileHash r144-source-changes.json).Hash.ToLowerInvariant();baselineTag='r143-ota';assets=$assets;stablePublished=$false} | ConvertTo-Json -Depth 8 | Set-Content candidate/provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-compiled-candidate
+          path: candidate
+          compression-level: 0
+          retention-days: 30
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-native-build-evidence
+          path: |
+            proof
+            work/app/.klipper-build-cache/logs
+          retention-days: 30
+  browser:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r144-*
+            /r142-build.zip
+            /r142-required-tests.json
+            /r138-live-ui-patch.json
+            /.github/workflows/windows-r144.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Restore exact source and real Edge
+        shell: pwsh
+        run: |
+          if ((Get-FileHash r144-source-changes.json).Hash.ToLowerInvariant() -ne '62b914009542c00f1279520888852e480030dc1082af8f10d881eef331da8a65') { throw 'Reviewed source delta differs' }
+          ./r144-prepare-windows.ps1 -Browser
+          foreach ($name in @('KF_UI_SCREENSHOTS','CHROMIUM_EXECUTABLE','PLAYWRIGHT_MODULE_PATH')) { "$name=$([Environment]::GetEnvironmentVariable($name))" | Out-File $env:GITHUB_ENV -Append -Encoding utf8 }
+      - name: Actual FarmApp recovery and inherited browser acceptance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((Get-FileHash r138-live-ui-patch.json).Hash.ToLowerInvariant() -ne 'f00d0eee45ccc36fbee60077526e7fceae099f302adaf574ab01d5f6a7d70fa1') { throw 'Pinned visual baseline differs' }
+          $env:KF_R138_REVIEW_PATCH=(Resolve-Path r138-live-ui-patch.json).Path
+          foreach ($kind in @('node','browser','verify')) {
+            python r144-checks.py --source work/app --proof proof --kind $kind
+            if ($LASTEXITCODE -ne 0) { throw "Fresh source-bound acceptance failed: $kind" }
+          }
+          Set-Location work/app
+          node ui-tests/connection-feedback.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Connection fallback/deduplication browser regression failed' }
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-browser-evidence
+          path: proof
+          retention-days: 30
+  installed:
+    needs: [build, browser]
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /r144-*
+            /.github/workflows/windows-r144.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: r144-compiled-candidate
+          path: candidate
+      - name: Clean install, real daemon, R143 upgrade and seven-printer data preservation
+        shell: pwsh
+        run: |
+          ./r144-validate-installed.ps1
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-installed-evidence
+          path: |
+            candidate/proof
+            candidate/smoke
+            candidate/clean-smoke
+            candidate/exact-validation.json
+            candidate/R144-UI-proof.zip
+          retention-days: 30
