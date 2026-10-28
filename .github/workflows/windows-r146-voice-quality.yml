@@ -80,10 +80,12 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Frontend verification failed: $script" }
           }
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: rustcache
         with:
           path: work/app/.klipper-build-cache
           key: windows-neural-voice-rust198-${{ hashFiles('work/app/MANIFEST-SHA256.txt') }}
       - name: Native Windows tests, Clippy and NSIS installer
+        id: native
         shell: pwsh
         run: |
           $env:KF_TEST_PYTHON=(Get-Command python).Source
@@ -94,6 +96,11 @@ jobs:
           $setups=@(Get-ChildItem INSTALLER -Filter '*.exe')
           if ($setups.Count -ne 1) { throw 'Expected one installer' }
           Copy-Item $setups[0].FullName ../../candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        if: steps.rustcache.outputs.cache-hit != 'true'
+        with:
+          path: work/app/.klipper-build-cache
+          key: windows-neural-voice-rust198-${{ hashFiles('work/app/MANIFEST-SHA256.txt') }}
       - name: Install and verify real WebView2, neural voices and microphone recognition
         shell: pwsh
         run: |
@@ -122,6 +129,9 @@ jobs:
         with:
           name: Klipper-Farm-Neural-Voice-Preview-Evidence
           path: |
-            proof
+            proof/*.json
+            proof/*.png
+            proof/*.log
+            proof/smoke/*.json
             work/app/.klipper-build-cache/logs
           retention-days: 30

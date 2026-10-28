@@ -246,7 +246,7 @@ pub(crate) async fn voice_transcribe(
         let model = root.join("ggml-small-q5_1.bin");
         if !model.is_file() { return Err("Не установлена модель Whisper".into()); }
         let mut command = Command::new(tool(&root, "whisper-cli"));
-        command.current_dir(&root).arg("-m").arg(model)
+        command.current_dir(&root).arg("-m").arg("ggml-small-q5_1.bin")
             .args(["-f", "-", "-of", "transcript-memory-only", "-l", "ru", "-t", "4", "-np", "-nt", "-ng"])
             .args(["--prompt", "Принтер K1 Max, K1C, Ender KE, Flashforge 5M. Найди файл, поставь на печать, корпус, кронштейн, остаток пластика."]);
         let bytes = run_tool(command, wave, Duration::from_secs(90), 8_192)?;
@@ -281,13 +281,19 @@ pub(crate) async fn voice_synthesize(
             return Err("Не установлен выбранный нейроголос".into());
         }
         let mut command = Command::new(tool(&root, "piper"));
-        command.current_dir(&root).arg("--model").arg(model).args([
-            "--output-raw",
-            "--sentence_silence",
-            "0.15",
-            "--length_scale",
-            "1.0",
-        ]);
+        command
+            .current_dir(&root)
+            .arg("--model")
+            .arg(format!("ru_RU-{voice_id}-medium.onnx"))
+            .args([
+                "--output-raw",
+                "--espeak_data",
+                "espeak-ng-data",
+                "--sentence_silence",
+                "0.15",
+                "--length_scale",
+                "1.0",
+            ]);
         let pcm = run_tool(
             command,
             format!("{text}\n").into_bytes(),

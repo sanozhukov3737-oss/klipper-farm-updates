@@ -2,7 +2,7 @@
   "passed": true,
   "realAudioTested": false,
   "physicalPrintersTested": false,
-  "cases": 6,
+  "cases": 7,
   "report": [
     {
       "name": "stock from actual native-backed inventory adapter",
@@ -10,6 +10,10 @@
     },
     {
       "name": "neural voice selection and preview use authenticated native speech boundary",
+      "passed": true
+    },
+    {
+      "name": "misheard file name requires an explicit choice and a separate print confirmation",
       "passed": true
     },
     {

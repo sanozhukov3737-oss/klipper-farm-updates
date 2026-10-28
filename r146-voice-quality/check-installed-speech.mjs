@@ -19,7 +19,7 @@ class Cdp{
   const message=JSON.parse(String(event.data));
   if(message.id){const request=this.pending.get(message.id);if(!request)return;this.pending.delete(message.id);clearTimeout(request.timer);message.error?request.reject(new Error(JSON.stringify(message.error))):request.resolve(message.result)}
   else if(message.method==='Runtime.exceptionThrown')exceptions.push(message.params.exceptionDetails?.exception?.description??message.params.exceptionDetails?.text);
-  else if(message.method==='Network.requestWillBeSent'){const url=message.params.request?.url??'';if(/^https?:/.test(url)&&!['tauri.localhost','localhost','127.0.0.1'].includes(new URL(url).hostname))externalRequests.push(url)}
+  else if(message.method==='Network.requestWillBeSent'){const url=message.params.request?.url??'';if(/^https?:/.test(url)&&!['tauri.localhost','ipc.localhost','localhost','127.0.0.1'].includes(new URL(url).hostname))externalRequests.push(url)}
  });socket.addEventListener('close',()=>{for(const request of this.pending.values()){clearTimeout(request.timer);request.reject(new Error('WebView closed'))}this.pending.clear()})}
  static async open(url){const socket=new WebSocket(url);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('CDP open timeout')),15000);socket.addEventListener('open',()=>{clearTimeout(timer);resolve()},{once:true});socket.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('CDP connection failed'))},{once:true})});return new Cdp(socket)}
  send(method,params={}){return new Promise((resolve,reject)=>{const id=++this.next,timer=setTimeout(()=>{this.pending.delete(id);reject(new Error('CDP timeout: '+method))},120000);this.pending.set(id,{resolve,reject,timer});this.socket.send(JSON.stringify({id,method,params}))})}
@@ -33,14 +33,19 @@ try{
  assert.match(await cdp.evaluate('document.querySelector(".authCard h1").textContent'),/Настройте вход/);
  await cdp.evaluate(`(()=>{
   window.__speechSmoke={samples:[],transcripts:[],playback:0,errors:[],energy:0,frames:0};
-  const original=window.__TAURI_INTERNALS__.invoke;
-  window.__TAURI_INTERNALS__.invoke=async function(command,args,options){
-   try{const value=await original(command,args,options);
+  const originalFetch=window.fetch;
+  window.fetch=async function(input,options){
+   const response=await originalFetch.call(window,input,options),url=new URL(typeof input==='string'?input:input.url??String(input),location.href);
+   const command=url.hostname==='ipc.localhost'?decodeURIComponent(url.pathname.slice(1)):'';
+   if(['auth_bootstrap','voice_synthesize','voice_transcribe'].includes(command)){
+    const value=(response.headers.get('content-type')??'').startsWith('application/json')?await response.clone().json():await response.clone().text();
+    const args=typeof options?.body==='string'?JSON.parse(options.body):{};
+    if(response.headers.get('Tauri-Response')!=='ok'){if(command.startsWith('voice_'))window.__speechSmoke.errors.push(String(value));return response}
     if(command==='auth_bootstrap')window.__speechSmokeSession=value.token;
     if(command==='voice_synthesize'){let sum=0;for(let i=0;i<value.pcm.length;i+=2){let sample=value.pcm[i]|(value.pcm[i+1]<<8);if(sample>=32768)sample-=65536;sum+=(sample/32768)**2}window.__speechSmoke.samples.push({voiceId:args.voiceId,bytes:value.pcm.length,sampleRate:value.sampleRate,rms:Math.sqrt(sum/(value.pcm.length/2))})}
     if(command==='voice_transcribe')window.__speechSmoke.transcripts.push(value);
-    return value;
-   }catch(error){if(command.startsWith('voice_'))window.__speechSmoke.errors.push(String(error));throw error}
+   }
+   return response;
   };
   const play=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(...args){const pending=play.apply(this,args);pending.then(()=>window.__speechSmoke.playback++,()=>{});return pending};
   const Worklet=window.AudioWorkletNode;window.AudioWorkletNode=class extends Worklet{constructor(...args){super(...args);this.port.addEventListener('message',event=>{if(event.data instanceof Float32Array){window.__speechSmoke.frames+=event.data.length;for(const value of event.data)window.__speechSmoke.energy=Math.max(window.__speechSmoke.energy,Math.abs(value))}});this.port.start()}};

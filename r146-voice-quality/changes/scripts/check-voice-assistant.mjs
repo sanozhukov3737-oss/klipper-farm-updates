@@ -3,7 +3,7 @@ import {build} from 'esbuild';
 import fs from 'node:fs';
 const compiled=await build({stdin:{contents:"export {VoiceAssistant} from './src/lib/voiceAssistant';export * from './src/lib/voiceCommands';export {emptyFilamentInventory} from './src/lib/filamentInventory';export {profileForPreset} from './src/lib/printerProfile';export {MoonrakerClient} from './src/lib/moonraker';export {offlineRussianVoice,speakOffline} from './src/lib/offlineSpeech';",resolveDir:process.cwd(),loader:'ts'},bundle:true,write:false,format:'esm',platform:'node'});
 globalThis.window=new EventTarget();globalThis.document=new EventTarget();globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
-const {VoiceAssistant,parseVoiceCommand,voicePrinterMatches,voiceFileMatches,emptyFilamentInventory,profileForPreset,MoonrakerClient,offlineRussianVoice,speakOffline}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
+const {VoiceAssistant,parseVoiceCommand,voicePrinterMatches,voiceFileMatches,voiceFileNearMatch,emptyFilamentInventory,profileForPreset,MoonrakerClient,offlineRussianVoice,speakOffline}=await import('data:text/javascript;base64,'+Buffer.from(compiled.outputFiles[0].text).toString('base64'));
 const report=[];const test=async(name,fn)=>{await fn();report.push({name,passed:true});console.log('PASS',name)};
 const printer=(id='max',name='K1 Max',preset='creality-k1-max')=>({id,name,host:'192.168.1.10',profile:profileForPreset(preset),status:{state:'ready',connectionState:'online'},webcams:[]});
 function fixture(){
@@ -28,6 +28,18 @@ await test('printer-first commands, spoken Max variants and conflicting targets'
  }
  assert.deepEqual(parseVoiceCommand('На принтере K1 Max, напечатай файл корпус, пожалуйста'),{kind:'print',query:'корпус',printerHint:'k1 max'});
  for(const text of ['не напечатай корпус','принтер k1 max не поставь на печать корпус','принтер k1 max напечатай корпус на 5m'])assert.equal(parseVoiceCommand(text).kind,'help');
+});
+await test('misheard file names are suggested and never automatically prepared or launched',async()=>{
+ assert.equal(voiceFileMatches('детали/кронштейн.gcode','конштейн'),false);
+ assert.equal(voiceFileNearMatch('детали/кронштейн.gcode','конштейн'),true);
+ assert.equal(voiceFileNearMatch('корпус A12.gcode','корпус A13'),false);
+ assert.equal(voiceFileNearMatch('деталь.gcode','дел'),false);
+ const f=fixture();f.data.files=[{path:'детали/кронштейн.gcode',size:150}];
+ const r=await f.assistant.handle('Принтер К1 Макс поставь на печать конштейн');
+ assert.equal(r.choices.length,1);assert(!r.proposal);assert.equal(f.data.upload,0);
+ await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,0);
+ const selected=await f.assistant.handle('Выбери первый');assert(selected.proposal);assert.equal(f.data.start,0);
+ await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,1);
 });
 await test('find never uploads; confirmation requires an explicitly selected proposal',async()=>{const f=fixture();const r=await f.assistant.handle('Найди корпус');assert.equal(r.choices.length,1);await f.assistant.handle('подтверждаю печать');assert.equal(f.data.start,0)});
 await test('one selected file, separately confirmed, transfers and starts exactly once',async()=>{const f=fixture();const r=await f.assistant.handle('Напечатай корпус на K1 Max');assert(r.proposal);assert.equal(f.data.start,0);const done=await f.assistant.handle('Подтверждаю печать');assert.match(done.text,/подтвердил запуск/);await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,1);assert.equal(f.data.upload,1);assert.equal(f.data.ready,2)});

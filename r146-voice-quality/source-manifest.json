@@ -23,8 +23,8 @@
     {
       "path": "src/lib/voiceCommands.ts",
       "beforeSha256": "44e0d8870f3e61ff1f421bb21e03783bc417c478a4319b75bba53fdb6ed5dc6e",
-      "sha256": "da30f7d2ccf459e43e01effcb411ce736b2b0d2d6dda70bcfb4f748b499b9792",
-      "bytes": 5241
+      "sha256": "4df1dc4a304444789e1f8cf8f6110310a4a5cacfc758ba0216f73fcbdc9da15c",
+      "bytes": 6298
     },
     {
       "path": "src/lib/neuralSpeech.ts",
@@ -47,8 +47,8 @@
     {
       "path": "scripts/check-voice-assistant.mjs",
       "beforeSha256": "a4c6a40e90ac11349b63eeaf6c2a1312518c123dc594c8e7aeabaefd7678ab4c",
-      "sha256": "e7afca422e475e01817fcaf2070bdd2c2d82094dcb0731b1c9a831e5475f707f",
-      "bytes": 13011
+      "sha256": "c341d8dee078a398d190fb9ae135c58daa3ec8da2874252e350ea2940becb2f5",
+      "bytes": 14102
     },
     {
       "path": "scripts/check-neural-speech.mjs",
@@ -89,14 +89,20 @@
     {
       "path": "ui-tests/voice-assistant-r145.mjs",
       "beforeSha256": "be07e9e1aa15adc020564b164491f3986d9c13920c85d7fff5f2ea92b93b3754",
-      "sha256": "78cbc90ced08929d30138a65aa95c98951586094b9e94aef93e0723675ecba78",
-      "bytes": 8891
+      "sha256": "2a78b9f512de816dd471912ee72e63212f2eb15e69e69f5ecd6e00e81fa51c22",
+      "bytes": 9582
     },
     {
       "path": "src-tauri/src/offline_voice.rs",
       "beforeSha256": null,
-      "sha256": "12752773054a42d2f3d1dc67421eba1cabca7d03e3608afd0492f8b337bdcae1",
-      "bytes": 11599
+      "sha256": "291bf13ed116d3bacbb1b3802ee391d5a68e706f11263936e396b7f82ff1fe3a",
+      "bytes": 11792
+    },
+    {
+      "path": "src/lib/voiceAssistant.ts",
+      "beforeSha256": "5adedf7f52c26f5bc2d2c422e670693d0873abfe685fb558b2a7be5b15d55dad",
+      "sha256": "3fa50946a66cc274dbf798e88b98d7fd56a24a294fece84ccaf85f1d59cae1bb",
+      "bytes": 14340
     }
   ]
 }

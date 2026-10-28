@@ -50,3 +50,24 @@ export function voiceFileMatches(path:string,query:string){
   const tokens=searchable(query).split(' ').filter(Boolean),name=searchable(path);
   return tokens.length>0&&tokens.every(token=>name.includes(token));
 }
+// A near match is a suggestion only; short names and numeric identifiers stay exact.
+export function voiceFileNearMatch(path:string,query:string){
+  const queryTokens=searchable(query).split(' ').filter(Boolean),name=searchable(path),words=name.split(' ').filter(Boolean);
+  if(!queryTokens.length||queryTokens.length>20)return false;
+  return queryTokens.every(token=>{
+    if(name.includes(token))return true;
+    if(token.length<5||token.length>64||/\d/.test(token))return false;
+    const limit=token.length>=9?2:1;
+    return words.some(word=>{
+      if(word.length>64||/\d/.test(word)||Math.abs(word.length-token.length)>limit)return false;
+      let previous=Array.from({length:word.length+1},(_,i)=>i);
+      for(let i=1;i<=token.length;i++){
+        const current=[i];
+        for(let j=1;j<=word.length;j++)current[j]=Math.min(current[j-1]+1,previous[j]+1,previous[j-1]+(token[i-1]===word[j-1]?0:1));
+        if(Math.min(...current)>limit)return false;
+        previous=current;
+      }
+      return previous[word.length]<=limit;
+    });
+  });
+}

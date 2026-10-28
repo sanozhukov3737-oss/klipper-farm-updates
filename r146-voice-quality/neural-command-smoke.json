@@ -1,0 +1,34 @@
+{
+  "physicalPrintersTested": false,
+  "hardwareMicrophoneTested": false,
+  "cases": [
+    {
+      "spoken": "Сколько осталось пластика?",
+      "recognized": "Колька осталась пластика?",
+      "seconds": 9.31,
+      "syntheticVoice": "denis",
+      "addedNoise": false
+    },
+    {
+      "spoken": "Какие принтеры свободны?",
+      "recognized": "Какие принтеры свободны?",
+      "seconds": 10.59,
+      "syntheticVoice": "denis",
+      "addedNoise": false
+    },
+    {
+      "spoken": "Принтер кей один макс, поставь на печать корпус.",
+      "recognized": "Принтер K1 Max, поставь на печать, корпус.",
+      "seconds": 8.18,
+      "syntheticVoice": "denis",
+      "addedNoise": false
+    },
+    {
+      "spoken": "Найди кронштейн на принтере кей один макс.",
+      "recognized": "Найди конштейн на принтере K1 Max.",
+      "seconds": 8.65,
+      "syntheticVoice": "denis",
+      "addedNoise": true
+    }
+  ]
+}
