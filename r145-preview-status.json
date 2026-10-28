@@ -1,0 +1,38 @@
+{
+  "status": "windows-preview-ready",
+  "passed": true,
+  "stablePublished": false,
+  "installerSha256": "272744de4f22a1f20756e99808f666749a1ba0dcc6c64afa6e352f1640398801",
+  "installerBytes": 281286518,
+  "build": {
+    "actualInstalledWebView": true,
+    "preview": true,
+    "installedSequence": 144,
+    "stablePublished": false,
+    "buildId": "V20.6-R14.5-OFFLINE-VOICE-PREVIEW-2026-10-28",
+    "cleanInstallVerified": true,
+    "buildRunId": "40669432900",
+    "installer": {
+      "bytes": 281286518,
+      "sha256": "272744de4f22a1f20756e99808f666749a1ba0dcc6c64afa6e352f1640398801"
+    },
+    "buildHeadSha": "9b54465814a2778516a67286b04d8db6731446a0",
+    "physicalPrintersTested": false
+  },
+  "installedVoice": {
+    "passed": true,
+    "physicalPrintersTested": false,
+    "hardwareMicrophoneTested": false,
+    "buildId": "V20.6-R14.5-OFFLINE-VOICE-PREVIEW-2026-10-28",
+    "recognized": "сколько осталось пластика",
+    "realInstalledWebView": true,
+    "packagedOfflineModel": true,
+    "actualAudioWorklet": true,
+    "fakeMicrophone": true,
+    "energy": 0.7505491971969604
+  },
+  "installerArtifactId": 12808782351,
+  "installedVoiceArtifactId": 12808124681,
+  "artifactUrl": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/40669432900/artifacts/12808782351",
+  "completeSourceArtifactId": 12809001941
+}
