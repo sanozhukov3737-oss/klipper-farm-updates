@@ -1,0 +1,24 @@
+Offline speech tools for Klipper Farm
+
+Whisper.cpp v1.8.4, MIT license:
+https://github.com/ggml-org/whisper.cpp/tree/v1.8.4
+https://github.com/ggml-org/whisper.cpp/blob/v1.8.4/LICENSE
+The multilingual small-q5_1 model is supplied by its official maintainer:
+https://huggingface.co/ggerganov/whisper.cpp
+
+Piper 2023.11.14-2, MIT license:
+https://github.com/rhasspy/piper/tree/2023.11.14-2
+https://github.com/rhasspy/piper/blob/2023.11.14-2/LICENSE.md
+Piper runtime includes ONNX Runtime (MIT), piper-phonemize (MIT),
+and eSpeak NG (GPL-3.0). Corresponding upstream sources and notices:
+https://github.com/rhasspy/piper-phonemize
+https://github.com/microsoft/onnxruntime
+https://github.com/espeak-ng/espeak-ng
+
+Russian Denis and Dmitri model cards are included with the models.
+Their upstream cards identify the voice datasets as CC0:
+https://huggingface.co/rhasspy/piper-voices/tree/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/ru/ru_RU
+
+These tools run as separate local processes. Input and output audio use pipes.
+No microphone recording is written to disk or transmitted to a network service.
+Runtime asset downloads are not performed by the application.

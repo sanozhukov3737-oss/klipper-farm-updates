@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "realAudioTested": false,
+  "physicalPrintersTested": false,
+  "cases": 6,
+  "report": [
+    {
+      "name": "stock from actual native-backed inventory adapter",
+      "passed": true
+    },
+    {
+      "name": "neural voice selection and preview use authenticated native speech boundary",
+      "passed": true
+    },
+    {
+      "name": "full G-code analysis through native chunk reader, then separate confirmation",
+      "passed": true
+    },
+    {
+      "name": "repeat confirmation cannot resend print",
+      "passed": true
+    },
+    {
+      "name": "close and reopen does not retain confirmation",
+      "passed": true
+    },
+    {
+      "name": "no external requests and no browser exceptions",
+      "passed": true
+    }
+  ]
+}

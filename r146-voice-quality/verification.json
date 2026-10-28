@@ -1,0 +1,19 @@
+{
+  "status": "local-implementation-verified-windows-not-built",
+  "physicalPrintersTested": false,
+  "hardwareMicrophoneTested": false,
+  "windowsInstallerBuilt": false,
+  "voiceCommands": 30,
+  "speechLifecycle": 8,
+  "nativeProcessTests": 4,
+  "browserCases": 6,
+  "typescript": true,
+  "frontendBuild": true,
+  "nativeModuleTypecheck": "passed against application API stubs, not full Tauri",
+  "fullTauriCheck": "blocked by missing Linux GLib/pkg-config before application checking",
+  "actualSpeechEngine": "Whisper.cpp 1.8.4 multilingual small q5_1, CPU",
+  "speechRecognized": "Принтер K1 Max поставь на печать, корпус.",
+  "githubBranchWrite": "403 Resource not accessible by integration",
+  "sourceExportWorkflow": "not added; automatic approval rejected",
+  "remotePublished": false
+}

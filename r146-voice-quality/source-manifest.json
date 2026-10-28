@@ -1,0 +1,102 @@
+{
+  "baseBranch": "r145-offline-voice-assistant",
+  "baseCommit": "0843930b1fb462cd1e479ac4a25216521edae44e",
+  "files": [
+    {
+      "path": "package.json",
+      "beforeSha256": "e058b85a5c907887cb25c530d7118c1ebd24d469941d675d2ff723c6e92070d0",
+      "sha256": "d73131461ddd8a4a9cd1d47b4b1274dd07572c4feff18a8e5ff755445cfe9b8e",
+      "bytes": 6286
+    },
+    {
+      "path": "src-tauri/tauri.conf.json",
+      "beforeSha256": "0224f8aa65d47d82e9258e988ecec7aff6eeef1a114134c7af550dc58fa96513",
+      "sha256": "a7ff87809dd01296374fe9b9477e6295055bcf19090b957c7a2738493c235f3a",
+      "bytes": 1916
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "beforeSha256": "73f6258719b20f55f95399a6b0e635b2a1c32a7772784c705fe9205b0e17e419",
+      "sha256": "b75f2c2eab1a91df0c4a4c912941c46550ebb0692227dc45d3e940fbdb7e3976",
+      "bytes": 174780
+    },
+    {
+      "path": "src/lib/voiceCommands.ts",
+      "beforeSha256": "44e0d8870f3e61ff1f421bb21e03783bc417c478a4319b75bba53fdb6ed5dc6e",
+      "sha256": "da30f7d2ccf459e43e01effcb411ce736b2b0d2d6dda70bcfb4f748b499b9792",
+      "bytes": 5241
+    },
+    {
+      "path": "src/lib/neuralSpeech.ts",
+      "beforeSha256": null,
+      "sha256": "0203eca0d968e2db273a47acabda71feb54e0d6d641cdffecd3bce0e243c335b",
+      "bytes": 7667
+    },
+    {
+      "path": "src/components/VoiceAssistantPanel.tsx",
+      "beforeSha256": "01f1ca97493ab7e95bebf2fbbe99750efb2566c1fde17bcb211eb33f53442f03",
+      "sha256": "ce7395a30c81be40b2842a5b43edc8787ee983a69f4b348609d5d797b883244d",
+      "bytes": 10999
+    },
+    {
+      "path": "src/components/VoiceAssistantPanel.css",
+      "beforeSha256": "9f538e736d11ccef1fecbd331fc0c8c4690f52c90a4df610ac6a264cb12fefb9",
+      "sha256": "4ec7bed043e94ce155285035573ad15bac4abe39dcc38f940d328a1daf09b96c",
+      "bytes": 4550
+    },
+    {
+      "path": "scripts/check-voice-assistant.mjs",
+      "beforeSha256": "a4c6a40e90ac11349b63eeaf6c2a1312518c123dc594c8e7aeabaefd7678ab4c",
+      "sha256": "e7afca422e475e01817fcaf2070bdd2c2d82094dcb0731b1c9a831e5475f707f",
+      "bytes": 13011
+    },
+    {
+      "path": "scripts/check-neural-speech.mjs",
+      "beforeSha256": null,
+      "sha256": "a3c9ef256c00b5bd3d2de955116d12c32aaa3d1e31adb25b876ef587d711a26e",
+      "bytes": 5391
+    },
+    {
+      "path": "scripts/prepare-neural-speech.py",
+      "beforeSha256": null,
+      "sha256": "e138b9dd352a7915352dc54a3eca553d3dd37712fd98e68fcb616c6c29da13b3",
+      "bytes": 3289
+    },
+    {
+      "path": "scripts/neural-speech-assets.json",
+      "beforeSha256": null,
+      "sha256": "5b15c5777cb59747c94b696903e9b17d53ccde06e8cb17bbe13eb611a4af2d92",
+      "bytes": 2558
+    },
+    {
+      "path": "scripts/check-neural-speech-assets.mjs",
+      "beforeSha256": null,
+      "sha256": "a27977736151aab0e40b0c519559686de8d60c22606cd6a5d4d6b01a1705ed50",
+      "bytes": 1031
+    },
+    {
+      "path": "scripts/NEURAL-SPEECH-NOTICES.txt",
+      "beforeSha256": null,
+      "sha256": "9e773d5581a3c49fbca853ec18e10d9a7ecc49278d4e0f613ca5ed74e278c3e8",
+      "bytes": 1154
+    },
+    {
+      "path": "ui-tests/voice-assistant-r145.tsx",
+      "beforeSha256": "f9cb560f06255c7f53f0fcee90f25c62d9f27812e9bb50f7522fd267acf3be2c",
+      "sha256": "94d167b0db606c061f1bc7741964e656e68f98e037a90efc3654b3959145af8e",
+      "bytes": 2636
+    },
+    {
+      "path": "ui-tests/voice-assistant-r145.mjs",
+      "beforeSha256": "be07e9e1aa15adc020564b164491f3986d9c13920c85d7fff5f2ea92b93b3754",
+      "sha256": "78cbc90ced08929d30138a65aa95c98951586094b9e94aef93e0723675ecba78",
+      "bytes": 8891
+    },
+    {
+      "path": "src-tauri/src/offline_voice.rs",
+      "beforeSha256": null,
+      "sha256": "12752773054a42d2f3d1dc67421eba1cabca7d03e3608afd0492f8b337bdcae1",
+      "bytes": 11599
+    }
+  ]
+}
