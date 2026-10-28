@@ -49,6 +49,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
           python work/app/scripts/prepare-neural-speech.py --cache incoming/speech
           if ($LASTEXITCODE -ne 0) { throw 'Pinned speech engine preparation failed' }
+          python r146-voice-quality/prepare-windows-runtime.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'App-local speech runtime preparation failed' }
           Invoke-WebRequest -Uri 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip' -OutFile incoming/voice-model.zip
           python work/app/scripts/prepare-voice-model.py incoming/voice-model.zip
           if ($LASTEXITCODE -ne 0) { throw 'Confirmation model preparation failed' }
