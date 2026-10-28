@@ -1,3 +1,4 @@
+# Exact R144 input bytes are preserved on Windows checkout.
 # R144 ledgers verify the current release identity and unchanged source.
 name: Build and verify R144 printer fault recovery on Windows
 'on':

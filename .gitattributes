@@ -139,3 +139,9 @@ r143-* -text
 R143-* -text
 apply-r143-maintenance.py -text
 .github/workflows/windows-r143-*.yml -text
+
+# Exact R144 recovery release inputs
+r144-* -text
+R144-* -text
+.github/workflows/windows-r144.yml -text
+.github/workflows/promote-r144.yml -text
