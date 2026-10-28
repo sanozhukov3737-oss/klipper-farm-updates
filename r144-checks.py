@@ -31,6 +31,25 @@ elif args.kind=='native':
     for name in required:assert re.search(r'^test '+re.escape(name)+r' \.\.\. ok\s*$',log,re.MULTILINE),'Required native regression not executed: '+name
     result={'passed':True,'rootPassed':238,'rootIgnored':2,'rootFailed':0,'requiredCases':len(required),'newNativeCases':6,'nativeLogSha256':helper['sha'](args.native_log),'workspaceSummaries':len(summaries)}
 else:
-    result={'reports':helper['verify_reports'](value,args.proof,args.source),'ledgers':helper['verify_ledgers'](value,args.proof,snapshot,contract)}
+    ledgers={};identity=None
+    for kind in ('node','browser'):
+        path=args.proof/value['executionLedgers'][kind];ledger=json.loads(path.read_text())
+        assert ledger['release']=='R144' and ledger['kind']==kind and ledger['passed'] is True
+        assert ledger['sourceUnchangedDuringRun'] is True and ledger['buildId']==build_id
+        assert ledger['contractSha256']==helper['sha'](contract)
+        assert ledger['sourceSnapshot']==snapshot and ledger['sourceSnapshotSha256']==helper['object_sha'](snapshot)
+        current_identity=(ledger['githubRunId'],ledger['githubHeadSha'])
+        if identity is None:identity=current_identity
+        assert current_identity==identity,'Node and browser ledgers belong to different builds'
+        for expected,key in [(os.environ.get('GITHUB_RUN_ID'),'githubRunId'),(os.environ.get('GITHUB_SHA'),'githubHeadSha')]:
+            if expected is not None:assert ledger[key]==str(expected)
+        assert len(ledger['checks'])==len(value[kind+'Checks'])
+        for spec,check in zip(value[kind+'Checks'],ledger['checks']):
+            assert check['script']==spec['script'] and check['proofEnv']==spec['proofEnv']
+            assert check['passed'] is True and check['exitCode']==0 and check['scriptSha256']==snapshot[spec['script']]
+            assert check['report']==spec['report'] and check['reportSha256']==helper['sha'](args.proof/spec['report'])
+            assert check['logSha256']==helper['sha'](args.proof/check['log'])
+        ledgers[kind]=helper['sha'](path)
+    result={'reports':helper['verify_reports'](value,args.proof,args.source),'ledgers':ledgers}
 record={'stage':args.kind,'release':'R144','sourceFiles':len(snapshot),'sourcePatchSha256':hashlib.sha256((root/'r144-source-changes.json').read_bytes()).hexdigest(),'sourceSnapshotSha256':helper['object_sha'](snapshot),'result':result}
 (args.proof/('r144-'+args.kind+'-acceptance.json')).write_text(json.dumps(record,indent=2)+'\n');print(json.dumps(record))

@@ -1,3 +1,4 @@
+# R144 ledgers verify the current release identity and unchanged source.
 name: Build and verify R144 printer fault recovery on Windows
 'on':
   push:
