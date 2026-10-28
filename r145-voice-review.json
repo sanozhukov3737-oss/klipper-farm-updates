@@ -1,0 +1,188 @@
+{
+  "schemaVersion": 1,
+  "feature": "offline-voice-assistant",
+  "status": "source-preview-not-published-update",
+  "baselineTag": "r144-ota",
+  "baselineSourceSha256": "c7c52debd6e09ab4f266b4f0a2426aa10ec738e41e7e138dc7a292a4480f81cc",
+  "physicalPrintersTested": false,
+  "windowsInstalledVoiceTested": false,
+  "changedFiles": 31,
+  "archiveSha256": "c81a60b5a7d4899067fb7df043dc40ba01f21a62bf76c04965de8dfae659ed23",
+  "archiveBytes": 2564456,
+  "voiceUnit": {
+    "passed": true,
+    "cases": 29,
+    "report": [
+      {
+        "name": "Russian print phrases and spoken printer aliases",
+        "passed": true
+      },
+      {
+        "name": "find never uploads; confirmation requires an explicitly selected proposal",
+        "passed": true
+      },
+      {
+        "name": "one selected file, separately confirmed, transfers and starts exactly once",
+        "passed": true
+      },
+      {
+        "name": "duplicate names and multiple model printers require explicit choice",
+        "passed": true
+      },
+      {
+        "name": "different model libraries are searched once each without cross-model dispatch",
+        "passed": true
+      },
+      {
+        "name": "blocked printer printing",
+        "passed": true
+      },
+      {
+        "name": "blocked printer paused",
+        "passed": true
+      },
+      {
+        "name": "blocked printer error",
+        "passed": true
+      },
+      {
+        "name": "blocked printer offline",
+        "passed": true
+      },
+      {
+        "name": "viewer cannot prepare or launch",
+        "passed": true
+      },
+      {
+        "name": "expiry and cancellation invalidate confirmation",
+        "passed": true
+      },
+      {
+        "name": "change before confirmation host",
+        "passed": true
+      },
+      {
+        "name": "change before confirmation profile",
+        "passed": true
+      },
+      {
+        "name": "change before confirmation client",
+        "passed": true
+      },
+      {
+        "name": "change before confirmation role",
+        "passed": true
+      },
+      {
+        "name": "target changes during upload never launch on the changed printer",
+        "passed": true
+      },
+      {
+        "name": "fresh readiness failure stops before upload",
+        "passed": true
+      },
+      {
+        "name": "changed file hash cannot be uploaded and started",
+        "passed": true
+      },
+      {
+        "name": "G-code validation errors block confirmation",
+        "passed": true
+      },
+      {
+        "name": "lost start response permits read-only recovery and never repeats a launch",
+        "passed": true
+      },
+      {
+        "name": "stock uses actual loose stock plus spool balance exactly once",
+        "passed": true
+      },
+      {
+        "name": "stock read failure is never announced as zero stock",
+        "passed": true
+      },
+      {
+        "name": "concurrent request cannot consume a second print command",
+        "passed": true
+      },
+      {
+        "name": "cancel during analysis cannot leave a printable proposal",
+        "passed": true
+      },
+      {
+        "name": "actual Moonraker read-only preflight standby",
+        "passed": true
+      },
+      {
+        "name": "actual Moonraker read-only preflight printing",
+        "passed": true
+      },
+      {
+        "name": "actual Moonraker read-only preflight error",
+        "passed": true
+      },
+      {
+        "name": "actual Moonraker read-only preflight missing-state",
+        "passed": true
+      },
+      {
+        "name": "spoken answers select only an installed local Russian voice",
+        "passed": true
+      }
+    ]
+  },
+  "voiceBrowser": {
+    "passed": true,
+    "realAudioTested": true,
+    "physicalPrintersTested": false,
+    "cases": 8,
+    "report": [
+      {
+        "name": "stock from actual native-backed inventory adapter",
+        "passed": true
+      },
+      {
+        "name": "full G-code analysis through native chunk reader, then separate confirmation",
+        "passed": true
+      },
+      {
+        "name": "repeat confirmation cannot resend print",
+        "passed": true
+      },
+      {
+        "name": "real Russian audio to local Vosk WASM to inventory reply under production CSP",
+        "recognized": "сколько осталось пластика",
+        "passed": true
+      },
+      {
+        "name": "spoken file and printer selection through WAV-backed MediaStream",
+        "recognized": "напечатать корпус на принтере макс",
+        "passed": true
+      },
+      {
+        "name": "separate spoken confirmation starts exactly one additional validated print",
+        "recognized": "подтверждаю печать",
+        "passed": true
+      },
+      {
+        "name": "close and reopen does not retain confirmation",
+        "passed": true
+      },
+      {
+        "name": "no external requests and no browser exceptions",
+        "passed": true
+      }
+    ]
+  },
+  "modelIncludedInSourcePreview": false,
+  "reproducibleModel": {
+    "path": "public/voice/ru-small.tar.gz",
+    "bytes": 46105706,
+    "beforeSha256": null,
+    "sha256": "436c93edfeed28dc3a23368cfa706c58ee17fc992990e4dfe67b6ad799b0c76e"
+  },
+  "inheritedPrinterReturn": {
+    "passed": true,
+    "cases": 4
+  }
+}
