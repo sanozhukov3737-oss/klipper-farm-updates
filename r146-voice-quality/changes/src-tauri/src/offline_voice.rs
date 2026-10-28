@@ -45,7 +45,8 @@ pub(crate) fn voice_tools_status(
     let root = speech_root(&app)?;
     Ok(SpeechStatus {
         recognition: tool(&root.join("whisper"), "whisper-cli").is_file()
-            && root.join("whisper/ggml-small-q5_1.bin").is_file(),
+            && root.join("whisper/ggml-small-q5_1.bin").is_file()
+            && root.join("whisper/recognition.args").is_file(),
         synthesis: tool(&root.join("piper"), "piper").is_file()
             && root.join("piper/ru_RU-denis-medium.onnx").is_file(),
     })
@@ -245,10 +246,10 @@ pub(crate) async fn voice_transcribe(
         let _guard = RECOGNIZING.try_lock().map_err(|_| "Распознавание уже выполняется")?;
         let model = root.join("ggml-small-q5_1.bin");
         if !model.is_file() { return Err("Не установлена модель Whisper".into()); }
+        if !root.join("recognition.args").is_file() { return Err("Не установлены параметры распознавания".into()); }
         let mut command = Command::new(tool(&root, "whisper-cli"));
-        command.current_dir(&root).arg("-m").arg("ggml-small-q5_1.bin")
-            .args(["-f", "-", "-of", "transcript-memory-only", "-l", "ru", "-t", "4", "-np", "-nt", "-ng"])
-            .args(["--prompt", "Принтер K1 Max, K1C, Ender KE, Flashforge 5M. Найди файл, поставь на печать, корпус, кронштейн, остаток пластика."]);
+        // MSVC's narrow argv loses Cyrillic. The packaged response file is UTF-8.
+        command.current_dir(&root).arg("@recognition.args");
         let bytes = run_tool(command, wave, Duration::from_secs(90), 8_192)?;
         let text = String::from_utf8(bytes).map_err(|_| "Ошибка кодировки распознанной речи")?;
         Ok(text.replace("[BLANK_AUDIO]", "").replace("[ Silence ]", "").trim().chars().take(1_000).collect())

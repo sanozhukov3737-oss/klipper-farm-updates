@@ -59,8 +59,8 @@
     {
       "path": "scripts/prepare-neural-speech.py",
       "beforeSha256": null,
-      "sha256": "e138b9dd352a7915352dc54a3eca553d3dd37712fd98e68fcb616c6c29da13b3",
-      "bytes": 3289
+      "sha256": "7b749b3eb40afdee011f2828e4afdf8f4a1b3874d8552a2a5dc89fab13d15367",
+      "bytes": 3905
     },
     {
       "path": "scripts/neural-speech-assets.json",
@@ -71,8 +71,8 @@
     {
       "path": "scripts/check-neural-speech-assets.mjs",
       "beforeSha256": null,
-      "sha256": "a27977736151aab0e40b0c519559686de8d60c22606cd6a5d4d6b01a1705ed50",
-      "bytes": 1031
+      "sha256": "2e9d0217c72a04889dcab29e7f7adf326e51f6e357aa83fbf6613e4ab2291b88",
+      "bytes": 1058
     },
     {
       "path": "scripts/NEURAL-SPEECH-NOTICES.txt",
@@ -95,8 +95,8 @@
     {
       "path": "src-tauri/src/offline_voice.rs",
       "beforeSha256": null,
-      "sha256": "291bf13ed116d3bacbb1b3802ee391d5a68e706f11263936e396b7f82ff1fe3a",
-      "bytes": 11792
+      "sha256": "57f6663cc8851ce22b6d4f04bca8bfb105d087ab8570969ecc9201f6db0fe882",
+      "bytes": 11760
     },
     {
       "path": "src/lib/voiceAssistant.ts",

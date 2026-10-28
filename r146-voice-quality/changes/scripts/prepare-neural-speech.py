@@ -59,6 +59,15 @@ for item in pins:
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(archive, target)
 
+# Keep Unicode off the Windows ANSI command line. Whisper reads these bytes as UTF-8.
+# LF is deliberate: its response-file parser reads one argument per line.
+recognition_args = [
+    '-m', 'ggml-small-q5_1.bin', '-f', '-', '-of', 'transcript-memory-only',
+    '-l', 'ru', '-t', '4', '-np', '-nt', '-ng', '--prompt',
+    'Принтер K1 Max, K1C, Ender KE, Flashforge 5M. Найди файл, поставь на печать, корпус, кронштейн, остаток пластика.',
+]
+(destination / 'whisper' / 'recognition.args').write_bytes(('\n'.join(recognition_args) + '\n').encode('utf-8'))
+
 notice = root / 'scripts' / 'NEURAL-SPEECH-NOTICES.txt'
 shutil.copyfile(notice, destination / notice.name)
 manifest = [{'path': str(path.relative_to(destination)).replace('\\', '/'), 'bytes': path.stat().st_size, 'sha256': digest(path)}
