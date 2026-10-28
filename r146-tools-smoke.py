@@ -33,14 +33,19 @@ with wave.open(audio, 'wb') as output:
     output.setsampwidth(2)
     output.setframerate(16000)
     output.writeframes(resampled.tobytes())
-started = time.monotonic()
-result = subprocess.run([str(speech / 'whisper/whisper-cli.exe'), '-m', 'ggml-small-q5_1.bin', '-f', '-', '-of', 'transcript-memory-only', '-l', 'ru', '-t', '4', '-np', '-nt', '-ng', '--prompt', 'Принтер K1 Max, K1C, Ender KE, Flashforge 5M. Найди файл, поставь на печать, корпус, кронштейн, остаток пластика.'],
-                        cwd=speech / 'whisper', input=audio.getvalue(), capture_output=True, timeout=90)
-if result.returncode:
-    raise SystemExit(f'Whisper failed: {result.returncode}; {result.stderr.decode("utf-8",errors="replace")}')
-recognized = result.stdout.decode('utf-8').strip()
-assert 'корпус' in recognized.lower(), recognized
-report = {'passed': True, 'platform': sys.platform, 'syntheticAudio': True, 'physicalPrintersTested': False,
-          'voices': samples, 'recognized': recognized, 'recognitionSeconds': round(time.monotonic() - started, 2)}
-Path('speech-tools-proof.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
-print(json.dumps(report, ensure_ascii=False))
+variants=[]
+base=['-m','ggml-small-q5_1.bin','-f','-','-of','transcript-memory-only','-l','ru','-t','4','-np','-nt','-ng']
+for mode in ('ascii-prompt','utf8-response-file'):
+    started=time.monotonic()
+    arguments=base+['--prompt','3D printer names: K1 Max, K1C, Ender KE, Flashforge 5M.']
+    if mode=='utf8-response-file':
+        arguments=base+['--prompt','Принтер K1 Max, K1C, Ender KE, Flashforge 5M. Найди файл, поставь на печать, корпус, кронштейн, остаток пластика.']
+        (speech/'whisper'/'recognition-smoke.args').write_bytes(('\n'.join(arguments)+'\n').encode('utf-8'))
+        arguments=['@recognition-smoke.args']
+    result=subprocess.run([str(speech/'whisper/whisper-cli.exe'),*arguments],cwd=speech/'whisper',input=audio.getvalue(),capture_output=True,timeout=90)
+    recognized=result.stdout.decode('utf-8',errors='replace').strip()
+    variants.append({'mode':mode,'exitCode':result.returncode,'recognized':recognized,'stdoutHex':result.stdout.hex(),'seconds':round(time.monotonic()-started,2)})
+report={'passed':any('корпус' in item['recognized'].lower() for item in variants),'platform':sys.platform,'syntheticAudio':True,'physicalPrintersTested':False,'voices':samples,'recognition':variants}
+Path('speech-tools-proof.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+print(json.dumps(report,ensure_ascii=False))
+assert report['passed']
