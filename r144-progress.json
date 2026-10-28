@@ -1,0 +1,13 @@
+{
+  "candidate": "R144",
+  "status": "preparing_windows_build",
+  "branch": "r144-printer-fault-recovery",
+  "sourcePatchSha256": "62b914009542c00f1279520888852e480030dc1082af8f10d881eef331da8a65",
+  "sourceFilesChanged": 16,
+  "githubAuthenticated": true,
+  "stablePublished": false,
+  "baseTag": "r143-ota",
+  "mandatoryNewNativeTests": 6,
+  "mandatoryClientFaultCases": 15,
+  "mandatoryReturnFarmAppModels": 4
+}
