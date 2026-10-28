@@ -1,6 +1,6 @@
 {
   "candidate": "R144",
-  "status": "preparing_windows_build",
+  "status": "native_windows_build_and_browser_verification",
   "branch": "r144-printer-fault-recovery",
   "sourcePatchSha256": "62b914009542c00f1279520888852e480030dc1082af8f10d881eef331da8a65",
   "sourceFilesChanged": 16,
@@ -9,5 +9,10 @@
   "baseTag": "r143-ota",
   "mandatoryNewNativeTests": 6,
   "mandatoryClientFaultCases": 15,
-  "mandatoryReturnFarmAppModels": 4
+  "mandatoryReturnFarmAppModels": 4,
+  "head": "db63ee207c3e3e61b236e28b803b34d628e52414",
+  "buildRunId": 40651986181,
+  "updatedAtUtc": "2026-10-28T07:52:55.058457+00:00",
+  "sourcePreparationPassed": true,
+  "frontendBuilt": true
 }
