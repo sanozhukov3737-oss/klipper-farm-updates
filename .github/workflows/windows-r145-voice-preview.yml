@@ -39,7 +39,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           New-Item -ItemType Directory -Force incoming,proof,candidate,source-package | Out-Null
-          if ((Get-FileHash r145-offline-voice-preview.zip).Hash.ToLowerInvariant() -ne '007c0e77a5311cee34e7f5a10477537b9674ecb1e9e81319bb42d1a42321ede5') { throw 'Reviewed voice source archive differs' }
+          if ((Get-FileHash r145-offline-voice-preview.zip).Hash.ToLowerInvariant() -ne '2b788d52aafaa94899e1fdfabb800e19aefff392e6cfafe787d49afc0ec7e8c2') { throw 'Reviewed voice source archive differs' }
           gh release download r144-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R144-FULL.zip --dir incoming
           if ($LASTEXITCODE -ne 0) { throw 'Published R144 download failed' }
           python r145-prepare-preview.py

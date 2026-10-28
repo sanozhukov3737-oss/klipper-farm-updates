@@ -7,8 +7,8 @@
   "physicalPrintersTested": false,
   "windowsInstalledVoiceTested": false,
   "changedFiles": 31,
-  "archiveSha256": "007c0e77a5311cee34e7f5a10477537b9674ecb1e9e81319bb42d1a42321ede5",
-  "archiveBytes": 2740168,
+  "archiveSha256": "2b788d52aafaa94899e1fdfabb800e19aefff392e6cfafe787d49afc0ec7e8c2",
+  "archiveBytes": 2740159,
   "voiceUnit": {
     "passed": true,
     "cases": 29,
@@ -185,5 +185,5 @@
     "passed": true,
     "cases": 4
   },
-  "localSourceCommit": "2f05e412ab053361079362970038bbd9f028c51b"
+  "localSourceCommit": "e8d4c23aacab08220d308bb563eaba00dcf5ea35"
 }
