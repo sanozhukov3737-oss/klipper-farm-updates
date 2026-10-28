@@ -1,0 +1,45 @@
+name: Verify packaged Windows speech executables
+'on':
+  push:
+    branches: [r146-offline-voice-quality]
+    paths: [.github/workflows/windows-r146-tools-smoke.yml, r146-tools-smoke.py]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  speech-tools:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r146-voice-quality/changes/scripts/prepare-neural-speech.py
+            /r146-voice-quality/changes/scripts/neural-speech-assets.json
+            /r146-voice-quality/changes/scripts/NEURAL-SPEECH-NOTICES.txt
+            /r146-voice-quality/prepare-windows-runtime.py
+            /r146-tools-smoke.py
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Prepare exact tools and verify native speech on CPU
+        shell: pwsh
+        env:
+          PYTHONUTF8: '1'
+        run: |
+          python r146-voice-quality/changes/scripts/prepare-neural-speech.py
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned tools preparation failed' }
+          python r146-voice-quality/prepare-windows-runtime.py r146-voice-quality/changes
+          if ($LASTEXITCODE -ne 0) { throw 'Windows runtime preparation failed' }
+          python r146-tools-smoke.py
+          if ($LASTEXITCODE -ne 0) { throw 'Standalone speech engine check failed' }
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Windows-Neural-Speech-Tools-Proof
+          path: speech-tools-proof.json
+          retention-days: 30
