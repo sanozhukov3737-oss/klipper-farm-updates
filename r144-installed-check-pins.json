@@ -1,5 +1,6 @@
 {
-  "r144-installed-fullscreen.mjs": "cab86984670962848768c95f2016bbb723bb7a0b6ab580e295d1a7a497e95067",
+  "r144-installed-fullscreen.mjs": "bce3ea1f4994acae5df48a5eb6c9d021b4189bf0ed06bc562b270d1131a122b7",
+  "r144-installed-fullscreen-window.ps1": "690b2002a6eaabcc469e426152ac0be08bd9fc86ffa30c57902d21133c053f63",
   "r144-check-installed-payload.mjs": "b8c78714610cb2ee560415e8769ffea9b47acbbd7ab5abc6e18005d1e51862ed",
-  "r144-validate-installed.ps1": "33ebb7780e879b777e6649c63ae620ecb0e3e01d4d1964643a65a68736a8c33c"
+  "r144-validate-installed.ps1": "a4aa8ff43141ebcf227a5399184615f39296ab74694254114daa640e24f215d7"
 }

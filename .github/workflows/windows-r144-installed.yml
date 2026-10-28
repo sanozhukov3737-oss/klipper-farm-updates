@@ -1,0 +1,107 @@
+name: Verify installed R144 upgrade and Windows process budgets
+'on':
+  push:
+    branches: [r144-printer-fault-recovery]
+    paths: [.github/workflows/windows-r144-installed.yml]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+env:
+  PYTHONUTF8: '1'
+  KF_R144_BUILD_RUN: '40651986181'
+  KF_R144_BUILD_HEAD: 'db63ee207c3e3e61b236e28b803b34d628e52414'
+concurrency:
+  group: windows-r144-installed-validation
+  cancel-in-progress: false
+jobs:
+  installed:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r144-installed-*
+            /r144-process-tree-sampler.ps1
+            /r144-check-installed-payload.mjs
+            /r144-compare-installed-performance.mjs
+            /r144-validate-installed.ps1
+            /.github/workflows/windows-r144-installed.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Require the exact reviewed native and browser build to pass
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:KF_R144_BUILD_RUN -notmatch '^\d+$' -or $env:KF_R144_BUILD_HEAD -notmatch '^[a-f0-9]{40}$') { throw 'Pin the successful revision2 build run and head before starting installed validation' }
+          $ready=$false
+          for ($attempt=0; $attempt -lt 120; $attempt++) {
+            $run=gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:KF_R144_BUILD_RUN" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) { throw 'Could not read pinned build status' }
+            if ($run.head_sha -ne $env:KF_R144_BUILD_HEAD -or $run.head_branch -ne 'r144-printer-fault-recovery' -or $run.path -ne '.github/workflows/windows-r144.yml') { throw 'Pinned build identity differs' }
+            if ($run.status -eq 'completed') { 
+              $jobs=gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:KF_R144_BUILD_RUN/jobs?per_page=100" | ConvertFrom-Json
+              foreach ($name in @('build','browser')) { $match=@($jobs.jobs | Where-Object name -eq $name); if ($match.Count -ne 1 -or $match[0].conclusion -ne 'success') { throw "Pinned $name job failed" } }; $ready=$true; break }
+            Write-Host "Waiting for pinned R144 build: $($run.status)"
+            Start-Sleep -Seconds 15
+          }
+          if (-not $ready) { throw 'Pinned build did not complete within 30 minutes' }
+      - name: Download the exact candidate and require its official artifact digest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$env:KF_R144_BUILD_RUN/artifacts?per_page=100" > r144-build-artifacts.json
+          if ($LASTEXITCODE -ne 0) { throw 'Artifact metadata failed' }
+          @'
+          import hashlib,json,os,subprocess,zipfile
+          from pathlib import Path,PurePosixPath
+          metadata=json.loads(Path('r144-build-artifacts.json').read_text(encoding='utf-8-sig'))
+          matches=[row for row in metadata['artifacts'] if row['name']=='r144-compiled-candidate' and not row['expired']]
+          assert len(matches)==1,'Exactly one compiled candidate artifact required'
+          artifact=matches[0]
+          assert artifact['workflow_run']['id']==int(os.environ['KF_R144_BUILD_RUN'])
+          assert artifact['workflow_run']['head_sha']==os.environ['KF_R144_BUILD_HEAD']
+          assert artifact['digest'].startswith('sha256:')
+          archive=Path('r144-compiled-artifact.zip')
+          with archive.open('wb') as output:
+            subprocess.run(['gh','api',f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/artifacts/{artifact['id']}/zip"],stdout=output,check=True)
+          with archive.open('rb') as source: actual=hashlib.file_digest(source,'sha256').hexdigest()
+          assert archive.stat().st_size==artifact['size_in_bytes'],'Artifact size differs'
+          assert 'sha256:'+actual==artifact['digest'],'Official artifact SHA256 differs'
+          with zipfile.ZipFile(archive) as package:
+            for member in package.infolist():
+              parts=PurePosixPath(member.filename)
+              assert not parts.is_absolute() and '..' not in parts.parts and '\\' not in member.filename
+            package.extractall('candidate')
+          Path('candidate/artifact-download-proof.json').write_text(json.dumps({'passed':True,'artifactId':artifact['id'],'runId':artifact['workflow_run']['id'],'headSha':artifact['workflow_run']['head_sha'],'sizeBytes':archive.stat().st_size,'sha256':actual},indent=2)+'\n')
+          print('Verified exact artifact',artifact['id'],actual,archive.stat().st_size)
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned candidate download or digest validation failed' }
+      - name: Clean install, compare R142 and R144, upgrade and verify real native TV
+        shell: pwsh
+        run: |
+          if ((Get-FileHash r144-installed-check-pins.json).Hash.ToLowerInvariant() -ne 'bf22162cfe725488327b3a6158eac8f132eb6957b571f8695249b1f2290d244c') { throw 'Reviewed installed-test contract differs' }
+          ./r144-validate-installed.ps1
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r144-installed-evidence
+          path: |
+            candidate/proof
+            candidate/smoke
+            candidate/clean-smoke
+            candidate/artifact-download-proof.json
+            candidate/exact-validation.json
+            candidate/R144-UI-proof.zip
+          retention-days: 30

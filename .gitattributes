@@ -145,3 +145,4 @@ r144-* -text
 R144-* -text
 .github/workflows/windows-r144.yml -text
 .github/workflows/promote-r144.yml -text
+.github/workflows/windows-r144-installed.yml -text

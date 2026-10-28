@@ -3,12 +3,12 @@ $workspace=Get-Location
 $pins=Get-Content r144-installed-check-pins.json -Raw | ConvertFrom-Json -AsHashtable
 foreach ($entry in $pins.GetEnumerator()) { if ((Get-FileHash $entry.Key).Hash.ToLowerInvariant() -ne $entry.Value) { throw "Installed verification helper differs: $($entry.Key)" } }
 $provenance=Get-Content candidate/provenance.json -Raw | ConvertFrom-Json
-if ($provenance.buildRunId -ne $env:GITHUB_RUN_ID -or $provenance.buildHeadSha -ne $env:GITHUB_SHA -or $provenance.sequence -ne 144 -or $provenance.sourcePatchSha256 -ne '62b914009542c00f1279520888852e480030dc1082af8f10d881eef331da8a65' -or $provenance.stablePublished -ne $false) { throw 'Candidate build provenance differs' }
+if ($provenance.buildRunId -ne $env:KF_R144_BUILD_RUN -or $provenance.buildHeadSha -ne $env:KF_R144_BUILD_HEAD -or $provenance.sequence -ne 144 -or $provenance.sourcePatchSha256 -ne '62b914009542c00f1279520888852e480030dc1082af8f10d881eef331da8a65' -or $provenance.stablePublished -ne $false) { throw 'Candidate build provenance differs' }
 foreach ($entry in $provenance.assets.PSObject.Properties) {
   $file=Get-Item (Join-Path 'candidate' $entry.Name)
   if ($file.Length -ne $entry.Value.sizeBytes -or (Get-FileHash $file.FullName).Hash.ToLowerInvariant() -ne $entry.Value.sha256) { throw "Candidate asset differs: $($entry.Name)" }
 }
-Copy-Item r144-installed-fullscreen.mjs,r144-check-installed-payload.mjs candidate/scripts/
+Copy-Item r144-installed-fullscreen.mjs,r144-installed-fullscreen-window.ps1,r144-check-installed-payload.mjs candidate/scripts/
 Set-Location candidate
 New-Item -ItemType Directory -Force proof,clean-smoke,smoke,old | Out-Null
 $seven=Join-Path $env:ProgramFiles '7-Zip/7z.exe'
@@ -65,6 +65,6 @@ python scripts/upgrade-data.py verify --database $database --proof proof/upgrade
 if ($LASTEXITCODE -ne 0) { throw 'Upgrade data changed after restart' }
 node scripts/r144-check-installed-payload.mjs $installDir "$PWD/extracted-nsis" "$PWD/proof/installed-payload-after-restart.json"
 if ($LASTEXITCODE -ne 0) { throw 'Installed payload changed after restart' }
-@{candidate='R144';passed=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;validationRunId=$env:GITHUB_RUN_ID;validationHeadSha=$env:GITHUB_SHA;upgradeFrom=143;cleanInstallVerified=$true;exactInstalledBytesVerified=$true;installedRestartVerified=$true;businessDataPreserved=$true;installedTvFullscreenCases=5;physicalPrintersTested=$false} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
+@{candidate='R144';passed=$true;stablePublished=$false;buildRunId=$env:KF_R144_BUILD_RUN;buildHeadSha=$env:KF_R144_BUILD_HEAD;validationRunId=$env:GITHUB_RUN_ID;validationHeadSha=$env:GITHUB_SHA;upgradeFrom=143;cleanInstallVerified=$true;exactInstalledBytesVerified=$true;installedRestartVerified=$true;businessDataPreserved=$true;installedTvFullscreenCases=5;physicalPrintersTested=$false} | ConvertTo-Json | Set-Content exact-validation.json -Encoding utf8NoBOM
 Compress-Archive proof,smoke,clean-smoke R144-UI-proof.zip
 Set-Location $workspace

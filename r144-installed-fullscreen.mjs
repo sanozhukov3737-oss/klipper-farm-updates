@@ -14,7 +14,7 @@ assert.equal(process.platform,'win32','Actual installed fullscreen validation re
 assert.ok(clientArg&&proofArg,'usage: check-r142-installed-fullscreen.mjs CLIENT_EXE PROOF_DIRECTORY [DATABASE]');
 const client=path.resolve(clientArg),proof=path.resolve(proofArg);
 const database=path.resolve(databaseArg??path.join(process.env.APPDATA??'','app.klipper.farm','farm.sqlite3'));
-const helper=path.join(import.meta.dirname,'check-r142-installed-fullscreen-window.ps1');
+const helper=path.join(import.meta.dirname,'r144-installed-fullscreen-window.ps1');
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 for(const file of [client,database,helper]){
   const stat=fs.lstatSync(file);assert.ok(stat.isFile()&&!stat.isSymbolicLink(),`Unsafe or missing installed-test input: ${file}`);
