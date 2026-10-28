@@ -1,0 +1,120 @@
+name: Build Windows offline voice preview
+'on':
+  push:
+    branches: [r145-offline-voice-assistant]
+    paths: [.github/workflows/windows-r145-voice-preview.yml]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r145-*
+            /.github/workflows/windows-r145-voice-preview.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Restore exact R144 and reviewed voice source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force incoming,proof,candidate,source-package | Out-Null
+          if ((Get-FileHash r145-offline-voice-preview.zip).Hash.ToLowerInvariant() -ne '007c0e77a5311cee34e7f5a10477537b9674ecb1e9e81319bb42d1a42321ede5') { throw 'Reviewed voice source archive differs' }
+          gh release download r144-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R144-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Published R144 download failed' }
+          python r145-prepare-preview.py
+          if ($LASTEXITCODE -ne 0) { throw 'Source binding failed' }
+          Invoke-WebRequest -Uri 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip' -OutFile incoming/voice-model.zip
+          python work/app/scripts/prepare-voice-model.py incoming/voice-model.zip
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned model preparation failed' }
+      - name: Voice logic and existing printer regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+          node node_modules/typescript/bin/tsc --noEmit
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+          $env:KF_VOICE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-unit.json'
+          foreach ($script in @('check-voice-assistant.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+          }
+      - name: Build complete offline frontend and source package
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Offline frontend failed' }
+          foreach ($script in @('lock-v20-6-dist.mjs','check-frontend-contract.mjs','generate-release-manifests.mjs','check-release-portability.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Frontend verification failed: $script" }
+          }
+          $env:KF_ARCHIVE_ROOT='Klipper-Farm-Voice-Preview'
+          $env:KF_SOURCE_ZIP=Join-Path $env:GITHUB_WORKSPACE 'source-package/KF-VOICE-PREVIEW-FULL.zip'
+          node scripts/build-reproducible-zip.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Complete source archive failed' }
+      - name: Native Windows tests, Clippy and NSIS installer
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Native tests or NSIS build failed' }
+          Copy-Item .klipper-build-cache/target/v20-rust-tests-last.log ../../proof/native-tests.log
+          $setups=@(Get-ChildItem INSTALLER -Filter '*.exe')
+          if ($setups.Count -ne 1) { throw 'Exactly one installer required' }
+          Copy-Item $setups[0].FullName ../../candidate/Klipper-Farm-Voice-Preview-setup.exe
+      - name: Clean installation and real WebView startup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=(Resolve-Path candidate/Klipper-Farm-Voice-Preview-setup.exe).Path
+          $install=Join-Path $env:RUNNER_TEMP 'Klipper-Farm-Voice-Preview'
+          $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Preview installation failed' }
+          New-Item -ItemType Directory -Force proof/smoke | Out-Null
+          node work/app/scripts/check-desktop-startup-smoke.mjs "$install/klipper-farm-client.exe" "$install/klipper-farmd.exe" proof/smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Actual installed WebView startup failed' }
+          $file=Get-Item $setup
+          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW-2026-10-28';installedSequence=144;cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=$file.Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Voice-Preview-Windows
+          path: candidate
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Voice-Preview-Complete-Source
+          path: source-package
+          compression-level: 0
+          retention-days: 30
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Voice-Preview-Evidence
+          path: |
+            proof
+            work/app/.klipper-build-cache/logs
+          retention-days: 30

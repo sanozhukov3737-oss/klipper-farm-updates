@@ -146,3 +146,6 @@ R144-* -text
 .github/workflows/windows-r144.yml -text
 .github/workflows/promote-r144.yml -text
 .github/workflows/windows-r144-installed.yml -text
+
+r145-* -text
+.github/workflows/windows-r145-voice-preview.yml -text
