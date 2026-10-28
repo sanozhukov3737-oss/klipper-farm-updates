@@ -54,7 +54,13 @@ try{
  for(const index of [0,1]){await cdp.evaluate(`document.querySelectorAll('.authCard input[type="password"]')[${index}].focus()`);await cdp.send('Input.insertText',{text:password})}
  await waitFor(()=>cdp.evaluate('!document.querySelector(".authCard button.primary").disabled'),Boolean,'setup form enabled');
  await cdp.evaluate('document.querySelector(".authCard button.primary").click()');
- await waitFor(()=>cdp.evaluate('!!document.querySelector(".kfShell")'),Boolean,'actual authenticated application',60000);
+ await waitFor(()=>cdp.evaluate('!!document.querySelector(".wizard .wizardNext")'),Boolean,'fresh-install setup wizard',60000);
+ await cdp.evaluate('document.querySelector(".wizard .wizardNext").click()');
+ await waitFor(()=>cdp.evaluate('!!document.querySelector(".wizardActions > button")'),Boolean,'optional printer setup');
+ await cdp.evaluate('document.querySelector(".wizardActions > button").click()');
+ await waitFor(()=>cdp.evaluate('!!document.querySelector(".wizard .wizardNext")'),Boolean,'setup completion');
+ await cdp.evaluate('document.querySelector(".wizard .wizardNext").click()');
+ await waitFor(()=>cdp.evaluate('!!document.querySelector(\'button[aria-label="Голосовой помощник"]\')'),Boolean,'actual authenticated application',60000);
  const identity=await cdp.evaluate(`(async()=>await(await fetch(new URL('/BUILD-PROVENANCE.json',location.href))).json())()`);
  assert.equal(identity.buildId,'V20.6-R14.5-OFFLINE-VOICE-PREVIEW2-2026-10-28');
  const status=await cdp.evaluate(`window.__TAURI_INTERNALS__.invoke('voice_tools_status',{sessionToken:window.__speechSmokeSession})`);
