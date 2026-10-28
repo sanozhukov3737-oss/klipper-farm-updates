@@ -150,3 +150,5 @@ R144-* -text
 r145-* -text
 .github/workflows/windows-r145-voice-preview.yml -text
 .github/workflows/windows-r145-installed-voice.yml -text
+r146-voice-quality/** -text
+.github/workflows/windows-r146-voice-quality.yml -text

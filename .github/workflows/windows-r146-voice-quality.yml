@@ -1,0 +1,125 @@
+name: Build and verify offline neural voice preview
+'on':
+  push:
+    branches: [r146-offline-voice-quality]
+    paths: [.github/workflows/windows-r146-voice-quality.yml, 'r146-voice-quality/**']
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r145-*
+            /r146-voice-quality/
+            /.github/workflows/windows-r146-voice-quality.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Restore exact base and prepare packaged speech engines
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force incoming,proof,candidate | Out-Null
+          if ((Get-FileHash r145-offline-voice-preview.zip).Hash.ToLowerInvariant() -ne '2b788d52aafaa94899e1fdfabb800e19aefff392e6cfafe787d49afc0ec7e8c2') { throw 'Reviewed original voice source differs' }
+          gh release download r144-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R144-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Published base download failed' }
+          python r145-prepare-preview.py
+          if ($LASTEXITCODE -ne 0) { throw 'Base source binding failed' }
+          python r146-voice-quality/apply.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
+          python work/app/scripts/prepare-neural-speech.py --cache incoming/speech
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned speech engine preparation failed' }
+          Invoke-WebRequest -Uri 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip' -OutFile incoming/voice-model.zip
+          python work/app/scripts/prepare-voice-model.py incoming/voice-model.zip
+          if ($LASTEXITCODE -ne 0) { throw 'Confirmation model preparation failed' }
+      - name: Voice command, lifecycle and existing printer regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:KF_TEST_PYTHON=(Get-Command python).Source
+          $env:KF_VOICE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-unit.json'
+          Set-Location work/app
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+          node node_modules/typescript/bin/tsc --noEmit
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+          foreach ($script in @('check-voice-assistant.mjs','check-neural-speech.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+          }
+      - name: Build and bind complete offline frontend
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Offline frontend build failed' }
+          foreach ($script in @('lock-v20-6-dist.mjs','check-frontend-contract.mjs','generate-release-manifests.mjs','check-release-portability.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Frontend verification failed: $script" }
+          }
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: work/app/.klipper-build-cache
+          key: windows-neural-voice-rust198-${{ hashFiles('work/app/MANIFEST-SHA256.txt') }}
+      - name: Native Windows tests, Clippy and NSIS installer
+        shell: pwsh
+        run: |
+          $env:KF_TEST_PYTHON=(Get-Command python).Source
+          Set-Location work/app
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Native checks or installer build failed' }
+          Copy-Item .klipper-build-cache/target/v20-rust-tests-last.log ../../proof/native-tests.log
+          $setups=@(Get-ChildItem INSTALLER -Filter '*.exe')
+          if ($setups.Count -ne 1) { throw 'Expected one installer' }
+          Copy-Item $setups[0].FullName ../../candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe
+      - name: Install and verify real WebView2, neural voices and microphone recognition
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=(Resolve-Path candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe).Path
+          $install=Join-Path $env:RUNNER_TEMP 'KF-Neural-Voice'
+          $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Clean installation failed' }
+          New-Item -ItemType Directory -Force proof/smoke | Out-Null
+          node work/app/scripts/check-desktop-startup-smoke.mjs "$install/klipper-farm-client.exe" "$install/klipper-farmd.exe" proof/smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Installed application startup failed' }
+          Expand-Archive r145-installed-voice-audio.zip voice-audio
+          python -c "import wave;from pathlib import Path;p=Path('voice-audio/stock.wav');a=wave.open(str(p),'rb');params=a.getparams();data=a.readframes(a.getnframes());a.close();b=wave.open('voice-audio/stock-padded.wav','wb');b.setparams(params);b.writeframes(data+bytes(params.framerate*params.nchannels*params.sampwidth*4));b.close()"
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
+          node r146-voice-quality/check-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
+          if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
+          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW2-2026-10-28';installedSequence=144;cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Neural-Voice-Preview-Windows
+          path: candidate
+          compression-level: 0
+          retention-days: 30
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Neural-Voice-Preview-Evidence
+          path: |
+            proof
+            work/app/.klipper-build-cache/logs
+          retention-days: 30
