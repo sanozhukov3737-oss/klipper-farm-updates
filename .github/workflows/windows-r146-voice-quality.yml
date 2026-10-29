@@ -2,7 +2,7 @@ name: Build and verify offline neural voice preview
 'on':
   push:
     branches: [r146-offline-voice-quality]
-    paths: [.github/workflows/windows-r146-voice-quality.yml, 'r146-voice-quality/**']
+    paths: [.github/workflows/windows-r146-voice-quality.yml, 'r146-voice-quality/**', r147-voice-latency.patch]
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -24,6 +24,7 @@ jobs:
             /.gitattributes
             /r145-*
             /r146-voice-quality/
+            /r147-voice-latency.patch
             /.github/workflows/windows-r146-voice-quality.yml
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -45,15 +46,23 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Published base download failed' }
           python r145-prepare-preview.py
           if ($LASTEXITCODE -ne 0) { throw 'Base source binding failed' }
+          git apply --check r147-voice-latency.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch does not match the reviewed source' }
+          git apply r147-voice-latency.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch failed' }
           python r146-voice-quality/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
           python work/app/scripts/prepare-neural-speech.py --cache incoming/speech
           if ($LASTEXITCODE -ne 0) { throw 'Pinned speech engine preparation failed' }
           python r146-voice-quality/prepare-windows-runtime.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'App-local speech runtime preparation failed' }
+          Remove-Item -LiteralPath work/app/.speech-worker-build -Recurse -Force
           python work/app/scripts/check-silero-runtime.py
           if ($LASTEXITCODE -ne 0) { throw 'Packaged offline Kseniya voice failed' }
           Copy-Item work/app/silero-runtime-proof.json proof/silero-runtime.json
+          python work/app/scripts/check-speech-workers.py r145-installed-voice-audio.zip
+          if ($LASTEXITCODE -ne 0) { throw 'Five consecutive warm speech requests failed' }
+          Copy-Item work/app/speech-worker-proof.json proof/speech-workers.json
           Invoke-WebRequest -Uri 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip' -OutFile incoming/voice-model.zip
           python work/app/scripts/prepare-voice-model.py incoming/voice-model.zip
           if ($LASTEXITCODE -ne 0) { throw 'Confirmation model preparation failed' }
@@ -120,7 +129,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
           node r146-voice-quality/check-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
-          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW5-2026-10-29';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Klipper-Farm-Neural-Voice-Preview-Windows
