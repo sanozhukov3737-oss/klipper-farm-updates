@@ -377,13 +377,47 @@ index 0000000..80b3f96
 +(app/'speech-worker-proof.json').write_text(json.dumps(report, indent=2)+'\n')
 +print(json.dumps(report))
 diff --git a/r146-voice-quality/changes/scripts/check-voice-assistant.mjs b/r146-voice-quality/changes/scripts/check-voice-assistant.mjs
-index eb488e0..847f648 100644
+index eb488e0..12683e9 100644
 --- a/r146-voice-quality/changes/scripts/check-voice-assistant.mjs
 +++ b/r146-voice-quality/changes/scripts/check-voice-assistant.mjs
-@@ -20,6 +20,49 @@ await test('Russian print phrases and spoken printer aliases',()=>{
+@@ -20,6 +20,83 @@ await test('Russian print phrases and spoken printer aliases',()=>{
   assert.equal(voicePrinterMatches([printer()],'макс').length,1);
   assert.equal(parseVoiceCommand('да').kind,'help');assert.equal(parseVoiceCommand('не подтверждаю печать').kind,'help');
  });
++await test('explicit file commands win over stock and recovery words in file titles',async()=>{
++ assert.deepEqual(parseVoiceCommand('Напечатай запасной корпус на K1 Max'),{kind:'print',query:'запасной корпус',printerHint:'k1 max'});
++ for(const query of ['запас пластика','проверь печать']){
++  assert.deepEqual(parseVoiceCommand('Найди файл '+query),{kind:'find',query,printerHint:''});
++  const f=fixture();f.data.files=[{path:query+'.gcode',size:150}];f.deps.inventory=async()=>{throw new Error('File search must not read stock')};
++  const reply=await f.assistant.handle('Найди файл '+query);assert.equal(reply.choices.length,1);assert(!reply.proposal);assert.equal(f.data.start,0);
++ }
++ const f=fixture();f.data.files=[{path:'запасной корпус.gcode',size:150}];
++ const reply=await f.assistant.handle('Найди запасной корпус и поставь на печать на K1 Max');assert(reply.proposal);assert.equal(f.data.upload,0);assert.equal(f.data.start,0);
++ await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,1);
++ for(const text of ['Проверь печать','Проверить запуск'])assert.deepEqual(parseVoiceCommand(text),{kind:'check'});
++ assert.equal(parseVoiceCommand('Сколько осталось пластика?').kind,'stock');
++});
++await test('invalid or contradictory file commands cannot fall back to stock or recovery',async()=>{
++ const f=fixture();
++ for(const text of ['Не напечатай запасной корпус на K1 Max','Не найди файл запас пластика','Неизвестный напечатай запасной корпус','Напечатай корпус и не запускай печать','Найди корпус и проверь печать','Напечатай корпус и найди куб','Напечатай корпус и напечатай куб','Проверь запуск и напечатай корпус','Найди корпус и подтверждаю печать']){
++  assert.equal(parseVoiceCommand(text,f.data.printers).kind,'help',text);await f.assistant.handle(text);
++ }
++ assert.equal(parseVoiceCommand('Не проверь печать').kind,'help');
++ assert.equal(f.data.list,0);assert.equal(f.data.upload,0);assert.equal(f.data.start,0);
++});
++await test('ordinary filename prepositions are retained unless the tail names a printer',async()=>{
++ const f=fixture();f.data.files=[{path:'крепление на стену.gcode',size:150}];
++ assert.deepEqual(parseVoiceCommand('K1 Max напечатай крепление на стену',f.data.printers),{kind:'print',query:'крепление на стену',printerHint:'k1 max'});
++ assert.deepEqual(parseVoiceCommand('Напечатай крепление на стену'),{kind:'print',query:'крепление на стену',printerHint:''});
++ assert.deepEqual(parseVoiceCommand('Напечатай крепление на стену на K1 Max'),{kind:'print',query:'крепление на стену',printerHint:'k1 max'});
++ const reply=await f.assistant.handle('K1 Max напечатай крепление на стену');assert(reply.proposal);assert.equal(f.data.upload,0);assert.equal(f.data.start,0);
++ assert.deepEqual(parseVoiceCommand('Напечатай крепление на принтере Неизвестный',f.data.printers),{kind:'print',query:'крепление',printerHint:'неизвестный'});
++ assert.match((await f.assistant.handle('Напечатай крепление на принтере Неизвестный')).text,/принтер не найден/);
++ f.data.printers[0].name='Левый большой';
++ assert.deepEqual(parseVoiceCommand('Напечатай крепление на стену на Левый большой',f.data.printers),{kind:'print',query:'крепление на стену',printerHint:'левый большой'});
++ assert.deepEqual(parseVoiceCommand('Напечатай крепление на Левый большой'),{kind:'print',query:'крепление на левый большой',printerHint:''});
++ assert.equal(f.data.upload,0);assert.equal(f.data.start,0);
++});
 +await test('natural printer status questions retain the requested scope',()=>{
 + for(const text of ['Какие принтеры свободны?','Какие принтеры свободные?','Кто сейчас свободен?','Покажи свободные принтеры','Есть свободные?','Есть ли у нас готовые принтеры?','Какие принтеры готовы к печати?','Кто из принтеров сейчас готов?','Подскажи мне, какие у нас сейчас свободные принтеры?','Покажи мне все готовые принтеры, пожалуйста'])assert.deepEqual(parseVoiceCommand(text),{kind:'printers',filter:'free'},text);
 + for(const text of ['Какие принтеры печатают?','Кто сейчас печатает?','Покажи печатающие принтеры','Есть ли печатающие принтеры?','Скажи, какие принтеры сейчас печатают'])assert.deepEqual(parseVoiceCommand(text),{kind:'printers',filter:'printing'},text);
@@ -430,7 +464,7 @@ index eb488e0..847f648 100644
  await test('printer-first commands, spoken Max variants and conflicting targets',async()=>{
   for(const name of ['к1 макс','к1 мах','ка один макс','кей один макс','к1мах','к 1 макс','K1MAX']){
    const text='Принтер '+name+' поставь на печать корпус';
-@@ -29,6 +72,66 @@ await test('printer-first commands, spoken Max variants and conflicting targets'
+@@ -29,6 +106,66 @@ await test('printer-first commands, spoken Max variants and conflicting targets'
   assert.deepEqual(parseVoiceCommand('На принтере K1 Max, напечатай файл корпус, пожалуйста'),{kind:'print',query:'корпус',printerHint:'k1 max'});
   for(const text of ['не напечатай корпус','принтер k1 max не поставь на печать корпус','принтер k1 max напечатай корпус на 5m'])assert.equal(parseVoiceCommand(text).kind,'help');
  });
@@ -497,7 +531,7 @@ index eb488e0..847f648 100644
  await test('misheard file names are suggested and never automatically prepared or launched',async()=>{
   assert.equal(voiceFileMatches('детали/кронштейн.gcode','конштейн'),false);
   assert.equal(voiceFileNearMatch('детали/кронштейн.gcode','конштейн'),true);
-@@ -55,6 +158,16 @@ await test('changed file hash cannot be uploaded and started',async()=>{const f=
+@@ -55,6 +192,16 @@ await test('changed file hash cannot be uploaded and started',async()=>{const f=
  await test('G-code validation errors block confirmation',async()=>{const f=fixture();f.deps.validate=async()=>({sha256:'x',report:{ok:false,issues:[{level:'error',message:'За пределами стола'}]}});const r=await f.assistant.handle('Напечатай корпус на K1 Max');assert.match(r.text,/пределами/);await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,0)});
  await test('lost start response permits read-only recovery and never repeats a launch',async()=>{const f=fixture();f.deps.start=async()=>{f.data.start++;throw new Error('PRINT_START_UNCONFIRMED')};await f.assistant.handle('Напечатай корпус на K1 Max');assert((await f.assistant.handle('Подтверждаю печать')).unconfirmed);await f.assistant.handle('Подтверждаю печать');await f.assistant.handle('Напечатай корпус на K1 Max');await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,1);const r=await f.assistant.handle('Проверь запуск');assert.match(r.text,/подтверждён/);assert.equal(f.data.checks,1);assert.equal(f.data.upload,1)});
  await test('stock uses actual loose stock plus spool balance exactly once',async()=>{const f=fixture();f.data.inventory.materials.PLA.looseGrams=500;f.data.inventory.spools=[{id:'s1',name:'PLA',material:'PLA',remainingWeight:750,initialWeight:1000,price:0,currency:'RUB',createdAt:1}];f.data.inventory.printers.max={binding:{spoolId:'s1'}};assert.match((await f.assistant.handle('Сколько осталось пластика?')).text,/1.250/);assert.match((await f.assistant.handle('Сколько пластика на кей один макс?')).text,/750/)});
@@ -6813,10 +6847,10 @@ index edf894c..b85e0ae 100644
      if(print&&choices.length===1)return this.prepare(choices[0],revision,signal);
      return{text:choices.length?`Найдено вариантов: ${choices.length}. Выберите файл и принтер ниже или скажите «Выбери первый», «Выбери второй».${choices.length>40?' Показаны первые 40: уточните название.':''}`:'В «Моей флешке» подходящих файлов нет. Попробуйте часть названия.',choices:this.candidates};
 diff --git a/r146-voice-quality/changes/src/lib/voiceCommands.ts b/r146-voice-quality/changes/src/lib/voiceCommands.ts
-index 417beb1..dacfbee 100644
+index 417beb1..8514c12 100644
 --- a/r146-voice-quality/changes/src/lib/voiceCommands.ts
 +++ b/r146-voice-quality/changes/src/lib/voiceCommands.ts
-@@ -1,14 +1,32 @@
+@@ -1,37 +1,68 @@
  import type { PrinterModel } from '../types';
  
  export const normalizeVoice=(value:string)=>value.normalize('NFKC').toLowerCase().replace(/ё/g,'е')
@@ -6851,32 +6885,57 @@ index 417beb1..dacfbee 100644
    const text=normalizeVoice(value).replace(/^(?:(?:пожалуйста|помощник)\s+)+/u,'').replace(/\s+пожалуйста$/u,'');
    const choice=text.match(/^(?:выбери|выбрать|вариант)\s+(?:вариант\s+)?(первый|второй|третий|четвертый|пятый|один|два|три|четыре|пять|\d+)$/u);
    if(choice){const numbers:Record<string,number>={первый:1,второй:2,третий:3,четвертый:4,пятый:5,один:1,два:2,три:3,четыре:4,пять:5};return{kind:'choose',index:(numbers[choice[1]]??Number(choice[1]))-1};}
-@@ -16,15 +34,18 @@ export function parseVoiceCommand(value:string):VoiceIntent{
+   if(/^(?:подтверждаю печать|подтвердить печать|запускай печать)$/u.test(text))return{kind:'confirm'};
    if(/^(?:отмена|отмени|отменить|не печатай|нет)$/u.test(text))return{kind:'cancel'};
-   if(/(?:проверь|проверить) (?:запуск|печать)/u.test(text))return{kind:'check'};
-   if(/(?:пластик|филамент|катушк|запас)/u.test(text)&&/(?:сколько|остат|остал|запас)/u.test(text))return{kind:'stock',query:text};
+-  if(/(?:проверь|проверить) (?:запуск|печать)/u.test(text))return{kind:'check'};
+-  if(/(?:пластик|филамент|катушк|запас)/u.test(text)&&/(?:сколько|остат|остал|запас)/u.test(text))return{kind:'stock',query:text};
 -  if(/(?:какие|кто|покажи|список|состояние).*(?:принтер|свобод|печата)/u.test(text))return{kind:'printers'};
 -  const action=text.match(/(?:^|\s)(найди|найти|поищи|покажи файл|напечатай|напечатать|напечатаю|распечатай|распечатать|распечатаю|печатай|печатать|поставь на печать|отправь на печать|запусти печать)\s+/u);
 -  const prefix=action?text.slice(0,action.index).trim():'';
-+  const statusFilter=printerStatusQuery(text);
-+  if(statusFilter)return{kind:'printers',filter:statusFilter,...(/(?:^|\s)сколько(?:\s|$)/u.test(text)?{countOnly:true}:{})};
++  const knownPrinter=(hint:string)=>!!printers&&voicePrinterMatches(printers,hint).length>0||Object.values(aliases).some(names=>names.some(name=>normalizeVoice(name)===hint));
 +  const commandText=text.replace(/^(?:(?:я\s+)?хочу|можешь(?:\s+ли)?(?:\s+ты)?|можете(?:\s+ли)?(?:\s+вы)?|мне\s+(?:нужно|надо))\s+/u,'');
 +  const action=commandText.match(/(?:^|\s)(найди|найти|поищи|покажи файл|напечатай|напечатать|напечатаю|распечатай|распечатать|распечатаю|печатай|печатать|поставь на печать|отправь на печать|запусти печать)\s+/u);
 +  const prefix=action?commandText.slice(0,action.index).trim():'';
    // Accept the named printer before the action, while rejecting arbitrary or negated prefixes.
    const leadingPrinter=prefix.match(/^(?:(?:на|для)\s+)?принтер(?:е|а)?\s+(.+)$/u)
 -    ??prefix.match(/^(?:на|для)\s+(.+)$/u);
-+    ??prefix.match(/^(?:на|для)\s+(.+)$/u)
-+    ??(prefix&&(printers?voicePrinterMatches(printers,prefix).length>0:Object.values(aliases).some(names=>names.some(name=>normalizeVoice(name)===prefix)))?['',prefix]:undefined);
-   if(action&&(!prefix||leadingPrinter)&&!/(?:^|\s)(?:не|нет|отмена|отмени)(?:\s|$)/u.test(prefix)){
+-  if(action&&(!prefix||leadingPrinter)&&!/(?:^|\s)(?:не|нет|отмена|отмени)(?:\s|$)/u.test(prefix)){
 -    const print=/(?:напечатай|напечатать|напечатаю|распечатай|распечатать|распечатаю|печатай|печатать|поставь на печать|отправь на печать|поставь.*печать)/u.test(text);
 -    const body=text.slice((action.index??0)+action[0].length).replace(/^файл\s+/u,'')
-+    const print=/(?:напечатай|напечатать|напечатаю|распечатай|распечатать|распечатаю|печатай|печатать|поставь на печать|отправь на печать|поставь.*печать)/u.test(commandText);
-+    const body=commandText.slice((action.index??0)+action[0].length).replace(/^файл\s+/u,'')
-       .replace(/\s+(?:и\s+)?(?:поставь|отправь)\s+(?:его\s+)?на\s+печать/u,'')
-       .replace(/\s+(?:и\s+)?(?:запусти|напечатай|печатай)(?:\s+его)?/u,'').trim();
-     const tail=body.match(/\s+(?:на|для)\s+(?:принтер(?:е|а)?\s+)?(.+)$/u);
-@@ -42,32 +63,71 @@ const aliases:Record<string,string[]>={
+-      .replace(/\s+(?:и\s+)?(?:поставь|отправь)\s+(?:его\s+)?на\s+печать/u,'')
+-      .replace(/\s+(?:и\s+)?(?:запусти|напечатай|печатай)(?:\s+его)?/u,'').trim();
+-    const tail=body.match(/\s+(?:на|для)\s+(?:принтер(?:е|а)?\s+)?(.+)$/u);
++    ??prefix.match(/^(?:на|для)\s+(.+)$/u)
++    ??(prefix&&knownPrinter(prefix)?['',prefix]:undefined);
++  if(action){
++    if(prefix&&!leadingPrinter||/(?:^|\s)(?:не|нет|отмена|отмени)(?:\s|$)/u.test(prefix))return{kind:'help'};
++    const rawBody=commandText.slice((action.index??0)+action[0].length).replace(/^файл\s+/u,'');
++    if(/(?:^|\s)(?:не|нет|отмена|отмени)(?:\s|$)/u.test(rawBody))return{kind:'help'};
++    const compound=rawBody.match(/\s+(?:и\s+)?(?:(?:поставь|отправь)\s+(?:его\s+)?на\s+печать|(?:запусти|напечатай|печатай)(?:\s+его)?)(?=\s+(?:на|для)\s+|$)/u);
++    const body=(compound?rawBody.slice(0,compound.index)+rawBody.slice((compound.index??0)+compound[0].length):rawBody).trim();
++    if(/(?:^|\s)(?:и|а|но)\s+(?:найди|найти|поищи|покажи|напечатай|напечатать|напечатаю|распечатай|распечатать|распечатаю|печатай|печатать|поставь|отправь|запусти|проверь|проверить|отмена|отмени|отменить|подтверждаю|подтвердить)(?:\s|$)/u.test(body))return{kind:'help'};
++    let tail:{index:number;hint:string}|undefined;
++    const explicitTail=body.match(/\s+(?:на|для)\s+принтер(?:е|а)?\s+(.+)$/u);
++    if(explicitTail)tail={index:explicitTail.index??0,hint:explicitTail[1]};
++    else for(const match of [...body.matchAll(/\s+(?:на|для)\s+/gu)].reverse()){
++      const hint=body.slice((match.index??0)+match[0].length);
++      if(knownPrinter(hint)){tail={index:match.index??0,hint};break;}
++    }
+     const query=(tail?body.slice(0,tail.index):body).trim();
+-    if(leadingPrinter&&tail&&normalizeVoice(leadingPrinter[1])!==normalizeVoice(tail[1]))return{kind:'help'};
+-    return{kind:print||action[1]==='запусти печать'?'print':'find',query,printerHint:tail?.[1]??leadingPrinter?.[1]??''};
++    if(leadingPrinter&&tail&&normalizeVoice(leadingPrinter[1])!==normalizeVoice(tail.hint))return{kind:'help'};
++    const print=!/^(?:найди|найти|поищи|покажи файл)$/u.test(action[1])||!!compound;
++    return{kind:print?'print':'find',query,printerHint:tail?.hint??leadingPrinter?.[1]??''};
+   }
++  if(/^(?:проверь|проверить)\s+(?:запуск|печать)$/u.test(text))return{kind:'check'};
++  if(/(?:пластик|филамент|катушк|запас)/u.test(text)&&/(?:сколько|остат|остал|запас)/u.test(text))return{kind:'stock',query:text};
++  const statusFilter=printerStatusQuery(text);
++  if(statusFilter)return{kind:'printers',filter:statusFilter,...(/(?:^|\s)сколько(?:\s|$)/u.test(text)?{countOnly:true}:{})};
+   return{kind:'help'};
+ }
+ const aliases:Record<string,string[]>={
+@@ -42,32 +73,71 @@ const aliases:Record<string,string[]>={
  };
  export function voicePrinterMatches(printers:PrinterModel[],hint:string){
    const query=normalizeVoice(hint);if(!query)return printers;
@@ -7147,7 +7206,7 @@ index 10e765c..f47cc99 100644
      with path.open('rb') as stream:
          return hashlib.file_digest(stream, 'sha256').hexdigest()
 diff --git a/r146-voice-quality/source-manifest.json b/r146-voice-quality/source-manifest.json
-index 5064149..8505022 100644
+index 5064149..7972c64 100644
 --- a/r146-voice-quality/source-manifest.json
 +++ b/r146-voice-quality/source-manifest.json
 @@ -11,32 +11,32 @@
@@ -7172,8 +7231,8 @@ index 5064149..8505022 100644
        "beforeSha256": "44e0d8870f3e61ff1f421bb21e03783bc417c478a4319b75bba53fdb6ed5dc6e",
 -      "sha256": "4df1dc4a304444789e1f8cf8f6110310a4a5cacfc758ba0216f73fcbdc9da15c",
 -      "bytes": 6298
-+      "sha256": "88a7e64747a365d4186e52fc12e6e6e09b3e67047b44ec1d8e1355ee240d10b2",
-+      "bytes": 11176
++      "sha256": "6638fa20f2701094ca74634bca4b111f7ab36a3a8baba04c5d95d233f9e53cbc",
++      "bytes": 12081
      },
      {
        "path": "src/lib/neuralSpeech.ts",
@@ -7199,8 +7258,8 @@ index 5064149..8505022 100644
        "beforeSha256": "a4c6a40e90ac11349b63eeaf6c2a1312518c123dc594c8e7aeabaefd7678ab4c",
 -      "sha256": "c341d8dee078a398d190fb9ae135c58daa3ec8da2874252e350ea2940becb2f5",
 -      "bytes": 14102
-+      "sha256": "85e7472a4384da1a0a78cb4b9d5870779ebfc59a4de4f6e610a663363db6d202",
-+      "bytes": 29394
++      "sha256": "17146212db124576a9490c82f17e11d3f3c36fc16ce100c0979901502f4c8d1d",
++      "bytes": 33683
      },
      {
        "path": "scripts/check-neural-speech.mjs",
