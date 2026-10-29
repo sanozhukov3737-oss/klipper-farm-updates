@@ -46,7 +46,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Published base download failed' }
           python r145-prepare-preview.py
           if ($LASTEXITCODE -ne 0) { throw 'Base source binding failed' }
-          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='533a00880284e8774f17e1a533a44f5ebb6ac9eacd73bb60993a4e7b5103a288';p.write_bytes(b)"
+          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='1561796dc72134916b68cbed42557bb06dd568861fdbb4ccc11282982522b0ad';p.write_bytes(b)"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed speech patch bytes differ' }
           git apply --check r147-voice-latency.patch
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch does not match the reviewed source' }
@@ -79,7 +79,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
           node node_modules/typescript/bin/tsc --noEmit
           if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
-          foreach ($script in @('check-voice-assistant.mjs','check-neural-speech.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
+          foreach ($script in @('check-voice-assistant.mjs','check-neural-speech.mjs','check-print-near-end.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
             node "scripts/$script"
             if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
           }
@@ -98,6 +98,7 @@ jobs:
         with:
           path: work/app/.klipper-build-cache
           key: windows-neural-voice-rust198-${{ hashFiles('work/app/MANIFEST-SHA256.txt') }}
+          restore-keys: windows-neural-voice-rust198-
       - name: Native Windows tests, Clippy and NSIS installer
         id: native
         shell: pwsh
@@ -131,7 +132,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
           node r146-voice-quality/check-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
-          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW6-2026-10-29';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW7-2026-10-29';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Klipper-Farm-Neural-Voice-Preview-Windows
