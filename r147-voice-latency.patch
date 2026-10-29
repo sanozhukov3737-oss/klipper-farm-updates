@@ -4469,10 +4469,10 @@ index 0000000..f4cc6bf
 +#endif
 diff --git a/r146-voice-quality/changes/scripts/whisper-worker.cpp b/r146-voice-quality/changes/scripts/whisper-worker.cpp
 new file mode 100644
-index 0000000..231dec0
+index 0000000..d9e1aa6
 --- /dev/null
 +++ b/r146-voice-quality/changes/scripts/whisper-worker.cpp
-@@ -0,0 +1,99 @@
+@@ -0,0 +1,100 @@
 +// App-owned pipe worker; the pinned Whisper model is loaded once per process.
 +// Headers and DLLs are both whisper.cpp v1.8.4. No TCP listener or audio files.
 +#define WIN32_LEAN_AND_MEAN
@@ -4549,6 +4549,7 @@ index 0000000..231dec0
 +            params.n_threads = static_cast<int>(std::min(4u, std::max(1u, std::thread::hardware_concurrency()/2)));
 +            params.language = "ru";
 +            params.no_context = true;
++            params.no_timestamps = true;
 +            params.single_segment = true;
 +            params.print_special = params.print_progress = params.print_realtime = params.print_timestamps = false;
 +            params.greedy.best_of = 1;
@@ -5040,10 +5041,10 @@ index bcff8a6..e437922 100644
   const screenshot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(proof,'installed-neural-speech.png'),Buffer.from(screenshot.data,'base64'));
   console.log(JSON.stringify(report));
 diff --git a/r146-voice-quality/prepare-windows-runtime.py b/r146-voice-quality/prepare-windows-runtime.py
-index 10e765c..2449b62 100644
+index 10e765c..f47cc99 100644
 --- a/r146-voice-quality/prepare-windows-runtime.py
 +++ b/r146-voice-quality/prepare-windows-runtime.py
-@@ -31,6 +31,18 @@ for engine in ('silero/python', 'whisper'):
+@@ -31,6 +31,24 @@ for engine in ('silero/python', 'whisper'):
  if not (speech / 'whisper' / 'vcomp140.dll').is_file():
      raise SystemExit('Missing Whisper OpenMP runtime')
  
@@ -5054,8 +5055,14 @@ index 10e765c..2449b62 100644
 +output = speech / 'whisper/whisper-worker.exe'
 +build = app / '.speech-worker-build'
 +build.mkdir(exist_ok=True)
-+command = f'call "{vcvars}" >nul && cl /nologo /O2 /EHsc /std:c++17 /utf-8 /I"{app / "scripts/whisper-headers"}" "{source}" /Fe:"{output}" /Fo:"{build / "whisper-worker.obj"}"'
-+subprocess.run(['cmd.exe', '/d', '/s', '/c', command], cwd=build, check=True)
++batch = build / 'compile-worker.cmd'
++batch.write_text(
++    '@echo off\n'
++    f'call "{vcvars}" >nul\n'
++    'if errorlevel 1 exit /b %errorlevel%\n'
++    f'cl /nologo /O2 /EHsc /std:c++17 /utf-8 /I"{app / "scripts/whisper-headers"}" "{source}" /Fe:"{output}" /Fo:"{build / "whisper-worker.obj"}"\n'
++    'exit /b %errorlevel%\n', encoding='utf-8', newline='\r\n')
++subprocess.run(['cmd.exe', '/d', '/c', str(batch)], cwd=build, check=True)
 +if not output.is_file():
 +    raise SystemExit('Whisper pipe worker was not built')
 +
@@ -5063,7 +5070,7 @@ index 10e765c..2449b62 100644
      with path.open('rb') as stream:
          return hashlib.file_digest(stream, 'sha256').hexdigest()
 diff --git a/r146-voice-quality/source-manifest.json b/r146-voice-quality/source-manifest.json
-index 5064149..bdbbd11 100644
+index 5064149..f374c90 100644
 --- a/r146-voice-quality/source-manifest.json
 +++ b/r146-voice-quality/source-manifest.json
 @@ -11,14 +11,14 @@
@@ -5174,8 +5181,8 @@ index 5064149..bdbbd11 100644
 +    {
 +      "path": "scripts/whisper-worker.cpp",
 +      "beforeSha256": null,
-+      "sha256": "af473eef831aed9a39a11bece7a4443af546a7f28004fd3581d3f6b82edf6996",
-+      "bytes": 5400
++      "sha256": "63891296b29ab3b492c2962461243b637e895f845100b0631030237ca0846084",
++      "bytes": 5441
 +    },
 +    {
 +      "path": "scripts/whisper-headers/LICENSE",
