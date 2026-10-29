@@ -1,5 +1,5 @@
 diff --git a/r146-voice-quality/apply.py b/r146-voice-quality/apply.py
-index 63d5d27..0ca28bc 100644
+index 63d5d27..f602cae 100644
 --- a/r146-voice-quality/apply.py
 +++ b/r146-voice-quality/apply.py
 @@ -36,7 +36,7 @@ for row in manifest['files']:
@@ -7,24 +7,39 @@ index 63d5d27..0ca28bc 100644
      target.write_bytes((patch / 'changes' / row['path']).read_bytes())
  
 -identity = 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29'
-+identity = 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW5-2026-10-29'
++identity = 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW6-2026-10-29'
  (root / 'RELEASE-BUILD-ID.txt').write_text(identity + '\n')
  for name in ['scripts/check-r9-clean-installer.mjs', 'scripts/check-release-portability.mjs']:
      target = root / name
+diff --git a/r146-voice-quality/changes/scripts/check-neural-speech-assets.mjs b/r146-voice-quality/changes/scripts/check-neural-speech-assets.mjs
+index 4e53f06..c8a0248 100644
+--- a/r146-voice-quality/changes/scripts/check-neural-speech-assets.mjs
++++ b/r146-voice-quality/changes/scripts/check-neural-speech-assets.mjs
+@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
+ const root=path.resolve('src-tauri/speech'),manifest=path.join(root,'manifest.json');
+ if(!fs.existsSync(manifest))throw new Error('Offline speech assets missing. Run python scripts/prepare-neural-speech.py before building.');
+ const files=JSON.parse(fs.readFileSync(manifest,'utf8'));
+-for(const name of ['whisper/whisper-cli.exe','whisper/ggml-small-q5_1.bin','whisper/recognition.args','silero/python/python.exe','silero/python/python312.dll','silero/python/python312.zip','silero/python/python312._pth','silero/python/Lib/site-packages/torch/__init__.py','silero/python/Lib/site-packages/torch/lib/torch_cpu.dll','silero/tts.py','silero/v5_6_ru.pt','silero/LICENSE.txt'])if(!files.some(row=>row.path===name))throw new Error('Speech manifest missing '+name);
++for(const name of ['whisper/whisper-worker.exe','whisper/ggml-base-q5_1.bin','whisper/whisper-cli.exe','whisper/ggml-small-q5_1.bin','whisper/recognition.args','silero/python/python.exe','silero/python/python312.dll','silero/python/python312.zip','silero/python/python312._pth','silero/python/Lib/site-packages/torch/__init__.py','silero/python/Lib/site-packages/torch/lib/torch_cpu.dll','silero/tts.py','silero/v5_6_ru.pt','silero/LICENSE.txt'])if(!files.some(row=>row.path===name))throw new Error('Speech manifest missing '+name);
+ if(files.some(row=>row.path.startsWith('piper/')))throw new Error('Superseded Piper voices must not be shipped in the Kseniya package');
+ if(!files.some(row=>row.path==='silero/python/Lib/site-packages/num2words/__init__.py'))throw new Error('Russian numeric speech dependency missing');
+ if(fs.readFileSync(path.join(root,'silero/python/python312._pth'),'utf8')!=='python312.zip\n.\nLib/site-packages\n')throw new Error('Embedded Python must use only packaged dependencies');
 diff --git a/r146-voice-quality/changes/scripts/check-neural-speech.mjs b/r146-voice-quality/changes/scripts/check-neural-speech.mjs
-index 88e076b..1578607 100644
+index 88e076b..9ada9f1 100644
 --- a/r146-voice-quality/changes/scripts/check-neural-speech.mjs
 +++ b/r146-voice-quality/changes/scripts/check-neural-speech.mjs
-@@ -5,7 +5,7 @@ globalThis.window=new EventTarget();globalThis.localStorage={setItem(){}};
+@@ -4,8 +4,8 @@ const bundle=await build({stdin:{contents:"export * from './src/lib/neuralSpeech
+ globalThis.window=new EventTarget();globalThis.localStorage={setItem(){}};
  const api=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
  api.setAuthSession({token:'test',user:{id:'test'}});
- let calls=[],transcribe=async()=> 'Принтер К1 Макс поставь на печать корпус',status=async()=>({recognition:true,synthesis:true}),lastCapture,stopped=0;
+-let calls=[],transcribe=async()=> 'Принтер К1 Макс поставь на печать корпус',status=async()=>({recognition:true,synthesis:true}),lastCapture,stopped=0;
 -api.mockIPC(async(command,args)=>{calls.push(command);if(command==='voice_tools_status')return status();if(command==='voice_transcribe')return transcribe(args);if(command==='voice_synthesize')return{pcm:[0,0,50,0],sampleRate:48000};throw new Error(command)});
-+api.mockIPC(async(command,args)=>{calls.push(command);if(command==='voice_tools_status')return status();if(command==='voice_prepare')return;if(command==='voice_transcribe')return transcribe(args);if(command==='voice_synthesize')return{pcm:[0,0,50,0],sampleRate:48000};throw new Error(command)});
++let calls=[],preparedModels=[],transcribedModels=[],transcribe=async()=> 'Принтер К1 Макс поставь на печать корпус',status=async()=>({recognition:true,synthesis:true}),lastCapture,stopped=0;
++api.mockIPC(async(command,args)=>{calls.push(command);if(command==='voice_tools_status')return status();if(command==='voice_prepare'){preparedModels.push(args.modelId);return}if(command==='voice_transcribe'){transcribedModels.push(args.modelId);return transcribe(args)}if(command==='voice_synthesize')return{pcm:[0,0,50,0],sampleRate:48000};throw new Error(command)});
  class FakeAudioContext{sampleRate=48000;destination={};audioWorklet={addModule:async()=>{}};resume=async()=>{};close=async()=>{};createMediaStreamSource=()=>({connect(){},disconnect(){}})}
  class FakeCapture{constructor(){lastCapture=this}port={onmessage:undefined};connect(){}disconnect(){}}
  globalThis.AudioContext=FakeAudioContext;globalThis.AudioWorkletNode=window.AudioWorkletNode=FakeCapture;
-@@ -20,7 +20,15 @@ await test('microphone encoding resamples to mono PCM and caps at twenty seconds
+@@ -20,7 +20,19 @@ await test('microphone encoding resamples to mono PCM and caps at twenty seconds
   assert.equal(wave.length,640044);assert.equal(v.getUint32(24,true),16000);assert.equal(v.getUint32(40,true),640000);assert.equal(v.getInt16(44,true),3277);
  });
  await test('silence never goes to recognition',async()=>{calls=[];const f=make();await f.mic.start();feed(40,0);await f.mic.finish();assert(!calls.includes('voice_transcribe'));assert.equal(f.events.texts.length,0);assert(f.events.errors.length);f.mic.dispose()});
@@ -38,10 +53,14 @@ index 88e076b..1578607 100644
 + for(let i=0;i<5;i++){let done;transcribe=()=>new Promise(resolve=>done=resolve);calls=[];const f=make();await f.mic.start();feed(50,0.1);const finish=f.mic.finish();await tick();const before=calls.length;await f.mic.start();assert.equal(calls.length,before);done('Остаток пластика');await finish;assert.equal(f.events.texts.length,1);assert.equal(calls.filter(x=>x==='voice_transcribe').length,1);f.mic.dispose()}
 + transcribe=async()=> 'Остаток пластика';
 +});
++await test('fast recognition is the default and accuracy mode uses the selected model for preparation and decoding',async()=>{
++ const f=make();await f.mic.start();feed(50,0.1);await f.mic.finish();assert.equal(preparedModels.at(-1),'base');assert.equal(transcribedModels.at(-1),'base');
++ f.mic.setModel('small');await f.mic.start();feed(50,0.1);await f.mic.finish();assert.equal(preparedModels.at(-1),'small');assert.equal(transcribedModels.at(-1),'small');assert.equal(f.events.texts.length,2);f.mic.dispose();
++});
  await test('cancellation during transcription never executes stale recognized text',async()=>{let resolve;transcribe=()=>new Promise(done=>resolve=done);const f=make();await f.mic.start();feed(50,0.1);const finishing=f.mic.finish();await tick();f.mic.cancel();resolve('Напечатай корпус');await finishing;assert.equal(f.events.texts.length,0);f.mic.dispose();transcribe=async()=> 'Остаток пластика'});
  await test('cancellation while loading does not open the microphone',async()=>{let resolve;status=()=>new Promise(done=>resolve=done);const f=make(),starting=f.mic.start(),before=stopped;await tick();f.mic.cancel();resolve({recognition:true});await starting;assert.equal(stopped,before);assert.equal(f.events.texts.length,0);f.mic.dispose();status=async()=>({recognition:true})});
  await test('missing packaged model is shown as an error without using cloud or old recognition',async()=>{calls=[];status=async()=>({recognition:false});const f=make();await f.mic.start();assert.equal(f.events.errors.length,1);assert.match(f.events.errors[0],/Whisper/);assert.deepEqual(calls,['voice_tools_status']);f.mic.dispose();status=async()=>({recognition:true})});
-@@ -30,4 +38,10 @@ await test('interrupting playback does not report a missing voice module',async(
+@@ -30,4 +42,10 @@ await test('interrupting playback does not report a missing voice module',async(
   globalThis.Audio=class{addEventListener(){}play(){started++;return new Promise((_,reject)=>rejectPlay=reject)}pause(){rejectPlay?.(new DOMException('Interrupted','AbortError'))}};
   const speaking=api.speakNeuralOffline('Проверка звука');await tick();assert.equal(started,1);api.stopNeuralSpeech();await speaking;
  });
@@ -54,10 +73,10 @@ index 88e076b..1578607 100644
  console.log('Neural speech:',cases.length,'cases passed');
 diff --git a/r146-voice-quality/changes/scripts/check-speech-workers.py b/r146-voice-quality/changes/scripts/check-speech-workers.py
 new file mode 100644
-index 0000000..c4a6da1
+index 0000000..80b3f96
 --- /dev/null
 +++ b/r146-voice-quality/changes/scripts/check-speech-workers.py
-@@ -0,0 +1,120 @@
+@@ -0,0 +1,128 @@
 +"""Exercise five requests per actual Windows worker, including a Unicode path."""
 +import array
 +import io
@@ -66,6 +85,7 @@ index 0000000..c4a6da1
 +import queue
 +import shutil
 +import struct
++import statistics
 +import subprocess
 +import sys
 +import tempfile
@@ -174,10 +194,36 @@ index 0000000..c4a6da1
 +    tts = exercise(silero, [str(silero/'python/python.exe'), '-I', '-X', 'utf8', 'tts.py', '--worker'],
 +                   [text.encode('utf-8') for text in ['Осталось пять килограммов пластика.', 'Все принтеры свободны.', 'До конца печати двадцать минут.', 'Сопло двести пятьдесят градусов.', 'Осталось пять килограммов пластика.']], check_pcm, 11520000)
 +    whisper = root / 'whisper'
-+    asr = exercise(whisper, [str(whisper/'whisper-worker.exe')], [recording]*5, check_text, 8192)
-+report = {'passed': True, 'unicodePathVerified': True, 'synthesis': tts, 'recognition': asr, 'physicalMicrophoneTested': False}
++    asr = {
++        model: exercise(whisper, [str(whisper/'whisper-worker.exe'), f'ggml-{model}-q5_1.bin'],
++                        [recording]*5, check_text, 8192)
++        for model in ('base', 'small')
++    }
++fast = statistics.median(asr['base']['requestSeconds'])
++accurate = statistics.median(asr['small']['requestSeconds'])
++assert fast < accurate, 'Fast recognition did not reduce the measured delay'
++report = {'passed': True, 'unicodePathVerified': True, 'synthesis': tts, 'recognitionDefault': 'base', 'recognition': asr, 'recognitionSpeedup': round(accurate / max(fast, 0.001), 2), 'physicalMicrophoneTested': False}
 +(app/'speech-worker-proof.json').write_text(json.dumps(report, indent=2)+'\n')
 +print(json.dumps(report))
+diff --git a/r146-voice-quality/changes/scripts/neural-speech-assets.json b/r146-voice-quality/changes/scripts/neural-speech-assets.json
+index 46d85d3..d4b23a1 100644
+--- a/r146-voice-quality/changes/scripts/neural-speech-assets.json
++++ b/r146-voice-quality/changes/scripts/neural-speech-assets.json
+@@ -14,6 +14,14 @@
+     "kind": "file",
+     "target": "whisper/ggml-small-q5_1.bin"
+   },
++  {
++    "name": "ggml-base-q5_1.bin",
++    "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q5_1.bin",
++    "bytes": 59707625,
++    "sha256": "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
++    "kind": "file",
++    "target": "whisper/ggml-base-q5_1.bin"
++  },
+   {
+     "name": "python-3.12.10-embed-amd64.zip",
+     "kind": "python-embed",
 diff --git a/r146-voice-quality/changes/scripts/silero-synthesize.py b/r146-voice-quality/changes/scripts/silero-synthesize.py
 index 46729b4..2b5578a 100644
 --- a/r146-voice-quality/changes/scripts/silero-synthesize.py
@@ -4469,10 +4515,10 @@ index 0000000..f4cc6bf
 +#endif
 diff --git a/r146-voice-quality/changes/scripts/whisper-worker.cpp b/r146-voice-quality/changes/scripts/whisper-worker.cpp
 new file mode 100644
-index 0000000..d9e1aa6
+index 0000000..bf522f6
 --- /dev/null
 +++ b/r146-voice-quality/changes/scripts/whisper-worker.cpp
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,106 @@
 +// App-owned pipe worker; the pinned Whisper model is loaded once per process.
 +// Headers and DLLs are both whisper.cpp v1.8.4. No TCP listener or audio files.
 +#define WIN32_LEAN_AND_MEAN
@@ -4505,12 +4551,17 @@ index 0000000..d9e1aa6
 +    if (!value) throw std::runtime_error("Pinned Whisper DLL export missing");
 +    return reinterpret_cast<T>(value);
 +}
-+int main() {
++int main(int argc, char ** argv) {
 +    _setmode(_fileno(stdin), _O_BINARY);
 +    _setmode(_fileno(stdout), _O_BINARY);
 +    whisper_context * context = nullptr;
 +    decltype(&whisper_free) release = nullptr;
 +    try {
++        const char * model_name = argc == 2 ? argv[1] : "ggml-base-q5_1.bin";
++        if (argc > 2 || (std::strcmp(model_name, "ggml-base-q5_1.bin") != 0 &&
++                         std::strcmp(model_name, "ggml-small-q5_1.bin") != 0)) {
++            throw std::runtime_error("Unsupported packaged Whisper model");
++        }
 +        // The working directory is the app's speech/whisper resource folder.
 +        // Relative ASCII model/DLL names also work under Cyrillic parent paths.
 +        wchar_t dll_path[32768];
@@ -4529,7 +4580,7 @@ index 0000000..d9e1aa6
 +        auto segments = symbol<decltype(&whisper_full_n_segments)>(library, "whisper_full_n_segments");
 +        auto segment_text = symbol<decltype(&whisper_full_get_segment_text)>(library, "whisper_full_get_segment_text");
 +        auto config = defaults(); config.use_gpu = false;
-+        context = init("ggml-small-q5_1.bin", config);
++        context = init(model_name, config);
 +        if (!context) throw std::runtime_error("Cannot load packaged Whisper model");
 +        frame(""); // Ready, after loading the model. No microphone has been opened.
 +        while (true) {
@@ -4546,7 +4597,8 @@ index 0000000..d9e1aa6
 +                samples[i] = value / 32768.0f;
 +            }
 +            auto params = parameters(WHISPER_SAMPLING_GREEDY);
-+            params.n_threads = static_cast<int>(std::min(4u, std::max(1u, std::thread::hardware_concurrency()/2)));
++            const auto hardware_threads = std::thread::hardware_concurrency();
++            params.n_threads = static_cast<int>(std::min(4u, hardware_threads > 1 ? hardware_threads - 1 : 1u));
 +            params.language = "ru";
 +            params.no_context = true;
 +            params.no_timestamps = true;
@@ -4586,10 +4638,10 @@ index c962afc..d0d2ff2 100644
              offline_voice::voice_synthesize,
              auth_status,
 diff --git a/r146-voice-quality/changes/src-tauri/src/offline_voice.rs b/r146-voice-quality/changes/src-tauri/src/offline_voice.rs
-index d4015ae..b4abab9 100644
+index d4015ae..77808c0 100644
 --- a/r146-voice-quality/changes/src-tauri/src/offline_voice.rs
 +++ b/r146-voice-quality/changes/src-tauri/src/offline_voice.rs
-@@ -1,9 +1,12 @@
+@@ -1,12 +1,38 @@
  //! Local speech processes. Microphone WAV and synthesized PCM use pipes only.
  use super::*;
  use std::process::{Child, Command, Stdio};
@@ -4602,16 +4654,43 @@ index d4015ae..b4abab9 100644
  const MAX_WAVE: usize = 44 + 20 * 16_000 * 2;
  const MAX_PCM: usize = 48_000 * 2 * 120;
  
-@@ -44,7 +47,7 @@ pub(crate) fn voice_tools_status(
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++enum RecognitionModel {
++    Base,
++    Small,
++}
++
++impl RecognitionModel {
++    fn parse(model_id: Option<&str>) -> Result<Self, String> {
++        match model_id {
++            None | Some("base") => Ok(Self::Base),
++            Some("small") => Ok(Self::Small),
++            _ => Err("Неизвестная модель распознавания".into()),
++        }
++    }
++
++    fn filename(self) -> &'static str {
++        match self {
++            Self::Base => "ggml-base-q5_1.bin",
++            Self::Small => "ggml-small-q5_1.bin",
++        }
++    }
++}
++
+ #[derive(Serialize)]
+ pub(crate) struct SpeechStatus {
+     recognition: bool,
+@@ -44,7 +70,8 @@ pub(crate) fn voice_tools_status(
      require_role(&app, &auth, &session_token, Role::Viewer)?;
      let root = speech_root(&app)?;
      Ok(SpeechStatus {
 -        recognition: tool(&root.join("whisper"), "whisper-cli").is_file()
 +        recognition: tool(&root.join("whisper"), "whisper-worker").is_file()
++            && root.join("whisper/ggml-base-q5_1.bin").is_file()
              && root.join("whisper/ggml-small-q5_1.bin").is_file()
              && root.join("whisper/recognition.args").is_file(),
          synthesis: tool(&root.join("silero/python"), "python").is_file()
-@@ -54,6 +57,117 @@ pub(crate) fn voice_tools_status(
+@@ -54,6 +81,130 @@ pub(crate) fn voice_tools_status(
      })
  }
  
@@ -4619,6 +4698,7 @@ index d4015ae..b4abab9 100644
 +// workers exit. Readers bound allocations; a timeout kills and reaps the worker.
 +struct SpeechWorker {
 +    root: PathBuf,
++    recognition_model: Option<RecognitionModel>,
 +    child: ChildGuard,
 +    input: Option<std::process::ChildStdin>,
 +    output: Receiver<Result<Vec<u8>, String>>,
@@ -4627,15 +4707,20 @@ index d4015ae..b4abab9 100644
 +}
 +
 +impl SpeechWorker {
-+    fn start(root: &Path, synthesis: bool) -> Result<Self, String> {
++    fn start(root: &Path, synthesis: bool, model: RecognitionModel) -> Result<Self, String> {
 +        let command = if synthesis {
 +            let mut command = Command::new(tool(&root.join("python"), "python"));
 +            command.args(["-I", "-X", "utf8", "tts.py", "--worker"]);
 +            command
 +        } else {
-+            Command::new(tool(root, "whisper-worker"))
++            let mut command = Command::new(tool(root, "whisper-worker"));
++            // Only a fixed ASCII basename from the model allowlist reaches argv.
++            command.arg(model.filename());
++            command
 +        };
-+        Self::start_command(root, command, if synthesis { MAX_PCM } else { 8192 })
++        let mut worker = Self::start_command(root, command, if synthesis { MAX_PCM } else { 8192 })?;
++        if !synthesis { worker.recognition_model = Some(model); }
++        Ok(worker)
 +    }
 +
 +    fn start_command(root: &Path, mut command: Command, limit: usize) -> Result<Self, String> {
@@ -4665,11 +4750,17 @@ index d4015ae..b4abab9 100644
 +            if sender.try_send(result).is_err() || failed { break; }
 +        });
 +        let errors = thread::spawn(move || { let _ = std::io::copy(&mut stderr, &mut std::io::sink()); });
-+        let worker = Self { root: root.to_path_buf(), child, input: Some(input), output, reader: Some(reader), errors: Some(errors) };
++        let worker = Self { root: root.to_path_buf(), recognition_model: None, child, input: Some(input), output, reader: Some(reader), errors: Some(errors) };
 +        let ready = worker.output.recv_timeout(Duration::from_secs(60))
 +            .map_err(|_| "Речевой модуль не успел подготовиться")??;
 +        if !ready.is_empty() { return Err("Некорректный запуск речевого модуля".into()); }
 +        Ok(worker)
++    }
++
++    fn reusable(&mut self, root: &Path, synthesis: bool, model: RecognitionModel) -> bool {
++        self.root == root
++            && (synthesis || self.recognition_model == Some(model))
++            && matches!(self.child.0.try_wait(), Ok(None))
 +    }
 +
 +    fn request(&mut self, input: Vec<u8>, timeout: Duration) -> Result<Vec<u8>, String> {
@@ -4700,14 +4791,14 @@ index d4015ae..b4abab9 100644
 +    }
 +}
 +
-+fn with_worker(root: &Path, synthesis: bool, input: Option<Vec<u8>>) -> Result<Vec<u8>, String> {
++fn with_worker(root: &Path, synthesis: bool, model: RecognitionModel, input: Option<Vec<u8>>) -> Result<Vec<u8>, String> {
 +    let slot = if synthesis { &SYNTHESIZER } else { &RECOGNIZER };
 +    let mut slot = slot.lock().map_err(|_| "Речевой модуль недоступен")?;
 +    let restart = match slot.as_mut() {
-+        Some(worker) => worker.root != root || !matches!(worker.child.0.try_wait(), Ok(None)),
++        Some(worker) => !worker.reusable(root, synthesis, model),
 +        None => true,
 +    };
-+    if restart { *slot = None; *slot = Some(SpeechWorker::start(root, synthesis)?); }
++    if restart { *slot = None; *slot = Some(SpeechWorker::start(root, synthesis, model)?); }
 +    if let Some(input) = input {
 +        let result = slot.as_mut().ok_or("Речевой модуль не подготовлен")?.request(input, Duration::from_secs(40));
 +        if result.is_err() { *slot = None; }
@@ -4717,19 +4808,20 @@ index d4015ae..b4abab9 100644
 +
 +#[tauri::command]
 +pub(crate) async fn voice_prepare(
-+    app: AppHandle, auth: State<'_, AuthState>, session_token: String, engine: String,
++    app: AppHandle, auth: State<'_, AuthState>, session_token: String, engine: String, model_id: Option<String>,
 +) -> Result<(), String> {
 +    require_role(&app, &auth, &session_token, Role::Viewer)?;
 +    let synthesis = match engine.as_str() { "recognition" => false, "synthesis" => true, _ => return Err("Неизвестный речевой модуль".into()) };
++    let model = RecognitionModel::parse(model_id.as_deref())?;
 +    let root = speech_root(&app)?.join(if synthesis { "silero" } else { "whisper" });
-+    bounded_spawn_blocking(ExecutionClass::FileIo, move || with_worker(&root, synthesis, None).map(|_| ()))
++    bounded_spawn_blocking(ExecutionClass::FileIo, move || with_worker(&root, synthesis, model, None).map(|_| ()))
 +        .await.map_err(|_| "Не удалось подготовить речевой модуль")?
 +}
 +
  struct ChildGuard(Child);
  impl Drop for ChildGuard {
      fn drop(&mut self) {
-@@ -62,6 +176,7 @@ impl Drop for ChildGuard {
+@@ -62,6 +213,7 @@ impl Drop for ChildGuard {
      }
  }
  
@@ -4737,10 +4829,32 @@ index d4015ae..b4abab9 100644
  fn run_tool(
      mut command: Command,
      input: Vec<u8>,
-@@ -208,6 +323,37 @@ mod tests {
+@@ -208,6 +360,59 @@ mod tests {
          )
          .is_err());
      }
++
++    #[test]
++    fn recognition_model_defaults_to_base_and_rejects_non_allowlisted_paths() {
++        assert_eq!(RecognitionModel::parse(None).unwrap(), RecognitionModel::Base);
++        assert_eq!(RecognitionModel::parse(Some("base")).unwrap().filename(), "ggml-base-q5_1.bin");
++        assert_eq!(RecognitionModel::parse(Some("small")).unwrap().filename(), "ggml-small-q5_1.bin");
++        for value in ["", "tiny", "Base", "../small", "ggml-small-q5_1.bin", "C:\\model.bin", "модель"] {
++            assert!(RecognitionModel::parse(Some(value)).is_err(), "accepted {value}");
++        }
++    }
++
++    #[test]
++    fn recognition_worker_reuse_requires_same_model_and_root() {
++        let command = python("import sys; sys.stdout.buffer.write(bytes(4)); sys.stdout.buffer.flush(); sys.stdin.buffer.read()");
++        let root = std::env::temp_dir();
++        let mut worker = SpeechWorker::start_command(&root, command, 1024).unwrap();
++        worker.recognition_model = Some(RecognitionModel::Base);
++        assert!(worker.reusable(&root, false, RecognitionModel::Base));
++        assert!(!worker.reusable(&root, false, RecognitionModel::Small));
++        assert!(!worker.reusable(&root.join("another-resource-root"), false, RecognitionModel::Base));
++        assert!(worker.reusable(&root, true, RecognitionModel::Small));
++    }
 +
 +    #[test]
 +    fn warm_worker_reuses_process_for_five_requests() {
@@ -4775,19 +4889,31 @@ index d4015ae..b4abab9 100644
  }
  
  fn validate_wave(wave: &[u8]) -> Result<(), String> {
-@@ -249,10 +395,7 @@ pub(crate) async fn voice_transcribe(
-         let model = root.join("ggml-small-q5_1.bin");
-         if !model.is_file() { return Err("Не установлена модель Whisper".into()); }
+@@ -240,19 +445,17 @@ pub(crate) async fn voice_transcribe(
+     auth: State<'_, AuthState>,
+     session_token: String,
+     wave: Vec<u8>,
++    model_id: Option<String>,
+ ) -> Result<String, String> {
+     require_role(&app, &auth, &session_token, Role::Viewer)?;
+     validate_wave(&wave)?;
++    let model = RecognitionModel::parse(model_id.as_deref())?;
+     let root = speech_root(&app)?.join("whisper");
+     bounded_spawn_blocking(ExecutionClass::FileIo, move || {
+         let _guard = RECOGNIZING.try_lock().map_err(|_| "Распознавание уже выполняется")?;
+-        let model = root.join("ggml-small-q5_1.bin");
+-        if !model.is_file() { return Err("Не установлена модель Whisper".into()); }
++        if !root.join(model.filename()).is_file() { return Err("Не установлена выбранная модель Whisper".into()); }
          if !root.join("recognition.args").is_file() { return Err("Не установлены параметры распознавания".into()); }
 -        let mut command = Command::new(tool(&root, "whisper-cli"));
 -        // MSVC's narrow argv loses Cyrillic. The packaged response file is UTF-8.
 -        command.current_dir(&root).arg("@recognition.args");
 -        let bytes = run_tool(command, wave, Duration::from_secs(90), 8_192)?;
-+        let bytes = with_worker(&root, false, Some(wave))?;
++        let bytes = with_worker(&root, false, model, Some(wave))?;
          let text = String::from_utf8(bytes).map_err(|_| "Ошибка кодировки распознанной речи")?;
          Ok(text.replace("[BLANK_AUDIO]", "").replace("[ Silence ]", "").trim().chars().take(1_000).collect())
      }).await.map_err(|_| "Ошибка рабочего процесса распознавания")?
-@@ -283,18 +426,7 @@ pub(crate) async fn voice_synthesize(
+@@ -283,18 +486,7 @@ pub(crate) async fn voice_synthesize(
          if !model.is_file() {
              return Err("Не установлен выбранный нейроголос".into());
          }
@@ -4803,7 +4929,7 @@ index d4015ae..b4abab9 100644
 -            Duration::from_secs(40),
 -            MAX_PCM,
 -        )?;
-+        let pcm = with_worker(&root, true, Some(text.into_bytes()))?;
++        let pcm = with_worker(&root, true, RecognitionModel::Base, Some(text.into_bytes()))?;
          if pcm.is_empty() || pcm.len() % 2 != 0 {
              return Err("Нейроголос не вернул звук".into());
          }
@@ -4820,7 +4946,7 @@ index 66db155..6b0c5d7 100644
          "installMode": "currentUser",
          "installerHooks": "windows/installer-hooks.nsh"
 diff --git a/r146-voice-quality/changes/src/components/VoiceAssistantPanel.tsx b/r146-voice-quality/changes/src/components/VoiceAssistantPanel.tsx
-index 30b4f25..2b1333b 100644
+index 30b4f25..34fa8a9 100644
 --- a/r146-voice-quality/changes/src/components/VoiceAssistantPanel.tsx
 +++ b/r146-voice-quality/changes/src/components/VoiceAssistantPanel.tsx
 @@ -10,7 +10,7 @@ import {analyzeLocalFile} from '../lib/localGCodeAnalysis';
@@ -4828,15 +4954,16 @@ index 30b4f25..2b1333b 100644
  import {audit} from '../lib/db';
  import {OfflineSpeechInput,type ListeningState} from '../lib/offlineSpeech';
 -import {NeuralSpeechInput,speakNeuralOffline,stopNeuralSpeech,type NeuralVoice} from '../lib/neuralSpeech';
-+import {NeuralSpeechInput,speakNeuralOffline,stopNeuralSpeech,type NeuralVoice,type SpeechPlaybackState} from '../lib/neuralSpeech';
++import {NeuralSpeechInput,speakNeuralOffline,stopNeuralSpeech,type NeuralVoice,type SpeechPlaybackState,type RecognitionModel} from '../lib/neuralSpeech';
  import {secureInvoke} from '../lib/auth';
  import './VoiceAssistantPanel.css';
  
-@@ -23,10 +23,12 @@ export function VoiceAssistantPanel(props:Props){
+@@ -23,10 +23,13 @@ export function VoiceAssistantPanel(props:Props){
    const [reply,setReply]=useState<VoiceReply>({text:greeting}),[input,setInput]=useState(''),[partial,setPartial]=useState('');
    const [listening,setListening]=useState<ListeningState>('idle'),[busy,setBusy]=useState(false),[voice,setVoice]=useState(true),[voiceAvailable,setVoiceAvailable]=useState(false);
    const [voiceId,setVoiceId]=useState<NeuralVoice>('kseniya'),[speechError,setSpeechError]=useState('');
 +  const [speechState,setSpeechState]=useState<SpeechPlaybackState>('idle'),[warming,setWarming]=useState(false);
++  const [recognitionModel,setRecognitionModel]=useState<RecognitionModel>('base');
    const assistant=useRef<VoiceAssistant>(),accurateMicrophone=useRef<NeuralSpeechInput>(),microphone=useRef<OfflineSpeechInput>(),serial=useRef(0),mounted=useRef(false),busyRef=useRef(false);
    const submitRef=useRef<(text:string,confidence?:number)=>void>(()=>{}),log=useRef<HTMLDivElement>(null);
    const append=(kind:Message['kind'],text:string)=>setMessages(items=>[...items,{id:++serial.current,kind,text}].slice(-30));
@@ -4846,22 +4973,23 @@ index 30b4f25..2b1333b 100644
    const execute=async(text:string,confidence?:number)=>{
      text=text.trim();if(!text)return;
      const intent=parseVoiceCommand(text);
-@@ -57,6 +59,14 @@ export function VoiceAssistantPanel(props:Props){
+@@ -57,6 +60,15 @@ export function VoiceAssistantPanel(props:Props){
      void secureInvoke<{synthesis:boolean}>('voice_tools_status').then(status=>{if(mounted.current)setVoiceAvailable(status.synthesis)}).catch(()=>{});
      return()=>{mounted.current=false;microphone.current?.dispose();accurateMicrophone.current?.dispose();assistant.current?.dispose();stopNeuralSpeech();speechSynthesis.cancel()};
    },[]);
 +  useEffect(()=>{
 +    if(!props.open)return;
 +    let cancelled=false;setWarming(true);
-+    void Promise.all(['recognition','synthesis'].map(engine=>secureInvoke('voice_prepare',{engine})))
++    accurateMicrophone.current?.setModel(recognitionModel);
++    void Promise.all(['recognition','synthesis'].map(engine=>secureInvoke('voice_prepare',{engine,modelId:recognitionModel})))
 +      .catch(()=>{if(!cancelled)setSpeechError('Не удалось заранее подготовить речь. При команде попробую ещё раз.')})
 +      .finally(()=>{if(!cancelled)setWarming(false)});
 +    return()=>{cancelled=true};
-+  },[props.open]);
++  },[props.open,recognitionModel]);
    useEffect(()=>{if(!props.open){microphone.current?.cancel();accurateMicrophone.current?.cancel();assistant.current?.cancel();stopNeuralSpeech();speechSynthesis.cancel();setReply({text:greeting});setPartial('')}},[props.open]);
    useEffect(()=>{log.current?.scrollTo({top:log.current.scrollHeight,behavior:'smooth'})},[messages,partial]);
    const choose=async(candidate:VoiceCandidate)=>{
-@@ -71,9 +81,10 @@ export function VoiceAssistantPanel(props:Props){
+@@ -71,9 +83,11 @@ export function VoiceAssistantPanel(props:Props){
      {reply.proposal&&<div className="kfVoiceProposal"><b>{reply.proposal.candidate.entry.path}</b><span>{reply.proposal.candidate.printerName}</span><button className="primary" disabled={busy||!props.canOperate} onClick={()=>execute('Подтверждаю печать')}><Play/>Подтверждаю печать</button><button disabled={busy} onClick={()=>execute('Отмена')}>Отмена</button></div>}
      {reply.unconfirmed&&<button className="kfVoiceCheck" disabled={busy} onClick={()=>execute('Проверь запуск')}>Проверить запуск без повторной отправки</button>}
      <div className="kfVoiceSuggestions">{['Сколько осталось пластика?','Какие принтеры свободны?'].map(text=><button disabled={busy} key={text} onClick={()=>execute(text)}>{text}</button>)}</div>
@@ -4872,14 +5000,19 @@ index 30b4f25..2b1333b 100644
 +    <footer><span role="status">{busy?'Проверяю и выполняю…':listening==='loading'?'Подготавливаю распознавание…':listening==='listening'?'Слушаю одну команду…':listening==='finishing'?'Распознаю команду…':speechState==='preparing'?'Подготавливаю озвучку ответа…':speechState==='playing'?'Ксения отвечает…':warming?'Подготавливаю речь для быстрых ответов…':'Готова к команде'}</span><button aria-label={voice?'Выключить голосовые ответы':'Включить голосовые ответы'} aria-pressed={voice} onClick={()=>{setVoice(!voice);stopNeuralSpeech();speechSynthesis.cancel()}}>{voice?<Volume2/>:<VolumeX/>}</button></footer>
 +    <label className="kfVoiceHint">Голос: <select aria-label="Голос помощника" value={voiceId} onChange={event=>{stopNeuralSpeech();setVoiceId(event.target.value as NeuralVoice)}}><option value="kseniya">Ксения — русский, офлайн</option></select> <button type="button" disabled={busy||listening!=='idle'||speechState==='preparing'} onClick={()=>say('Привет! Рада тебя слышать. Помогу найти файл, проверить принтеры и узнать остатки пластика.')}>Послушать</button></label>
 +    {speechError&&voice&&<button type="button" disabled={busy||listening!=='idle'||speechState==='preparing'} onClick={()=>say(reply.text)}>Повторить озвучку</button>}
++    <label className="kfVoiceHint">Распознавание: <select aria-label="Режим распознавания" value={recognitionModel} disabled={busy||listening!=='idle'} onChange={event=>setRecognitionModel(event.target.value as RecognitionModel)}><option value="base">Быстро</option><option value="small">Точнее</option></select></label>
      {(speechError||!voiceAvailable)&&<p className="kfVoiceHint">{speechError||'Для нейроголоса установите новую сборку с речевым модулем. Текстовые команды доступны.'}</p>}
    </section>;
  }
 diff --git a/r146-voice-quality/changes/src/lib/neuralSpeech.ts b/r146-voice-quality/changes/src/lib/neuralSpeech.ts
-index d5e997f..f06c069 100644
+index d5e997f..837d00e 100644
 --- a/r146-voice-quality/changes/src/lib/neuralSpeech.ts
 +++ b/r146-voice-quality/changes/src/lib/neuralSpeech.ts
-@@ -5,36 +5,43 @@ export type NeuralVoice='kseniya';
+@@ -2,39 +2,47 @@ import {secureInvoke} from './auth';
+ import type {ListeningState} from './offlineSpeech';
+ 
+ export type NeuralVoice='kseniya';
++export type RecognitionModel='base'|'small';
  type Callbacks={state:(state:ListeningState)=>void;partial:(text:string)=>void;text:(text:string,confidence:number)=>void;error:(text:string)=>void};
  let playback:HTMLAudioElement|undefined,playbackUrl:string|undefined,speechGeneration=0;
  let synthesisQueue:Promise<unknown>=Promise.resolve();
@@ -4929,15 +5062,17 @@ index d5e997f..f06c069 100644
      for(let j=from;j<Math.min(to,length);j++)sum+=input[j];
      view.setInt16(44+i*2,Math.round(Math.max(-1,Math.min(1,sum/(to-from)))*32767),true);
    }
-@@ -44,15 +51,17 @@ export function speechWave(chunks:Float32Array[],sampleRate:number){
+@@ -44,15 +52,18 @@ export function speechWave(chunks:Float32Array[],sampleRate:number){
  /** Capture one complete utterance; audio remains in memory and is passed to a local process. */
  export class NeuralSpeechInput{
    private audio?:AudioContext;private stream?:MediaStream;private source?:MediaStreamAudioSourceNode;private capture?:AudioWorkletNode;
 -  private chunks:Float32Array[]=[];private epoch=0;private active=false;private disposed=false;
 -  private timer?:ReturnType<typeof setTimeout>;private elapsed=0;private lastSpeech=0;private voiced=0;private noise=0.002;
+-  constructor(private callbacks:Callbacks){}
 +  private chunks:Float32Array[]=[];private epoch=0;private active=false;private processing=false;private disposed=false;
 +  private timer?:ReturnType<typeof setTimeout>;private elapsed=0;private lastSpeech=0;private firstSpeech=-1;private voiced=0;private noise=0.002;
-   constructor(private callbacks:Callbacks){}
++  constructor(private callbacks:Callbacks,private modelId:RecognitionModel='base'){}
++  setModel(modelId:RecognitionModel){if(modelId!==this.modelId){this.cancel();this.modelId=modelId}}
    async start(){
 -    if(this.active||this.disposed)return;this.active=true;const epoch=++this.epoch;stopNeuralSpeech();window.speechSynthesis?.cancel();this.callbacks.state('loading');this.callbacks.partial('');
 +    if(this.active||this.processing||this.disposed)return;this.active=true;const epoch=++this.epoch;stopNeuralSpeech();window.speechSynthesis?.cancel();this.callbacks.state('loading');this.callbacks.partial('');
@@ -4945,12 +5080,12 @@ index d5e997f..f06c069 100644
        const status=await secureInvoke<{recognition:boolean}>('voice_tools_status');
        if(epoch!==this.epoch)return;
        if(!status.recognition)throw new Error('Не установлен новый модуль распознавания Whisper. Установите сборку с речевыми моделями.');
-+      await secureInvoke('voice_prepare',{engine:'recognition'});
++      await secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId});
 +      if(epoch!==this.epoch)return;
        if(!navigator.mediaDevices?.getUserMedia||!window.AudioWorkletNode)throw new Error('Микрофон недоступен в этой среде');
        const audio=new AudioContext();this.audio=audio;await audio.resume();
        if(epoch!==this.epoch)return;
-@@ -60,16 +69,16 @@ export class NeuralSpeechInput{
+@@ -60,16 +71,16 @@ export class NeuralSpeechInput{
        if(epoch!==this.epoch){stream.getTracks().forEach(track=>track.stop());return}this.stream=stream;
        await audio.audioWorklet.addModule(new URL('/voice/capture.js',location.href).href);
        if(epoch!==this.epoch)return;
@@ -4970,19 +5105,20 @@ index d5e997f..f06c069 100644
          else if(this.elapsed>=20)void this.finish();
        };
        this.source.connect(this.capture);this.capture.connect(audio.destination);this.callbacks.state('listening');
-@@ -77,20 +86,20 @@ export class NeuralSpeechInput{
+@@ -77,20 +88,20 @@ export class NeuralSpeechInput{
      }catch(error){if(epoch===this.epoch){this.release();this.callbacks.state('idle');this.callbacks.error(error instanceof DOMException&&error.name==='NotAllowedError'?'Нет доступа к микрофону. Разрешите его в Windows.':String(error instanceof Error?error.message:error))}}
    }
    async finish(){
 -    if(!this.active||!this.audio)return;this.active=false;const epoch=this.epoch,rate=this.audio.sampleRate,chunks=this.chunks,voiced=this.voiced;
 -    this.release();this.callbacks.state('finishing');this.callbacks.partial('');
-+    if(!this.active||!this.audio)return;this.active=false;const epoch=this.epoch,rate=this.audio.sampleRate,chunks=this.chunks,voiced=this.voiced,from=Math.max(0,this.firstSpeech-0.2),to=this.lastSpeech+0.25;
++    if(!this.active||!this.audio)return;this.active=false;const epoch=this.epoch,rate=this.audio.sampleRate,chunks=this.chunks,voiced=this.voiced,from=Math.max(0,this.firstSpeech-0.2),to=this.lastSpeech+0.25,modelId=this.modelId;
 +    this.release();this.processing=true;this.callbacks.state('finishing');this.callbacks.partial('');
      try{
        if(voiced<0.25)throw new Error('Не слышу речь. Проверьте выбранный микрофон и повторите команду.');
 -      const wave=speechWave(chunks,rate);
+-      const text=(await secureInvoke<string>('voice_transcribe',{wave:Array.from(wave)})).trim();
 +      const wave=speechWave(chunks,rate,from,to);
-       const text=(await secureInvoke<string>('voice_transcribe',{wave:Array.from(wave)})).trim();
++      const text=(await secureInvoke<string>('voice_transcribe',{wave:Array.from(wave),modelId})).trim();
        if(epoch!==this.epoch)return;
        if(!text)throw new Error('Речь не распознана. Повторите команду или введите её текстом.');
 -      this.callbacks.state('idle');this.callbacks.partial('');
@@ -4998,24 +5134,43 @@ index d5e997f..f06c069 100644
    dispose(){this.disposed=true;this.cancel();}
  }
 diff --git a/r146-voice-quality/check-installed-speech.mjs b/r146-voice-quality/check-installed-speech.mjs
-index bcff8a6..e437922 100644
+index bcff8a6..a210f33 100644
 --- a/r146-voice-quality/check-installed-speech.mjs
 +++ b/r146-voice-quality/check-installed-speech.mjs
-@@ -63,11 +63,12 @@ try{
+@@ -33,14 +33,15 @@ try{
+  await waitFor(()=>cdp.evaluate('({heading:document.querySelector(".authCard h1")?.textContent,fields:document.querySelectorAll(".authCard input[type=password]").length})'),state=>state?.heading==='Настройте вход'&&state.fields===2,'clean install setup form');
+  assert.match(await cdp.evaluate('document.querySelector(".authCard h1").textContent'),/Настройте вход/);
+  await cdp.evaluate(`(()=>{
+-  window.__speechSmoke={samples:[],transcripts:[],playback:0,errors:[],energy:0,frames:0};
++  window.__speechSmoke={samples:[],transcripts:[],playback:0,errors:[],energy:0,frames:0,nativeTimings:[]};
+   const originalFetch=window.fetch;
+   window.fetch=async function(input,options){
+-   const response=await originalFetch.call(window,input,options),url=new URL(typeof input==='string'?input:input.url??String(input),location.href);
++   const started=performance.now(),response=await originalFetch.call(window,input,options),url=new URL(typeof input==='string'?input:input.url??String(input),location.href);
+    const command=url.hostname==='ipc.localhost'?decodeURIComponent(url.pathname.slice(1)):'';
+    if(['auth_bootstrap','voice_synthesize','voice_transcribe'].includes(command)){
+     const value=(response.headers.get('content-type')??'').startsWith('application/json')?await response.clone().json():await response.clone().text();
+     const args=typeof options?.body==='string'?JSON.parse(options.body):{};
++    if(command.startsWith('voice_'))window.__speechSmoke.nativeTimings.push({command,milliseconds:Math.round(performance.now()-started),modelId:args.modelId});
+     if(response.headers.get('Tauri-Response')!=='ok'){if(command.startsWith('voice_'))window.__speechSmoke.errors.push(String(value));return response}
+     if(command==='auth_bootstrap')window.__speechSmokeSession=value.token;
+     if(command==='voice_synthesize'){let sum=0;for(let i=0;i<value.pcm.length;i+=2){let sample=value.pcm[i]|(value.pcm[i+1]<<8);if(sample>=32768)sample-=65536;sum+=(sample/32768)**2}window.__speechSmoke.samples.push({voiceId:args.voiceId,bytes:value.pcm.length,sampleRate:value.sampleRate,rms:Math.sqrt(sum/(value.pcm.length/2))})}
+@@ -63,11 +64,13 @@ try{
   await cdp.evaluate('document.querySelector(".wizard .wizardNext").click()');
   await waitFor(()=>cdp.evaluate('!!document.querySelector(\'button[aria-label="Голосовой помощник"]\')'),Boolean,'actual authenticated application',60000);
   const identity=await cdp.evaluate(`(async()=>await(await fetch(new URL('/BUILD-PROVENANCE.json',location.href))).json())()`);
 - assert.equal(identity.buildId,'V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29');
-+ assert.equal(identity.buildId,'V20.6-R14.5-OFFLINE-VOICE-PREVIEW5-2026-10-29');
++ assert.equal(identity.buildId,'V20.6-R14.5-OFFLINE-VOICE-PREVIEW6-2026-10-29');
   const status=await cdp.evaluate(`window.__TAURI_INTERNALS__.invoke('voice_tools_status',{sessionToken:window.__speechSmokeSession})`);
   assert.equal(status.recognition,true);assert.equal(status.synthesis,true);
   await cdp.evaluate('document.querySelector(\'button[aria-label="Голосовой помощник"]\').click()');
   await waitFor(()=>cdp.evaluate('!!document.querySelector(".kfVoicePanel")'),Boolean,'assistant panel');
++ assert.equal(await cdp.evaluate('document.querySelector(\'select[aria-label="Режим распознавания"]\').value'),'base');
 + await cdp.evaluate(`Promise.all(['recognition','synthesis'].map(engine=>window.__TAURI_INTERNALS__.invoke('voice_prepare',{sessionToken:window.__speechSmokeSession,engine})))`);
   assert.equal(await cdp.evaluate('document.querySelector(\'select[aria-label="Голос помощника"]\').value'),'kseniya');
   for(const [index,voice] of ['kseniya'].entries()){
    await cdp.evaluate(`(()=>{const select=document.querySelector('select[aria-label="Голос помощника"]');select.value=${JSON.stringify(voice)};select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
-@@ -76,14 +77,22 @@ try{
+@@ -76,14 +79,22 @@ try{
    await waitFor(()=>cdp.evaluate('window.__speechSmoke.playback'),count=>count>=index+1,'audible playback '+voice,15000);
   }
   await cdp.evaluate('document.querySelector(\'button[aria-label="Включить микрофон"]\').click()');
@@ -5036,7 +5191,7 @@ index bcff8a6..e437922 100644
   for(const voice of ['kseniya']){const sample=result.samples.find(item=>item.voiceId===voice);assert(sample.bytes>48000);assert.equal(sample.sampleRate,48000);assert(sample.rms>0.001)}
   assert.deepEqual(exceptions,[]);assert.deepEqual(externalRequests,[]);
 - const report={passed:true,buildId:identity.buildId,actualInstalledWebView:true,packagedWhisper:true,packagedSileroVoices:['kseniya'],packagedPython:true,actualWorklet:true,syntheticMicrophone:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,recognized,voiceSamples:result.samples,microphoneEnergy:result.energy,microphoneFrames:result.frames,frontendExternalRequests:externalRequests};
-+ const report={passed:true,buildId:identity.buildId,actualInstalledWebView:true,packagedWhisper:true,packagedSileroVoices:['kseniya'],packagedPython:true,actualWorklet:true,syntheticMicrophone:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,recognized,consecutiveSpokenReplies:repeatedReplies.length,replyPlaybackMilliseconds:repeatedReplies,voiceSamples:result.samples,microphoneEnergy:result.energy,microphoneFrames:result.frames,frontendExternalRequests:externalRequests};
++ const report={passed:true,buildId:identity.buildId,actualInstalledWebView:true,packagedWhisper:true,recognitionModel:'base',packagedSileroVoices:['kseniya'],packagedPython:true,actualWorklet:true,syntheticMicrophone:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,recognized,consecutiveSpokenReplies:repeatedReplies.length,replyPlaybackMilliseconds:repeatedReplies,nativeTimings:result.nativeTimings,voiceSamples:result.samples,microphoneEnergy:result.energy,microphoneFrames:result.frames,frontendExternalRequests:externalRequests};
   fs.writeFileSync(path.join(proof,'installed-neural-speech.json'),JSON.stringify(report,null,2)+'\n');
   const screenshot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(proof,'installed-neural-speech.png'),Buffer.from(screenshot.data,'base64'));
   console.log(JSON.stringify(report));
@@ -5070,7 +5225,7 @@ index 10e765c..f47cc99 100644
      with path.open('rb') as stream:
          return hashlib.file_digest(stream, 'sha256').hexdigest()
 diff --git a/r146-voice-quality/source-manifest.json b/r146-voice-quality/source-manifest.json
-index 5064149..f374c90 100644
+index 5064149..77ca79c 100644
 --- a/r146-voice-quality/source-manifest.json
 +++ b/r146-voice-quality/source-manifest.json
 @@ -11,14 +11,14 @@
@@ -5098,16 +5253,16 @@ index 5064149..f374c90 100644
        "beforeSha256": null,
 -      "sha256": "7d4716a5a6e49805f9e3341342fb65f8ee724cde8eec45b18088f3381744f381",
 -      "bytes": 7662
-+      "sha256": "d561f3fed84c691ea21d80c11562a6a71d5b391707efb168d85039c427dae377",
-+      "bytes": 8659
++      "sha256": "aeabf8cd70a79aeedae397bd6dd1eaa3968512d25045a1f9970758de01d15ae0",
++      "bytes": 8895
      },
      {
        "path": "src/components/VoiceAssistantPanel.tsx",
        "beforeSha256": "01f1ca97493ab7e95bebf2fbbe99750efb2566c1fde17bcb211eb33f53442f03",
 -      "sha256": "137425d37421f8d9af0d75ab8b34705206be1d8f761d29df7b1b2d23f347692a",
 -      "bytes": 11033
-+      "sha256": "585fba8f10afd4bbff1b152cd39bcb16b9b4a30dfed8193bedf397c7c1e08ad8",
-+      "bytes": 12063
++      "sha256": "4518560bbd2b8be68e7bf26b5f629cb1beff8ef5fa31c89876320d6dc44d2e63",
++      "bytes": 12634
      },
      {
        "path": "src/components/VoiceAssistantPanel.css",
@@ -5117,19 +5272,38 @@ index 5064149..f374c90 100644
        "beforeSha256": null,
 -      "sha256": "09e158134419268390f1727d90af8eb098266460ef8c28170aa6e5e8cb71e8be",
 -      "bytes": 5493
-+      "sha256": "28c05d6e3948ca4e5c18b69e4c2b8c61a8aebe673964d407d85000924bc25ff6",
-+      "bytes": 7291
++      "sha256": "60ab79bfb97c4ae95230fd386f45dc9b37cbd8284750c104c056aca2c4c12253",
++      "bytes": 7919
      },
      {
        "path": "scripts/prepare-neural-speech.py",
+@@ -65,14 +65,14 @@
+     {
+       "path": "scripts/neural-speech-assets.json",
+       "beforeSha256": null,
+-      "sha256": "b5d04079713a6b4ef91929dcb194b372cd94e54d258132cbe925a508ff051131",
+-      "bytes": 5132
++      "sha256": "73a1e40c204566ac7b3825cffb46eeb365bdfaa43baf08d63742c36f1ec16b49",
++      "bytes": 5470
+     },
+     {
+       "path": "scripts/check-neural-speech-assets.mjs",
+       "beforeSha256": null,
+-      "sha256": "30e16466874914fd53c6fd2a759583b24bc51bd3b37f60280f3604fe840be2e0",
+-      "bytes": 1735
++      "sha256": "fe27968639f5930c436d6426e2ea5a30051cb65129542b7ea464ba143b27f2f3",
++      "bytes": 1793
+     },
+     {
+       "path": "scripts/NEURAL-SPEECH-NOTICES.txt",
 @@ -95,8 +95,8 @@
      {
        "path": "src-tauri/src/offline_voice.rs",
        "beforeSha256": null,
 -      "sha256": "6eb8ecbd324a2ca6b51b8e5c226aab6a73ba3e712455d6dc5348bf3bfc76c7dc",
 -      "bytes": 11725
-+      "sha256": "523224e2d6a1dc6de429b186806e0e1ffd8de3aa8152a35f1248058db6aaea40",
-+      "bytes": 19213
++      "sha256": "a47ab338399b7b0a72a18e6e0c9d94f2c7125e32053b9f3dbbfc58387f30f657",
++      "bytes": 22023
      },
      {
        "path": "src/lib/voiceAssistant.ts",
@@ -5145,8 +5319,8 @@ index 5064149..f374c90 100644
 +    {
 +      "path": "scripts/check-speech-workers.py",
 +      "beforeSha256": null,
-+      "sha256": "ae8bf6ad8e01f68881f13453c1f1b4164d09043f25131cd56da98626c5b78a71",
-+      "bytes": 4860
++      "sha256": "bb3a286b91eff7f1638d85d5740d541aa22b1e7f3fdf7ed964ccc33cc694b708",
++      "bytes": 5275
 +    },
 +    {
 +      "path": "scripts/whisper-headers/ggml-alloc.h",
@@ -5181,8 +5355,8 @@ index 5064149..f374c90 100644
 +    {
 +      "path": "scripts/whisper-worker.cpp",
 +      "beforeSha256": null,
-+      "sha256": "63891296b29ab3b492c2962461243b637e895f845100b0631030237ca0846084",
-+      "bytes": 5441
++      "sha256": "9c2992e8f4e5cfd61102b49d79ca95a47e9b6ab18484eb89ef503e459767e6fd",
++      "bytes": 5852
 +    },
 +    {
 +      "path": "scripts/whisper-headers/LICENSE",
