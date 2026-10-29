@@ -377,7 +377,7 @@ index 0000000..80b3f96
 +(app/'speech-worker-proof.json').write_text(json.dumps(report, indent=2)+'\n')
 +print(json.dumps(report))
 diff --git a/r146-voice-quality/changes/scripts/check-voice-assistant.mjs b/r146-voice-quality/changes/scripts/check-voice-assistant.mjs
-index eb488e0..6136426 100644
+index eb488e0..847f648 100644
 --- a/r146-voice-quality/changes/scripts/check-voice-assistant.mjs
 +++ b/r146-voice-quality/changes/scripts/check-voice-assistant.mjs
 @@ -20,6 +20,49 @@ await test('Russian print phrases and spoken printer aliases',()=>{
@@ -497,6 +497,23 @@ index eb488e0..6136426 100644
  await test('misheard file names are suggested and never automatically prepared or launched',async()=>{
   assert.equal(voiceFileMatches('детали/кронштейн.gcode','конштейн'),false);
   assert.equal(voiceFileNearMatch('детали/кронштейн.gcode','конштейн'),true);
+@@ -55,6 +158,16 @@ await test('changed file hash cannot be uploaded and started',async()=>{const f=
+ await test('G-code validation errors block confirmation',async()=>{const f=fixture();f.deps.validate=async()=>({sha256:'x',report:{ok:false,issues:[{level:'error',message:'За пределами стола'}]}});const r=await f.assistant.handle('Напечатай корпус на K1 Max');assert.match(r.text,/пределами/);await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,0)});
+ await test('lost start response permits read-only recovery and never repeats a launch',async()=>{const f=fixture();f.deps.start=async()=>{f.data.start++;throw new Error('PRINT_START_UNCONFIRMED')};await f.assistant.handle('Напечатай корпус на K1 Max');assert((await f.assistant.handle('Подтверждаю печать')).unconfirmed);await f.assistant.handle('Подтверждаю печать');await f.assistant.handle('Напечатай корпус на K1 Max');await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,1);const r=await f.assistant.handle('Проверь запуск');assert.match(r.text,/подтверждён/);assert.equal(f.data.checks,1);assert.equal(f.data.upload,1)});
+ await test('stock uses actual loose stock plus spool balance exactly once',async()=>{const f=fixture();f.data.inventory.materials.PLA.looseGrams=500;f.data.inventory.spools=[{id:'s1',name:'PLA',material:'PLA',remainingWeight:750,initialWeight:1000,price:0,currency:'RUB',createdAt:1}];f.data.inventory.printers.max={binding:{spoolId:'s1'}};assert.match((await f.assistant.handle('Сколько осталось пластика?')).text,/1.250/);assert.match((await f.assistant.handle('Сколько пластика на кей один макс?')).text,/750/)});
++await test('stock possessives do not become printer hints or hide an explicit printer',async()=>{
++ const f=fixture();f.data.inventory.materials.PLA.looseGrams=500;f.data.inventory.materials.PETG.looseGrams=300;
++ f.data.inventory.spools=[{id:'s1',name:'PLA',material:'PLA',remainingWeight:750,initialWeight:1000,price:0,currency:'RUB',createdAt:1}];f.data.inventory.printers.max={binding:{spoolId:'s1'}};
++ const global=(await f.assistant.handle('Сколько осталось пластика?')).text;assert.match(global,/1.550/);
++ for(const text of ['Сколько у меня пластика?','Сколько у нас пластика?','Сколько пластика у меня?','Сколько у меня осталось пластика?','Сколько у нас осталось пластика?'])assert.equal((await f.assistant.handle(text)).text,global,text);
++ assert.match((await f.assistant.handle('Сколько у меня пластика PLA?')).text,/^PLA: осталось 1.250/);
++ const printer=(await f.assistant.handle('Сколько пластика на K1 Max?')).text;assert.match(printer,/^K1 Max:.*750/);
++ for(const text of ['Сколько пластика у K1 Max?','Сколько у меня пластика на принтере K1 Max?','Сколько у нас пластика на K1 Max?','Сколько у меня PLA пластика на K1 Max?'])assert.equal((await f.assistant.handle(text)).text,printer,text);
++ assert.equal(f.data.list,0);assert.equal(f.data.upload,0);assert.equal(f.data.start,0);
++});
+ await test('stock read failure is never announced as zero stock',async()=>{const f=fixture();f.deps.inventory=async()=>{throw new Error('SQLITE_BUSY')};assert.match((await f.assistant.handle('Сколько осталось пластика?')).text,/SQLITE_BUSY/)});
+ await test('concurrent request cannot consume a second print command',async()=>{const f=fixture();let done;f.deps.upload=()=>new Promise(resolve=>{done=resolve});await f.assistant.handle('Напечатай корпус на K1 Max');const first=f.assistant.handle('Подтверждаю печать');await new Promise(resolve=>setTimeout(resolve,0));const second=await f.assistant.handle('Подтверждаю печать');assert.match(second.text,/Повторный запуск/);done('корпус.gcode');await first;assert.equal(f.data.start,1)});
+ await test('cancel during analysis cannot leave a printable proposal',async()=>{const f=fixture();let done;f.deps.validate=()=>new Promise(resolve=>{done=resolve});const first=f.assistant.handle('Напечатай корпус на K1 Max');await new Promise(resolve=>setTimeout(resolve,0));await f.assistant.handle('Отмена');done({sha256:'a'.repeat(64),report:{ok:true,issues:[]}});await first;await f.assistant.handle('Подтверждаю печать');assert.equal(f.data.start,0)});
 diff --git a/r146-voice-quality/changes/scripts/neural-speech-assets.json b/r146-voice-quality/changes/scripts/neural-speech-assets.json
 index 46d85d3..d4b23a1 100644
 --- a/r146-voice-quality/changes/scripts/neural-speech-assets.json
@@ -6749,7 +6766,7 @@ index 0000000..d49c398
 +  useEffect(() => { tick.current?.(); }, [printers, enabled]);
 +}
 diff --git a/r146-voice-quality/changes/src/lib/voiceAssistant.ts b/r146-voice-quality/changes/src/lib/voiceAssistant.ts
-index edf894c..6b30dfa 100644
+index edf894c..b85e0ae 100644
 --- a/r146-voice-quality/changes/src/lib/voiceAssistant.ts
 +++ b/r146-voice-quality/changes/src/lib/voiceAssistant.ts
 @@ -45,7 +45,7 @@ export class VoiceAssistant{
@@ -6776,7 +6793,17 @@ index edf894c..6b30dfa 100644
        }
        if(intent.kind==='find'||intent.kind==='print')return this.find(intent.query,intent.printerHint,intent.kind==='print',revision,signal);
        return{text:'Скажите: «Найди корпус», «Напечатай корпус на K1 Max», «Сколько осталось пластика?» или «Какие принтеры свободны?». Для запуска скажите отдельно: «Подтверждаю печать».'};
-@@ -110,7 +116,7 @@ export class VoiceAssistant{
+@@ -78,7 +84,8 @@ export class VoiceAssistant{
+   }
+   private async stock(query:string):Promise<VoiceReply>{
+     const state=await this.deps.inventory();
+-    const hint=query.match(/(?:на|у)\s+(?:принтер(?:е|а)?\s+)?(.+)$/u)?.[1];
++    const printerQuery=query.replace(/(?:^|\s)у\s+(?:меня|нас)(?=\s|$)/gu,' ');
++    const hint=printerQuery.match(/(?:^|\s)(?:на|у)\s+(?:принтер(?:е|а)?\s+)?(.+)$/u)?.[1];
+     if(hint){
+       const printers=voicePrinterMatches(this.deps.printers(),hint);
+       if(printers.length!==1)return{text:printers.length?'Под это название подходят несколько принтеров. Назовите точное имя карточки.':'Такой принтер не найден. Назовите имя его карточки.'};
+@@ -110,7 +117,7 @@ export class VoiceAssistant{
      if(failures)return{text:'Часть библиотеки недоступна. Повторите поиск после проверки хранилища; автоматический выбор отключён.',choices:this.candidates};
      if(!choices.length&&nearby.length){
        this.candidates=nearby.slice(0,40);
@@ -7007,7 +7034,7 @@ index 92b972c..118849e 100644
 +function App(){const [open,setOpen]=useState(true);return <><button onClick={()=>setOpen(true)}>Открыть помощника</button><PrintNearEndSettings/><VoiceAssistantPanel printers={[printer,printingPrinter]} clients={new Map([['max',client]])} canOperate={true} open={open} onClose={()=>setOpen(false)}/></>}
  createRoot(document.getElementById('root')!).render(<App/>);
 diff --git a/r146-voice-quality/check-installed-speech.mjs b/r146-voice-quality/check-installed-speech.mjs
-index bcff8a6..f753497 100644
+index bcff8a6..f977784 100644
 --- a/r146-voice-quality/check-installed-speech.mjs
 +++ b/r146-voice-quality/check-installed-speech.mjs
 @@ -33,14 +33,15 @@ try{
@@ -7043,7 +7070,7 @@ index bcff8a6..f753497 100644
   assert.equal(await cdp.evaluate('document.querySelector(\'select[aria-label="Голос помощника"]\').value'),'kseniya');
   for(const [index,voice] of ['kseniya'].entries()){
    await cdp.evaluate(`(()=>{const select=document.querySelector('select[aria-label="Голос помощника"]');select.value=${JSON.stringify(voice)};select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
-@@ -76,14 +79,22 @@ try{
+@@ -76,16 +79,43 @@ try{
    await waitFor(()=>cdp.evaluate('window.__speechSmoke.playback'),count=>count>=index+1,'audible playback '+voice,15000);
   }
   await cdp.evaluate('document.querySelector(\'button[aria-label="Включить микрофон"]\').click()');
@@ -7064,10 +7091,32 @@ index bcff8a6..f753497 100644
   for(const voice of ['kseniya']){const sample=result.samples.find(item=>item.voiceId===voice);assert(sample.bytes>48000);assert.equal(sample.sampleRate,48000);assert(sample.rms>0.001)}
   assert.deepEqual(exceptions,[]);assert.deepEqual(externalRequests,[]);
 - const report={passed:true,buildId:identity.buildId,actualInstalledWebView:true,packagedWhisper:true,packagedSileroVoices:['kseniya'],packagedPython:true,actualWorklet:true,syntheticMicrophone:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,recognized,voiceSamples:result.samples,microphoneEnergy:result.energy,microphoneFrames:result.frames,frontendExternalRequests:externalRequests};
+- fs.writeFileSync(path.join(proof,'installed-neural-speech.json'),JSON.stringify(report,null,2)+'\n');
 + const report={passed:true,buildId:identity.buildId,actualInstalledWebView:true,packagedWhisper:true,recognitionModel:'base',packagedSileroVoices:['kseniya'],packagedPython:true,actualWorklet:true,syntheticMicrophone:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,recognized,consecutiveSpokenReplies:repeatedReplies.length,replyPlaybackMilliseconds:repeatedReplies,nativeTimings:result.nativeTimings,voiceSamples:result.samples,microphoneEnergy:result.energy,microphoneFrames:result.frames,frontendExternalRequests:externalRequests};
-  fs.writeFileSync(path.join(proof,'installed-neural-speech.json'),JSON.stringify(report,null,2)+'\n');
   const screenshot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(proof,'installed-neural-speech.png'),Buffer.from(screenshot.data,'base64'));
++ await cdp.evaluate('document.querySelector(\'button[aria-label="Закрыть помощника"]\').click()');
++ await cdp.evaluate(`Array.from(document.querySelectorAll('.kfSidebar nav button')).find(button=>button.textContent.trim()==='Настройки').click()`);
++ await waitFor(()=>cdp.evaluate('!!document.querySelector(".systemPanel .prodTabs")'),Boolean,'installed settings panel');
++ await cdp.evaluate(`Array.from(document.querySelectorAll('.systemPanel .prodTabs button')).find(button=>button.textContent.trim()==='Приложение').click()`);
++ const nearEndSelector='[aria-label="Предупреждение перед окончанием печати"]';
++ const settings=await waitFor(()=>cdp.evaluate(`(()=>{const card=document.querySelector(${JSON.stringify(nearEndSelector)});return card?{enabled:card.querySelector('input').checked,lead:card.querySelector('select').value,choices:Array.from(card.querySelectorAll('option')).map(option=>Number(option.value))}:null})()`),Boolean,'installed near-end voice settings');
++ assert.equal(settings.enabled,true);assert.equal(settings.lead,'10');assert.deepEqual(settings.choices,[5,10,15,30]);
++ await cdp.evaluate(`(()=>{const select=document.querySelector(${JSON.stringify(nearEndSelector)}).querySelector('select');select.value='5';select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
++ await waitFor(()=>cdp.evaluate(`JSON.parse(localStorage.getItem('klipper-print-near-end-v1')||'null')?.leadMinutes`),value=>value===5,'persisted near-end lead time');
++ await cdp.evaluate(`document.querySelector(${JSON.stringify(nearEndSelector)}).querySelector('input').click()`);
++ await waitFor(()=>cdp.evaluate(`({enabled:JSON.parse(localStorage.getItem('klipper-print-near-end-v1')||'null')?.enabled,disabled:document.querySelector(${JSON.stringify(nearEndSelector)}).querySelector('select').disabled})`),value=>value?.enabled===false&&value.disabled,'disabled near-end voice preference');
++ await cdp.evaluate(`document.querySelector(${JSON.stringify(nearEndSelector)}).querySelector('input').click()`);
++ await waitFor(()=>cdp.evaluate(`document.querySelector(${JSON.stringify(nearEndSelector)}).querySelector('select').disabled`),value=>value===false,'re-enabled near-end preference');
++ await cdp.evaluate(`(()=>{const select=document.querySelector(${JSON.stringify(nearEndSelector)}).querySelector('select');select.value='10';select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
++ await waitFor(()=>cdp.evaluate(`JSON.parse(localStorage.getItem('klipper-print-near-end-v1')||'null')`),value=>value?.enabled===true&&value.leadMinutes===10,'restored near-end defaults');
++ await cdp.evaluate(`document.querySelector(${JSON.stringify(nearEndSelector)}).scrollIntoView({block:'center'})`);
++ report.nearEndSettings={passed:true,defaultLeadMinutes:10,choicesMinutes:settings.choices,persistenceVerified:true,disabledStateVerified:true,physicalPrintForecastTested:false};
++ const settingsScreenshot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(proof,'installed-near-end-settings.png'),Buffer.from(settingsScreenshot.data,'base64'));
++ assert.deepEqual(exceptions,[]);assert.deepEqual(externalRequests,[]);
++ fs.writeFileSync(path.join(proof,'installed-neural-speech.json'),JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify(report));
+ }catch(error){if(cdp)try{const detail=await cdp.evaluate('({assistant:document.querySelector(".kfVoicePanel")?.innerText,authError:document.querySelector(".authError")?.innerText,speech:window.__speechSmoke})');fs.writeFileSync(path.join(proof,'installed-neural-speech-failure.json'),JSON.stringify({error:String(error),detail,exceptions,externalRequests},null,2))}catch{}throw error}
+ finally{
 diff --git a/r146-voice-quality/prepare-windows-runtime.py b/r146-voice-quality/prepare-windows-runtime.py
 index 10e765c..f47cc99 100644
 --- a/r146-voice-quality/prepare-windows-runtime.py
@@ -7098,7 +7147,7 @@ index 10e765c..f47cc99 100644
      with path.open('rb') as stream:
          return hashlib.file_digest(stream, 'sha256').hexdigest()
 diff --git a/r146-voice-quality/source-manifest.json b/r146-voice-quality/source-manifest.json
-index 5064149..a91b449 100644
+index 5064149..8505022 100644
 --- a/r146-voice-quality/source-manifest.json
 +++ b/r146-voice-quality/source-manifest.json
 @@ -11,32 +11,32 @@
@@ -7150,8 +7199,8 @@ index 5064149..a91b449 100644
        "beforeSha256": "a4c6a40e90ac11349b63eeaf6c2a1312518c123dc594c8e7aeabaefd7678ab4c",
 -      "sha256": "c341d8dee078a398d190fb9ae135c58daa3ec8da2874252e350ea2940becb2f5",
 -      "bytes": 14102
-+      "sha256": "c737668011e35aedbcce227d052ddaf216a1d85c27e98e34896703f4b2a430f0",
-+      "bytes": 27824
++      "sha256": "85e7472a4384da1a0a78cb4b9d5870779ebfc59a4de4f6e610a663363db6d202",
++      "bytes": 29394
      },
      {
        "path": "scripts/check-neural-speech.mjs",
@@ -7212,8 +7261,8 @@ index 5064149..a91b449 100644
        "beforeSha256": "5adedf7f52c26f5bc2d2c422e670693d0873abfe685fb558b2a7be5b15d55dad",
 -      "sha256": "3fa50946a66cc274dbf798e88b98d7fd56a24a294fece84ccaf85f1d59cae1bb",
 -      "bytes": 14340
-+      "sha256": "d068520ac9cee7f36bed0cf9c1bcbb1a64a447db33aa677b5c8f6e766e6120cd",
-+      "bytes": 15458
++      "sha256": "82d824e7c7f822b7055a0768bc87ee24a302fb00fb3e5870e57f430c7f1336e4",
++      "bytes": 15561
      },
      {
        "path": "src-tauri/src/lib_tests.rs",
