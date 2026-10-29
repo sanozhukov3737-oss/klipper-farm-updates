@@ -95,7 +95,10 @@ jobs:
             $inputStream.Dispose()
             $combinedHash.Dispose()
           }
-          if ($parts.Count -ne 3 -or $parts[0].bytes -ne $chunkBytes -or $parts[1].bytes -ne $chunkBytes -or $parts[2].bytes -le 0 -or $parts[2].bytes -gt $chunkBytes -or ($parts | Measure-Object -Property bytes -Sum).Sum -ne $actualBytes) {
+          $totalPartBytes = [int64]0
+          foreach ($part in $parts) { $totalPartBytes += [int64]$part['bytes'] }
+          Write-Output ("Part boundaries: count={0}; lengths={1}; total={2}; installer={3}" -f $parts.Count, (($parts | ForEach-Object { [int64]$_['bytes'] }) -join ','), $totalPartBytes, $actualBytes)
+          if ($parts.Count -ne 3 -or [int64]$parts[0]['bytes'] -ne $chunkBytes -or [int64]$parts[1]['bytes'] -ne $chunkBytes -or [int64]$parts[2]['bytes'] -le 0 -or [int64]$parts[2]['bytes'] -gt $chunkBytes -or $totalPartBytes -ne $actualBytes) {
             throw 'Installer part boundaries or total size differ'
           }
           Copy-Item -LiteralPath $provenancePath -Destination delivery/preview-provenance.json
