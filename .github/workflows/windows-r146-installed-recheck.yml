@@ -54,35 +54,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $fingerprint=Get-Content work/app/.klipper-build-cache/source-fingerprint-v1.json -Raw | ConvertFrom-Json
-          if ($fingerprint.schema -ne 1 -or $fingerprint.buildId -ne 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29' -or $fingerprint.manifestSha256 -notmatch '^[0-9a-f]{64}
-          $setups=@(Get-ChildItem work/app/.klipper-build-cache/target/release/bundle/nsis -Filter '*.exe')
-          if ($setups.Count -ne 1 -or $setups[0].Name -ne 'Klipper Farm_1.14.5_x64-setup.exe') { throw 'Expected exactly the reviewed installer' }
-          Copy-Item $setups[0].FullName candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe
-          $setup=(Resolve-Path candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe).Path
-          $install=Join-Path $env:RUNNER_TEMP 'KF-Neural-Voice-Ксения'
-          $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw 'Clean installation failed' }
-          Expand-Archive r145-installed-voice-audio.zip voice-audio
-          python -c "import wave;from pathlib import Path;p=Path('voice-audio/stock.wav');a=wave.open(str(p),'rb');params=a.getparams();data=a.readframes(a.getnframes());a.close();b=wave.open('voice-audio/stock-padded.wav','wb');b.setparams(params);b.writeframes(data+bytes(params.framerate*params.nchannels*params.sampwidth*4));b.close()"
-          if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
-          node r146-voice-quality/check-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
-          if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
-          @{preview=$true;stablePublished=$false;buildRunId=40877258930;buildHeadSha='4a1979d21132ef4232d8f781c2727a700114d48c';verificationRunId=$env:GITHUB_RUN_ID;verificationHeadSha=$env:GITHUB_SHA;reusedExactSourceInstaller=$true;applicationInputsUnchanged=$true;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: Klipper-Farm-Neural-Voice-Preview-Windows
-          path: candidate
-          compression-level: 0
-          retention-days: 30
-      - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: Klipper-Farm-Neural-Voice-Preview-Evidence
-          path: |
-            proof/*.json
-            proof/*.png
-          retention-days: 30
-) { throw 'Cached source fingerprint differs' }
+          if ($fingerprint.schema -ne 1 -or $fingerprint.buildId -ne 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29' -or $fingerprint.manifestSha256 -notmatch '^[0-9a-f]{64}$') { throw 'Cached source fingerprint differs' }
           # GitHub hashFiles hashes the binary file digest, while the sentinel stores the raw file SHA256.
           $cacheDigest=[Convert]::ToHexString([System.Security.Cryptography.SHA256]::HashData([Convert]::FromHexString($fingerprint.manifestSha256))).ToLowerInvariant()
           if ($cacheDigest -ne 'feca8869208c717304f154c031c0ed5c3c58feabde356d46c1045958dd74eb60') { throw 'Cached source hashFiles fingerprint differs' }
