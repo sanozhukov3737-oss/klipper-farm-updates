@@ -96,15 +96,18 @@ def main():
     if not text or len(text) > MAX_TEXT or any(ord(c) < 32 or 127 <= ord(c) < 160 for c in text):
         raise ValueError('Invalid speech text')
     model_path = Path(__file__).resolve().parent / 'v5_6_ru.pt'
-    with model_path.open('rb') as stream:
+    # Only PCM may reach stdout; package diagnostics go to the bounded error pipe.
+    with model_path.open('rb') as stream, contextlib.redirect_stdout(sys.stderr):
         if hashlib.file_digest(stream, 'sha256').hexdigest() != MODEL_SHA256:
             raise ValueError('The packaged Silero model checksum differs')
-    # Only PCM may reach stdout; package diagnostics go to the bounded error pipe.
-    with contextlib.redirect_stdout(sys.stderr):
+        stream.seek(0)
         import torch
         torch.set_num_threads(4)
         torch.manual_seed(42)
-        model = torch.package.PackageImporter(str(model_path)).load_pickle('tts_models', 'model')
+        # PyTorch 2.5's filename reader uses narrow fopen on Windows. Python's
+        # Unicode-safe open plus the supported file-object reader also works
+        # when the installation path contains Russian letters or spaces.
+        model = torch.package.PackageImporter(stream).load_pickle('tts_models', 'model')
         model.to(torch.device('cpu'))
         with torch.inference_mode():
             audio = model.apply_tts(

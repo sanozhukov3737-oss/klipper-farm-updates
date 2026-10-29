@@ -113,14 +113,14 @@
     {
       "path": "scripts/check-silero-runtime.py",
       "beforeSha256": null,
-      "sha256": "0661c0363eb84b92e1d3677f5c2085eb5ca3b6f5b8fceab3f24b74c6f8fee1de",
-      "bytes": 2784
+      "sha256": "e7b6790c4c0d1cbe06af61529406c13e5e86d62a72870d86560f152d1bd0660d",
+      "bytes": 4371
     },
     {
       "path": "scripts/silero-synthesize.py",
       "beforeSha256": null,
-      "sha256": "e05f83a09e0bf6e3cce411eec06f84ebda43938b405fdd00e45090a9f2b3188a",
-      "bytes": 5566
+      "sha256": "bb19c0e2d845135059f2580fc6adf6acbe0c9b1adb5ab562a21a3d242844f5e7",
+      "bytes": 5800
     }
   ]
 }
