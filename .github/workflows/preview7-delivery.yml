@@ -1,0 +1,148 @@
+name: Deliver verified Preview7 installer in bounded parts
+'on':
+  push:
+    branches: [r146-offline-voice-quality]
+    paths: [.github/workflows/preview7-delivery.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  delivery:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Verify successful source and split the exact installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ProgressPreference = 'SilentlyContinue'
+          $sourceRunId = '40929491666'
+          $sourceHeadSha = '3e0f137143508867d30399e4b4fbbac842784beb'
+          $sourceArtifactId = [int64]'12923174311'
+          $sourceArtifactBytes = [int64]'861746058'
+          $sourceArtifactDigest = 'sha256:01cad1f4f2150e2b04239cfacde97417b79b4ff0dec2d4471aeac329afc20bc5'
+          if ($sourceArtifactId -le 0 -or $sourceArtifactBytes -le 0 -or $sourceArtifactDigest -cnotmatch '^sha256:[0-9a-f]{64}$') { throw 'Source artifact metadata has not been bound to a successful run' }
+          $buildId = 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW7-2026-10-29'
+          $artifactName = 'Klipper-Farm-Neural-Voice-Preview-Windows'
+          $sourceRun = gh api "repos/$($env:GITHUB_REPOSITORY)/actions/runs/$sourceRunId" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $sourceRun.status -ne 'completed' -or $sourceRun.conclusion -ne 'success' -or $sourceRun.head_sha -ne $sourceHeadSha -or $sourceRun.head_branch -ne 'r146-offline-voice-quality') {
+            throw 'The reviewed Preview7 source run is not successful or its source identity differs'
+          }
+          $artifactList = gh api "repos/$($env:GITHUB_REPOSITORY)/actions/runs/$sourceRunId/artifacts" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not verify the source artifact metadata' }
+          $sourceArtifacts = @($artifactList.artifacts | Where-Object { $_.id -eq $sourceArtifactId -and $_.name -eq $artifactName })
+          if ($sourceArtifacts.Count -ne 1 -or $sourceArtifacts[0].expired -ne $false -or $sourceArtifacts[0].size_in_bytes -ne $sourceArtifactBytes -or $sourceArtifacts[0].digest -cne $sourceArtifactDigest) {
+            throw 'The reviewed Preview7 source artifact differs or has expired'
+          }
+          New-Item -ItemType Directory -Path source,delivery | Out-Null
+          gh run download $sourceRunId --repo $env:GITHUB_REPOSITORY --name $artifactName --dir source
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the reviewed Preview7 artifact' }
+          $setup = Join-Path $PWD 'source/Klipper-Farm-Neural-Voice-Preview-setup.exe'
+          $provenancePath = Join-Path $PWD 'source/preview-provenance.json'
+          if (-not (Test-Path -LiteralPath $setup -PathType Leaf) -or -not (Test-Path -LiteralPath $provenancePath -PathType Leaf)) {
+            throw 'The expected installer or its source provenance is missing'
+          }
+          $provenance = Get-Content -LiteralPath $provenancePath -Raw | ConvertFrom-Json
+          if ([string]$provenance.buildRunId -ne $sourceRunId -or $provenance.buildHeadSha -ne $sourceHeadSha -or $provenance.buildId -ne $buildId -or $provenance.preview -ne $true -or $provenance.stablePublished -ne $false -or $provenance.cleanInstallVerified -ne $true -or $provenance.actualInstalledWebView -ne $true -or $provenance.installedSequence -ne 144 -or $provenance.voice -ne 'Silero Kseniya' -or $provenance.physicalPrintersTested -ne $false) {
+            throw 'Source provenance does not identify the verified Preview7 installer'
+          }
+          if ($provenance.installer.sha256 -cnotmatch '^[0-9a-f]{64}$') { throw 'Installer SHA256 is malformed' }
+          $expectedBytes = [int64]$provenance.installer.bytes
+          $actualBytes = (Get-Item -LiteralPath $setup).Length
+          $actualSha256 = (Get-FileHash -LiteralPath $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($expectedBytes -le 0 -or $actualBytes -ne $expectedBytes -or $actualSha256 -cne $provenance.installer.sha256) {
+            throw 'Installer bytes or SHA256 differ from the successful source provenance'
+          }
+          $chunkBytes = [int64](300 * 1024 * 1024)
+          if ([math]::Ceiling($actualBytes / [double]$chunkBytes) -ne 3) { throw 'The reviewed installer must produce exactly three bounded parts' }
+          $names = @('Preview7-setup.exe.part001','Preview7-setup.exe.part002','Preview7-setup.exe.part003')
+          $parts = @()
+          $buffer = New-Object byte[] (4 * 1024 * 1024)
+          $inputStream = [System.IO.File]::OpenRead($setup)
+          $combinedHash = [System.Security.Cryptography.IncrementalHash]::CreateHash([System.Security.Cryptography.HashAlgorithmName]::SHA256)
+          try {
+            for ($index = 0; $index -lt $names.Count; $index++) {
+              $partPath = Join-Path $PWD ('delivery/' + $names[$index])
+              $remaining = [math]::Min($chunkBytes, $inputStream.Length - $inputStream.Position)
+              if ($remaining -le 0) { throw 'Unexpected empty installer part' }
+              $partBytes = $remaining
+              $outputStream = [System.IO.File]::Open($partPath, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+              try {
+                while ($remaining -gt 0) {
+                  $read = $inputStream.Read($buffer, 0, [int][math]::Min([int64]$buffer.Length, $remaining))
+                  if ($read -le 0) { throw 'Unexpected end of the verified installer' }
+                  $outputStream.Write($buffer, 0, $read)
+                  $combinedHash.AppendData($buffer, 0, $read)
+                  $remaining -= $read
+                }
+              } finally {
+                $outputStream.Dispose()
+              }
+              if ((Get-Item -LiteralPath $partPath).Length -ne $partBytes) { throw 'Installer part length differs' }
+              $parts += [ordered]@{
+                part = $index + 1
+                fileName = $names[$index]
+                bytes = [int64]$partBytes
+                sha256 = (Get-FileHash -LiteralPath $partPath -Algorithm SHA256).Hash.ToLowerInvariant()
+              }
+            }
+            if ($inputStream.Position -ne $inputStream.Length) { throw 'The three parts do not cover the whole installer' }
+            $splitSha256 = [Convert]::ToHexString($combinedHash.GetHashAndReset()).ToLowerInvariant()
+            if ($splitSha256 -cne $actualSha256) { throw 'Split-stream SHA256 differs from the verified installer' }
+          } finally {
+            $inputStream.Dispose()
+            $combinedHash.Dispose()
+          }
+          if ($parts.Count -ne 3 -or $parts[0].bytes -ne $chunkBytes -or $parts[1].bytes -ne $chunkBytes -or $parts[2].bytes -le 0 -or $parts[2].bytes -gt $chunkBytes -or ($parts | Measure-Object -Property bytes -Sum).Sum -ne $actualBytes) {
+            throw 'Installer part boundaries or total size differ'
+          }
+          Copy-Item -LiteralPath $provenancePath -Destination delivery/preview-provenance.json
+          [ordered]@{
+            schema = 1
+            deliveryKind = 'split-existing-verified-installer'
+            sourceRunId = $sourceRunId
+            sourceHeadSha = $sourceHeadSha
+            sourceArtifactId = $sourceArtifactId
+            sourceArtifactBytes = $sourceArtifactBytes
+            sourceArtifactDigest = $sourceArtifactDigest
+            deliveryRunId = $env:GITHUB_RUN_ID
+            buildId = $buildId
+            sourceProvenanceSha256 = (Get-FileHash -LiteralPath $provenancePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            installer = [ordered]@{
+              fileName = 'Klipper-Farm-Neural-Voice-Preview-setup.exe'
+              bytes = [int64]$actualBytes
+              sha256 = $actualSha256
+            }
+            chunkBytes = $chunkBytes
+            parts = $parts
+          } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath delivery/installer-parts-sha256.json -Encoding utf8NoBOM
+          Write-Output "Verified Preview7 installer: $actualBytes bytes, SHA256 $actualSha256; exactly three parts created."
+      - name: Upload part 001 with hashes and original provenance
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Preview7-Installer-Part-001
+          path: |
+            delivery/Preview7-setup.exe.part001
+            delivery/installer-parts-sha256.json
+            delivery/preview-provenance.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload part 002
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Preview7-Installer-Part-002
+          path: delivery/Preview7-setup.exe.part002
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload part 003
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Preview7-Installer-Part-003
+          path: delivery/Preview7-setup.exe.part003
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
