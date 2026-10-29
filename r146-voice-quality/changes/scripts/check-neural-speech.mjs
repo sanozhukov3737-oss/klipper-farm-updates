@@ -5,7 +5,7 @@ globalThis.window=new EventTarget();globalThis.localStorage={setItem(){}};
 const api=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
 api.setAuthSession({token:'test',user:{id:'test'}});
 let calls=[],transcribe=async()=> 'Принтер К1 Макс поставь на печать корпус',status=async()=>({recognition:true,synthesis:true}),lastCapture,stopped=0;
-api.mockIPC(async(command,args)=>{calls.push(command);if(command==='voice_tools_status')return status();if(command==='voice_transcribe')return transcribe(args);if(command==='voice_synthesize')return{pcm:[0,0,50,0],sampleRate:22050};throw new Error(command)});
+api.mockIPC(async(command,args)=>{calls.push(command);if(command==='voice_tools_status')return status();if(command==='voice_transcribe')return transcribe(args);if(command==='voice_synthesize')return{pcm:[0,0,50,0],sampleRate:48000};throw new Error(command)});
 class FakeAudioContext{sampleRate=48000;destination={};audioWorklet={addModule:async()=>{}};resume=async()=>{};close=async()=>{};createMediaStreamSource=()=>({connect(){},disconnect(){}})}
 class FakeCapture{constructor(){lastCapture=this}port={onmessage:undefined};connect(){}disconnect(){}}
 globalThis.AudioContext=FakeAudioContext;globalThis.AudioWorkletNode=window.AudioWorkletNode=FakeCapture;
@@ -24,9 +24,9 @@ await test('a pause inside the command does not cut it off; final silence submit
 await test('cancellation during transcription never executes stale recognized text',async()=>{let resolve;transcribe=()=>new Promise(done=>resolve=done);const f=make();await f.mic.start();feed(50,0.1);const finishing=f.mic.finish();await tick();f.mic.cancel();resolve('Напечатай корпус');await finishing;assert.equal(f.events.texts.length,0);f.mic.dispose();transcribe=async()=> 'Остаток пластика'});
 await test('cancellation while loading does not open the microphone',async()=>{let resolve;status=()=>new Promise(done=>resolve=done);const f=make(),starting=f.mic.start(),before=stopped;await tick();f.mic.cancel();resolve({recognition:true});await starting;assert.equal(stopped,before);assert.equal(f.events.texts.length,0);f.mic.dispose();status=async()=>({recognition:true})});
 await test('missing packaged model is shown as an error without using cloud or old recognition',async()=>{calls=[];status=async()=>({recognition:false});const f=make();await f.mic.start();assert.equal(f.events.errors.length,1);assert.match(f.events.errors[0],/Whisper/);assert.deepEqual(calls,['voice_tools_status']);f.mic.dispose();status=async()=>({recognition:true})});
-await test('cancelling pending synthesized speech prevents delayed playback',async()=>{let resolve,played=0;api.mockIPC(()=>new Promise(done=>resolve=done));globalThis.Audio=class{addEventListener(){}play(){played++;return Promise.resolve()}pause(){}};const speaking=api.speakNeuralOffline('Остаток пластика');await tick();api.stopNeuralSpeech();resolve({pcm:[0,0],sampleRate:22050});await speaking;assert.equal(played,0)});
+await test('default female voice and cancellation prevent delayed playback',async()=>{let resolve,played=0,requestedVoice;api.mockIPC((command,args)=>{requestedVoice=args.voiceId;return new Promise(done=>resolve=done)});globalThis.Audio=class{addEventListener(){}play(){played++;return Promise.resolve()}pause(){}};const speaking=api.speakNeuralOffline('Остаток пластика');await tick();assert.equal(requestedVoice,'kseniya');api.stopNeuralSpeech();resolve({pcm:[0,0],sampleRate:48000});await speaking;assert.equal(played,0)});
 await test('interrupting playback does not report a missing voice module',async()=>{
- let rejectPlay,started=0;api.mockIPC(()=>({pcm:[0,0,50,0],sampleRate:22050}));
+ let rejectPlay,started=0;api.mockIPC(()=>({pcm:[0,0,50,0],sampleRate:48000}));
  globalThis.Audio=class{addEventListener(){}play(){started++;return new Promise((_,reject)=>rejectPlay=reject)}pause(){rejectPlay?.(new DOMException('Interrupted','AbortError'))}};
  const speaking=api.speakNeuralOffline('Проверка звука');await tick();assert.equal(started,1);api.stopNeuralSpeech();await speaking;
 });

@@ -29,14 +29,14 @@
     {
       "path": "src/lib/neuralSpeech.ts",
       "beforeSha256": null,
-      "sha256": "0203eca0d968e2db273a47acabda71feb54e0d6d641cdffecd3bce0e243c335b",
-      "bytes": 7667
+      "sha256": "7d4716a5a6e49805f9e3341342fb65f8ee724cde8eec45b18088f3381744f381",
+      "bytes": 7662
     },
     {
       "path": "src/components/VoiceAssistantPanel.tsx",
       "beforeSha256": "01f1ca97493ab7e95bebf2fbbe99750efb2566c1fde17bcb211eb33f53442f03",
-      "sha256": "ce7395a30c81be40b2842a5b43edc8787ee983a69f4b348609d5d797b883244d",
-      "bytes": 10999
+      "sha256": "137425d37421f8d9af0d75ab8b34705206be1d8f761d29df7b1b2d23f347692a",
+      "bytes": 11033
     },
     {
       "path": "src/components/VoiceAssistantPanel.css",
@@ -53,56 +53,74 @@
     {
       "path": "scripts/check-neural-speech.mjs",
       "beforeSha256": null,
-      "sha256": "a3c9ef256c00b5bd3d2de955116d12c32aaa3d1e31adb25b876ef587d711a26e",
-      "bytes": 5391
+      "sha256": "09e158134419268390f1727d90af8eb098266460ef8c28170aa6e5e8cb71e8be",
+      "bytes": 5493
     },
     {
       "path": "scripts/prepare-neural-speech.py",
       "beforeSha256": null,
-      "sha256": "7b749b3eb40afdee011f2828e4afdf8f4a1b3874d8552a2a5dc89fab13d15367",
-      "bytes": 3905
+      "sha256": "17fed680e0818a319efb829896a1e9a8982ee174c5df4ecc737b59bca208d2b1",
+      "bytes": 5769
     },
     {
       "path": "scripts/neural-speech-assets.json",
       "beforeSha256": null,
-      "sha256": "5b15c5777cb59747c94b696903e9b17d53ccde06e8cb17bbe13eb611a4af2d92",
-      "bytes": 2558
+      "sha256": "b5d04079713a6b4ef91929dcb194b372cd94e54d258132cbe925a508ff051131",
+      "bytes": 5132
     },
     {
       "path": "scripts/check-neural-speech-assets.mjs",
       "beforeSha256": null,
-      "sha256": "2e9d0217c72a04889dcab29e7f7adf326e51f6e357aa83fbf6613e4ab2291b88",
-      "bytes": 1058
+      "sha256": "30e16466874914fd53c6fd2a759583b24bc51bd3b37f60280f3604fe840be2e0",
+      "bytes": 1735
     },
     {
       "path": "scripts/NEURAL-SPEECH-NOTICES.txt",
       "beforeSha256": null,
-      "sha256": "9e773d5581a3c49fbca853ec18e10d9a7ecc49278d4e0f613ca5ed74e278c3e8",
-      "bytes": 1154
+      "sha256": "9052fa10d3a12f0f3536cfc2518d2fcb4a7aa54e134d39e4b931bd9a66daa602",
+      "bytes": 1745
     },
     {
       "path": "ui-tests/voice-assistant-r145.tsx",
       "beforeSha256": "f9cb560f06255c7f53f0fcee90f25c62d9f27812e9bb50f7522fd267acf3be2c",
-      "sha256": "94d167b0db606c061f1bc7741964e656e68f98e037a90efc3654b3959145af8e",
-      "bytes": 2636
+      "sha256": "d0400c511594337ea1663ad3d7ee954a1c7f01e9161d239c3ecb39916e59ab1d",
+      "bytes": 2702
     },
     {
       "path": "ui-tests/voice-assistant-r145.mjs",
       "beforeSha256": "be07e9e1aa15adc020564b164491f3986d9c13920c85d7fff5f2ea92b93b3754",
-      "sha256": "2a78b9f512de816dd471912ee72e63212f2eb15e69e69f5ecd6e00e81fa51c22",
-      "bytes": 9582
+      "sha256": "0e2bd1657f2743ad39157b169bf687412173fb8ce1b002959d6463027fd49d21",
+      "bytes": 9910
     },
     {
       "path": "src-tauri/src/offline_voice.rs",
       "beforeSha256": null,
-      "sha256": "57f6663cc8851ce22b6d4f04bca8bfb105d087ab8570969ecc9201f6db0fe882",
-      "bytes": 11760
+      "sha256": "6eb8ecbd324a2ca6b51b8e5c226aab6a73ba3e712455d6dc5348bf3bfc76c7dc",
+      "bytes": 11725
     },
     {
       "path": "src/lib/voiceAssistant.ts",
       "beforeSha256": "5adedf7f52c26f5bc2d2c422e670693d0873abfe685fb558b2a7be5b15d55dad",
       "sha256": "3fa50946a66cc274dbf798e88b98d7fd56a24a294fece84ccaf85f1d59cae1bb",
       "bytes": 14340
+    },
+    {
+      "path": "src-tauri/src/lib_tests.rs",
+      "beforeSha256": "4009c0ab71bf7a9dd4624fd10f4b64c2840f86827a49b771ac0eae36710af748",
+      "sha256": "18f723b43ac233fbb2ad9f99fffba934735430f36693ef5487e384c988d2a34b",
+      "bytes": 32909
+    },
+    {
+      "path": "scripts/check-silero-runtime.py",
+      "beforeSha256": null,
+      "sha256": "0661c0363eb84b92e1d3677f5c2085eb5ca3b6f5b8fceab3f24b74c6f8fee1de",
+      "bytes": 2784
+    },
+    {
+      "path": "scripts/silero-synthesize.py",
+      "beforeSha256": null,
+      "sha256": "e05f83a09e0bf6e3cce411eec06f84ebda43938b405fdd00e45090a9f2b3188a",
+      "bytes": 5566
     }
   ]
 }

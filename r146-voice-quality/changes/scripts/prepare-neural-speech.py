@@ -1,8 +1,10 @@
 """Prepare pinned Windows speech tools at build time; the installed app never downloads models."""
 import argparse
+import errno
 import hashlib
 import json
 import shutil
+import time
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -22,6 +24,14 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def safe_path(name):
+    path = PurePosixPath(name)
+    if path.is_absolute() or '..' in path.parts or '\\' in name or any(':' in part for part in path.parts):
+        raise SystemExit('Unsafe speech archive entry')
+    return path
+
+
+# Verify every input before replacing build-owned runtime files.
 for item in pins:
     archive = args.cache / item['name']
     if not archive.is_file() or digest(archive) != item['sha256']:
@@ -34,30 +44,63 @@ for item in pins:
             pending.unlink(missing_ok=True)
             raise SystemExit(f"Speech asset hash differs: {item['name']}")
         pending.replace(archive)
-    if archive.suffix == '.zip':
+    if archive.stat().st_size != item['bytes']:
+        raise SystemExit(f"Speech asset size differs: {item['name']}")
+
+for stale in ['piper', 'silero']:
+    # Some build filesystems expose delayed directory removals for large wheels.
+    for attempt in range(4):
+        try:
+            if (destination / stale).exists():
+                shutil.rmtree(destination / stale)
+            break
+        except OSError as error:
+            if error.errno != errno.ENOTEMPTY or attempt == 3:
+                raise
+            time.sleep(0.05)
+
+for item in pins:
+    archive = args.cache / item['name']
+    kind = item['kind']
+    if kind in ['whisper-tools', 'python-embed', 'wheel']:
         with zipfile.ZipFile(archive) as container:
             for entry in container.infolist():
-                path = PurePosixPath(entry.filename)
-                if path.is_absolute() or '..' in path.parts or '\\' in entry.filename or (entry.external_attr >> 16) & 0o170000 == 0o120000:
+                path = safe_path(entry.filename)
+                if (entry.external_attr >> 16) & 0o170000 == 0o120000:
                     raise SystemExit('Unsafe speech archive entry')
                 if entry.is_dir():
                     continue
-                if item['name'] == 'whisper-win.zip':
+                if kind == 'whisper-tools':
                     if path.name != 'whisper-cli.exe' and path.suffix.lower() != '.dll':
                         continue
                     target = destination / 'whisper' / path.name
+                elif kind == 'python-embed':
+                    target = destination.joinpath('silero', 'python', *path.parts)
                 else:
-                    if path.parts[0] != 'piper':
-                        raise SystemExit('Unexpected Piper archive root')
-                    target = destination.joinpath(*path.parts)
+                    parts = path.parts
+                    if parts[0].endswith('.data'):
+                        if len(parts) < 3 or parts[1] not in ['purelib', 'platlib']:
+                            continue
+                        parts = parts[2:]
+                    target = destination.joinpath('silero', 'python', 'Lib', 'site-packages', *parts)
                 target.parent.mkdir(parents=True, exist_ok=True)
                 with container.open(entry) as source, target.open('wb') as output:
                     shutil.copyfileobj(source, output)
-    else:
-        group = 'whisper' if item['name'].endswith('.bin') else 'piper'
-        target = destination / group / item['name']
+    elif kind == 'file':
+        target = destination.joinpath(*safe_path(item['target']).parts)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(archive, target)
+    else:
+        raise SystemExit(f'Unknown speech asset kind: {kind}')
+
+# Embeddable Python loads only this app's standard library and verified wheels.
+# No system Python, user site-packages, pip, or package downloads at runtime.
+(destination / 'silero/python/python312._pth').write_bytes(b'python312.zip\n.\nLib/site-packages\n')
+# The upstream embeddable LICENSE mixes CRLF and LF; retain its full text with
+# LF endings so the existing release portability contract remains unchanged.
+python_license = destination / 'silero/python/LICENSE.txt'
+python_license.write_bytes(python_license.read_bytes().replace(b'\r\n', b'\n'))
+shutil.copyfile(root / 'scripts/silero-synthesize.py', destination / 'silero/tts.py')
 
 # Keep Unicode off the Windows ANSI command line. Whisper reads these bytes as UTF-8.
 # LF is deliberate: its response-file parser reads one argument per line.

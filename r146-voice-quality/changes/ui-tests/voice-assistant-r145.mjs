@@ -27,8 +27,11 @@ try{
  await page.route('**/*',route=>{if(new URL(route.request().url()).hostname!=='127.0.0.1'){external.push(route.request().url());return route.abort()}return route.continue()});
  await page.goto(`http://127.0.0.1:${port}/ui-tests/voice-assistant-r145.html`);
  const input=page.getByRole('textbox',{name:'Команда помощнику'}),send=page.getByRole('button',{name:'Отправить команду',exact:true});
+ assert.equal(await page.getByRole('combobox',{name:'Голос помощника'}).inputValue(),'kseniya');
  await input.fill('Сколько осталось пластика?');await send.click();await page.getByRole('log').getByText(/Общий запас пластика/).waitFor();assert.match(await page.getByRole('log').innerText(),/1.500/);report.push({name:'stock from actual native-backed inventory adapter',passed:true});
- await page.getByRole('combobox',{name:'Голос помощника'}).selectOption('dmitri');await page.getByRole('button',{name:'Послушать',exact:true}).click();await page.waitForFunction(()=>window.voiceFixture.state().calls.includes('voice_synthesize'));report.push({name:'neural voice selection and preview use authenticated native speech boundary',passed:true});
+ await page.waitForFunction(()=>window.voiceFixture.state().voices.includes('kseniya'));
+ const beforePreview=(await page.evaluate(()=>window.voiceFixture.state())).voices.length;
+ await page.getByRole('button',{name:'Послушать',exact:true}).click();await page.waitForFunction(before=>window.voiceFixture.state().voices.length>before,beforePreview);assert.deepEqual((await page.evaluate(()=>window.voiceFixture.state())).voices.filter(id=>id!=='kseniya'),[]);report.push({name:'selected Russian Kseniya is the default and preview uses authenticated native speech boundary',passed:true});
  await page.getByRole('button',{name:'Выключить голосовые ответы',exact:true}).click();
  await input.fill('Найди корпуз на K1 Max');await send.click();await page.getByRole('log').getByText(/Точного совпадения нет/).waitFor();assert.equal(await page.locator('.kfVoiceProposal').count(),0);assert.equal((await page.evaluate(()=>window.voiceFixture.state())).started,0);
  await page.locator('.kfVoiceChoices button').first().click();await page.locator('.kfVoiceProposal').waitFor();assert.equal((await page.evaluate(()=>window.voiceFixture.state())).started,0);await page.getByRole('button',{name:'Отмена',exact:true}).click();report.push({name:'misheard file name requires an explicit choice and a separate print confirmation',passed:true});

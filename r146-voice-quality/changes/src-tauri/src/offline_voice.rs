@@ -5,7 +5,7 @@ use std::process::{Child, Command, Stdio};
 static RECOGNIZING: Mutex<()> = Mutex::new(());
 static SYNTHESIZING: Mutex<()> = Mutex::new(());
 const MAX_WAVE: usize = 44 + 20 * 16_000 * 2;
-const MAX_PCM: usize = 22_050 * 2 * 120;
+const MAX_PCM: usize = 48_000 * 2 * 120;
 
 #[derive(Serialize)]
 pub(crate) struct SpeechStatus {
@@ -47,8 +47,10 @@ pub(crate) fn voice_tools_status(
         recognition: tool(&root.join("whisper"), "whisper-cli").is_file()
             && root.join("whisper/ggml-small-q5_1.bin").is_file()
             && root.join("whisper/recognition.args").is_file(),
-        synthesis: tool(&root.join("piper"), "piper").is_file()
-            && root.join("piper/ru_RU-denis-medium.onnx").is_file(),
+        synthesis: tool(&root.join("silero/python"), "python").is_file()
+            && root.join("silero/python/Lib/site-packages/torch/__init__.py").is_file()
+            && root.join("silero/tts.py").is_file()
+            && root.join("silero/v5_6_ru.pt").is_file(),
     })
 }
 
@@ -98,7 +100,7 @@ fn run_tool(
                 Ok(Some(status)) => break Ok(status),
                 Err(_) => break Err("Не удалось проверить речевой движок"),
                 Ok(None) if started.elapsed() >= timeout => break Err(
-                    "Распознавание заняло слишком много времени. Повторите более короткую команду",
+                    "Обработка речи заняла слишком много времени. Повторите более короткую фразу",
                 ),
                 Ok(None) => thread::sleep(Duration::from_millis(40)),
             }
@@ -265,36 +267,28 @@ pub(crate) async fn voice_synthesize(
     voice_id: String,
 ) -> Result<SynthesizedSpeech, String> {
     require_role(&app, &auth, &session_token, Role::Viewer)?;
-    if !matches!(voice_id.as_str(), "denis" | "dmitri")
+    if voice_id != "kseniya"
         || text.trim().is_empty()
         || text.chars().count() > 1_200
         || text.chars().any(|c| c.is_control())
     {
         return Err("Некорректные параметры озвучивания".into());
     }
-    let root = speech_root(&app)?.join("piper");
+    let root = speech_root(&app)?.join("silero");
     bounded_spawn_blocking(ExecutionClass::FileIo, move || {
         let _guard = SYNTHESIZING
             .try_lock()
             .map_err(|_| "Озвучивание ещё подготавливается")?;
-        let model = root.join(format!("ru_RU-{voice_id}-medium.onnx"));
+        let model = root.join("v5_6_ru.pt");
         if !model.is_file() {
             return Err("Не установлен выбранный нейроголос".into());
         }
-        let mut command = Command::new(tool(&root, "piper"));
+        let mut command = Command::new(tool(&root.join("python"), "python"));
         command
             .current_dir(&root)
-            .arg("--model")
-            .arg(format!("ru_RU-{voice_id}-medium.onnx"))
-            .args([
-                "--output-raw",
-                "--espeak_data",
-                "espeak-ng-data",
-                "--sentence_silence",
-                "0.15",
-                "--length_scale",
-                "1.0",
-            ]);
+            // Python's isolated mode ignores user Python settings. Russian text
+            // travels through UTF-8 stdin, never the Windows command line.
+            .args(["-I", "-X", "utf8", "tts.py"]);
         let pcm = run_tool(
             command,
             format!("{text}\n").into_bytes(),
@@ -306,7 +300,7 @@ pub(crate) async fn voice_synthesize(
         }
         Ok(SynthesizedSpeech {
             pcm,
-            sample_rate: 22_050,
+            sample_rate: 48_000,
         })
     })
     .await

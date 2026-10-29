@@ -62,12 +62,13 @@ try{
  await cdp.evaluate('document.querySelector(".wizard .wizardNext").click()');
  await waitFor(()=>cdp.evaluate('!!document.querySelector(\'button[aria-label="Голосовой помощник"]\')'),Boolean,'actual authenticated application',60000);
  const identity=await cdp.evaluate(`(async()=>await(await fetch(new URL('/BUILD-PROVENANCE.json',location.href))).json())()`);
- assert.equal(identity.buildId,'V20.6-R14.5-OFFLINE-VOICE-PREVIEW2-2026-10-28');
+ assert.equal(identity.buildId,'V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29');
  const status=await cdp.evaluate(`window.__TAURI_INTERNALS__.invoke('voice_tools_status',{sessionToken:window.__speechSmokeSession})`);
  assert.equal(status.recognition,true);assert.equal(status.synthesis,true);
  await cdp.evaluate('document.querySelector(\'button[aria-label="Голосовой помощник"]\').click()');
  await waitFor(()=>cdp.evaluate('!!document.querySelector(".kfVoicePanel")'),Boolean,'assistant panel');
- for(const [index,voice] of ['denis','dmitri'].entries()){
+ assert.equal(await cdp.evaluate('document.querySelector(\'select[aria-label="Голос помощника"]\').value'),'kseniya');
+ for(const [index,voice] of ['kseniya'].entries()){
   await cdp.evaluate(`(()=>{const select=document.querySelector('select[aria-label="Голос помощника"]');select.value=${JSON.stringify(voice)};select.dispatchEvent(new Event('change',{bubbles:true}))})()`);
   await cdp.evaluate(`Array.from(document.querySelectorAll('.kfVoicePanel button')).find(button=>button.textContent.trim()==='Послушать').click()`);
   await waitFor(()=>cdp.evaluate(`window.__speechSmoke.samples.find(sample=>sample.voiceId===${JSON.stringify(voice)})`),Boolean,'packaged neural voice '+voice,60000);
@@ -79,9 +80,9 @@ try{
  await waitFor(()=>cdp.evaluate(`Array.from(document.querySelectorAll('.kfVoiceMessage.assistant')).some(item=>item.textContent.includes('Общий запас пластика'))`),Boolean,'recognized question answered through real inventory');
  const result=await cdp.evaluate('window.__speechSmoke');
  assert(result.energy>0.001&&result.frames>4800);assert.equal(result.transcripts.length,1);assert.deepEqual(result.errors,[]);
- for(const voice of ['denis','dmitri']){const sample=result.samples.find(item=>item.voiceId===voice);assert(sample.bytes>22050);assert.equal(sample.sampleRate,22050);assert(sample.rms>0.001)}
+ for(const voice of ['kseniya']){const sample=result.samples.find(item=>item.voiceId===voice);assert(sample.bytes>48000);assert.equal(sample.sampleRate,48000);assert(sample.rms>0.001)}
  assert.deepEqual(exceptions,[]);assert.deepEqual(externalRequests,[]);
- const report={passed:true,buildId:identity.buildId,actualInstalledWebView:true,packagedWhisper:true,packagedPiperVoices:['denis','dmitri'],actualWorklet:true,syntheticMicrophone:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,recognized,voiceSamples:result.samples,microphoneEnergy:result.energy,microphoneFrames:result.frames,frontendExternalRequests:externalRequests};
+ const report={passed:true,buildId:identity.buildId,actualInstalledWebView:true,packagedWhisper:true,packagedSileroVoices:['kseniya'],packagedPython:true,actualWorklet:true,syntheticMicrophone:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,recognized,voiceSamples:result.samples,microphoneEnergy:result.energy,microphoneFrames:result.frames,frontendExternalRequests:externalRequests};
  fs.writeFileSync(path.join(proof,'installed-neural-speech.json'),JSON.stringify(report,null,2)+'\n');
  const screenshot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(proof,'installed-neural-speech.png'),Buffer.from(screenshot.data,'base64'));
  console.log(JSON.stringify(report));

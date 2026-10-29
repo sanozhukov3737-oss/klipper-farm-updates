@@ -51,6 +51,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Pinned speech engine preparation failed' }
           python r146-voice-quality/prepare-windows-runtime.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'App-local speech runtime preparation failed' }
+          python work/app/scripts/check-silero-runtime.py
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged offline Kseniya voice failed' }
+          Copy-Item work/app/silero-runtime-proof.json proof/silero-runtime.json
           Invoke-WebRequest -Uri 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip' -OutFile incoming/voice-model.zip
           python work/app/scripts/prepare-voice-model.py incoming/voice-model.zip
           if ($LASTEXITCODE -ne 0) { throw 'Confirmation model preparation failed' }
@@ -106,7 +109,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $setup=(Resolve-Path candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe).Path
-          $install=Join-Path $env:RUNNER_TEMP 'KF-Neural-Voice'
+          $install=Join-Path $env:RUNNER_TEMP 'KF-Neural-Voice-Ксения'
           $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw 'Clean installation failed' }
           New-Item -ItemType Directory -Force proof/smoke | Out-Null
@@ -117,7 +120,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
           node r146-voice-quality/check-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
-          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW2-2026-10-28';installedSequence=144;cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Klipper-Farm-Neural-Voice-Preview-Windows

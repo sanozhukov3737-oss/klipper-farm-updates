@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "platform": "linux",
+  "voiceId": "kseniya",
+  "model": "v5_6_ru",
+  "sampleRate": 48000,
+  "pcmBytes": 794400,
+  "audioSeconds": 8.275,
+  "rms": 0.12705105046171783,
+  "peak": 0.903167724609375,
+  "clippedSamples": 0,
+  "recognized": "привет рада тебя слышать принтер кей один макс готов к работе до окончания печати осталось двадцать три минуты",
+  "isolatedPython": true,
+  "noSystemSitePackages": true,
+  "numpyNotRequired": true,
+  "numericSpeechVerified": true,
+  "modelSha256": "04cc9b1d08ce38bcaa9d02c488d80d3e6806d17f7eaa7c95982f36a3cbf50b2e",
+  "windowsRuntimeExecuted": false
+}

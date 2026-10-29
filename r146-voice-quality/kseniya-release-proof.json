@@ -1,0 +1,17 @@
+[
+  {
+    "script": "check-neural-speech-assets.mjs",
+    "exitCode": 0,
+    "summary": "Verified offline neural speech files: 13746\n"
+  },
+  {
+    "script": "generate-release-manifests.mjs",
+    "exitCode": 0,
+    "summary": "Offline payload manifest: 564 files\nRelease manifest: 15667 files\n"
+  },
+  {
+    "script": "check-release-portability.mjs",
+    "exitCode": 0,
+    "summary": "release portability OK: 15668 packaged files, 15667 checksums, 564 offline inputs, Windows-safe names/UTF-8/CRLF/CI\n"
+  }
+]

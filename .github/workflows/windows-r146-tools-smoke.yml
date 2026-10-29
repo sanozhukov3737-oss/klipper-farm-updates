@@ -2,7 +2,7 @@ name: Verify packaged Windows speech executables
 'on':
   push:
     branches: [r146-offline-voice-quality]
-    paths: [.github/workflows/windows-r146-tools-smoke.yml, r146-tools-smoke.py]
+    paths: [.github/workflows/windows-r146-tools-smoke.yml, r146-tools-smoke.py, 'r146-voice-quality/changes/scripts/**', r146-voice-quality/prepare-windows-runtime.py]
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -21,6 +21,8 @@ jobs:
             /r146-voice-quality/changes/scripts/prepare-neural-speech.py
             /r146-voice-quality/changes/scripts/neural-speech-assets.json
             /r146-voice-quality/changes/scripts/NEURAL-SPEECH-NOTICES.txt
+            /r146-voice-quality/changes/scripts/silero-synthesize.py
+            /r146-voice-quality/changes/scripts/check-silero-runtime.py
             /r146-voice-quality/prepare-windows-runtime.py
             /r146-tools-smoke.py
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
@@ -35,6 +37,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Pinned tools preparation failed' }
           python r146-voice-quality/prepare-windows-runtime.py r146-voice-quality/changes
           if ($LASTEXITCODE -ne 0) { throw 'Windows runtime preparation failed' }
+          python r146-voice-quality/changes/scripts/check-silero-runtime.py
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged Kseniya runtime check failed' }
           python r146-tools-smoke.py
           if ($LASTEXITCODE -ne 0) { throw 'Standalone speech engine check failed' }
       - if: always()

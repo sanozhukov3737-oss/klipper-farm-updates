@@ -36,12 +36,12 @@ for row in manifest['files']:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes((patch / 'changes' / row['path']).read_bytes())
 
-identity = 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW2-2026-10-28'
+identity = 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29'
 (root / 'RELEASE-BUILD-ID.txt').write_text(identity + '\n')
 for name in ['scripts/check-r9-clean-installer.mjs', 'scripts/check-release-portability.mjs']:
     target = root / name
     source = target.read_text()
-    for old in ['V20.6-R14.5-OFFLINE-VOICE-PREVIEW-2026-10-28', 'V20.6-R14.4-PRINTER-FAULT-RECOVERY-2026-10-28']:
+    for old in ['V20.6-R14.5-OFFLINE-VOICE-PREVIEW-2026-10-28', 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW2-2026-10-28', 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW3-2026-10-29', 'V20.6-R14.4-PRINTER-FAULT-RECOVERY-2026-10-28']:
         source = source.replace(old, identity)
     target.write_text(source)
 print('Applied local voice revision. Next prepare speech assets, test, and build Windows. Stable sequence remains 144.')

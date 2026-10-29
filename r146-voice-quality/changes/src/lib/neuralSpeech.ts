@@ -1,7 +1,7 @@
 import {secureInvoke} from './auth';
 import type {ListeningState} from './offlineSpeech';
 
-export type NeuralVoice='denis'|'dmitri';
+export type NeuralVoice='kseniya';
 type Callbacks={state:(state:ListeningState)=>void;partial:(text:string)=>void;text:(text:string,confidence:number)=>void;error:(text:string)=>void};
 let playback:HTMLAudioElement|undefined,playbackUrl:string|undefined,speechGeneration=0;
 let synthesisQueue:Promise<unknown>=Promise.resolve();
@@ -9,7 +9,7 @@ export function stopNeuralSpeech(){
   speechGeneration++;playback?.pause();playback=undefined;
   if(playbackUrl)URL.revokeObjectURL(playbackUrl);playbackUrl=undefined;
 }
-export async function speakNeuralOffline(text:string,voiceId:NeuralVoice='denis'){
+export async function speakNeuralOffline(text:string,voiceId:NeuralVoice='kseniya'){
   stopNeuralSpeech();const generation=speechGeneration;
   const task=synthesisQueue.then(()=>generation===speechGeneration?secureInvoke<{pcm:number[];sampleRate:number}>('voice_synthesize',{text:text.replace(/\s+/g,' ').slice(0,1200),voiceId}):undefined);
   synthesisQueue=task.catch(()=>{});

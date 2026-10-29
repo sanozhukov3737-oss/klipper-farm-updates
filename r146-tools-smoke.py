@@ -13,20 +13,20 @@ assert sys.platform == 'win32'
 speech = Path('r146-voice-quality/changes/src-tauri/speech').resolve()
 samples = []
 raw = None
-for voice in ('denis', 'dmitri'):
+for voice in ('kseniya',):
     started = time.monotonic()
-    result = subprocess.run([str(speech / 'piper/piper.exe'), '--model', f'ru_RU-{voice}-medium.onnx', '--espeak_data', 'espeak-ng-data', '--output-raw'],
-                            cwd=speech / 'piper', input='Принтер кей один макс, поставь на печать корпус.\n'.encode(), capture_output=True, timeout=40)
+    result = subprocess.run([str(speech / 'silero/python/python.exe'), '-I', '-X', 'utf8', 'tts.py'],
+                            cwd=speech / 'silero', input='Принтер K1 Max, поставь на печать корпус.\n'.encode('utf-8'), capture_output=True, timeout=40)
     if result.returncode:
-        raise SystemExit(f'Piper {voice} failed: {result.returncode}; {result.stderr.decode("utf-8",errors="replace")}')
+        raise SystemExit(f'Silero {voice} failed: {result.returncode}; {result.stderr.decode("utf-8",errors="replace")}')
     pcm = array.array('h')
     pcm.frombytes(result.stdout)
     rms = math.sqrt(sum((value / 32768) ** 2 for value in pcm) / len(pcm))
-    assert len(pcm) > 22050 and rms > 0.001
-    samples.append({'voice': voice, 'pcmBytes': len(result.stdout), 'rms': rms, 'seconds': round(time.monotonic() - started, 2)})
+    assert len(pcm) > 48000 and rms > 0.001
+    samples.append({'voice': voice, 'sampleRate':48000, 'pcmBytes': len(result.stdout), 'rms': rms, 'seconds': round(time.monotonic() - started, 2)})
     raw = pcm
 
-resampled = array.array('h', (raw[int(i * 22050 / 16000)] for i in range(int(len(raw) * 16000 / 22050))))
+resampled = array.array('h', (round(sum(raw[i:i+3])/3) for i in range(0,len(raw)-2,3)))
 audio = io.BytesIO()
 with wave.open(audio, 'wb') as output:
     output.setnchannels(1)

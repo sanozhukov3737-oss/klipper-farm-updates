@@ -19,12 +19,12 @@ crt = list((version / 'x64').glob('Microsoft.VC*.CRT'))
 openmp = list((version / 'x64').glob('Microsoft.VC*.OpenMP'))
 if len(crt) != 1 or len(openmp) != 1:
     raise SystemExit('Could not resolve the x64 app-local CRT and OpenMP redistributables')
-for engine in ('piper', 'whisper'):
+for engine in ('silero/python', 'whisper'):
     for source in sorted(crt[0].glob('*.dll')):
         shutil.copyfile(source, speech / engine / source.name)
 for source in sorted(openmp[0].glob('*.dll')):
     shutil.copyfile(source, speech / 'whisper' / source.name)
-for engine in ('piper', 'whisper'):
+for engine in ('silero/python', 'whisper'):
     for name in ('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll'):
         if not (speech / engine / name).is_file():
             raise SystemExit(f'Missing {engine}/{name}')

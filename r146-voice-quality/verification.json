@@ -1,19 +1,45 @@
 {
-  "status": "windows-build-prepared",
-  "physicalPrintersTested": false,
-  "hardwareMicrophoneTested": false,
-  "windowsInstallerBuilt": false,
-  "voiceCommands": 31,
-  "speechLifecycle": 8,
-  "nativeProcessTests": 4,
-  "browserCases": 7,
-  "typescript": true,
-  "frontendBuild": true,
-  "nativeModuleTypecheck": "passed against application API stubs, not full Tauri",
-  "fullTauriCheck": "blocked by missing Linux GLib/pkg-config before application checking",
-  "actualSpeechEngine": "Whisper.cpp 1.8.4 multilingual small q5_1, CPU",
-  "speechRecognized": "Принтер K1 Max поставь на печать, корпус.",
-  "githubBranchWrite": "working via authenticated GitHub CLI",
-  "sourceExportWorkflow": "not added; automatic approval rejected",
-  "remotePublished": true
+  "buildId": "V20.6-R14.5-OFFLINE-VOICE-PREVIEW4-2026-10-29",
+  "branch": "r146-offline-voice-quality",
+  "selectedVoice": {
+    "sampleNumber": 1,
+    "engine": "Silero v5_6_ru",
+    "speakerId": "kseniya",
+    "sampleRate": 48000,
+    "selectedSampleSha256": "c0ab1b96123b784ad6ce4886196f8887eaafda25236a2c7098be2c21f10eff20"
+  },
+  "sourceManifestSha256": "31ba9210e622636954b18e9f373352ee879bd85e0c62aeacf9a0ee037586aea4",
+  "local": {
+    "typescript": true,
+    "voiceCommandCases": 31,
+    "speechLifecycleCases": 8,
+    "browserCases": 7,
+    "productionFrontend": true,
+    "securityContract": true,
+    "frontendContract": true,
+    "releasePortability": true,
+    "sourceBindingFiles": 20,
+    "verifiedWindowsAssetFiles": 13746,
+    "verifiedWindowsAssetBytes": 1673185224,
+    "isolatedLinuxSynthesis": true,
+    "russianNumericSpeech": true,
+    "invalidSpeechInputRejected": true,
+    "hardwareMicrophoneTested": false,
+    "physicalPrintersTested": false
+  },
+  "windows": {
+    "embeddedPythonExecuted": false,
+    "nativeTestsExecuted": false,
+    "installerBuilt": false,
+    "installedWebViewTested": false,
+    "crtAssembly": "pending Windows runner",
+    "ciChecksPrepared": true
+  },
+  "publication": {
+    "githubWriteAttempt": "blocked_by_automatic_approval_review",
+    "githubBranchUpdated": false,
+    "windowsBuildStarted": false,
+    "reason": "Explicit user approval for sending project changes to GitHub is required"
+  },
+  "next": "After explicit user approval, send the completed source changes to GitHub and run the Windows preview CI; then inspect real native and installed-app results. No ready Windows installer is claimed."
 }

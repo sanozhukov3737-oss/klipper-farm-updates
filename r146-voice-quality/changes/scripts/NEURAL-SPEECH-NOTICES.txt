@@ -1,4 +1,4 @@
-Offline speech tools for Klipper Farm
+Offline speech tools for Klipper Farm — selected voice: Silero Kseniya
 
 Whisper.cpp v1.8.4, MIT license:
 https://github.com/ggml-org/whisper.cpp/tree/v1.8.4
@@ -6,19 +6,25 @@ https://github.com/ggml-org/whisper.cpp/blob/v1.8.4/LICENSE
 The multilingual small-q5_1 model is supplied by its official maintainer:
 https://huggingface.co/ggerganov/whisper.cpp
 
-Piper 2023.11.14-2, MIT license:
-https://github.com/rhasspy/piper/tree/2023.11.14-2
-https://github.com/rhasspy/piper/blob/2023.11.14-2/LICENSE.md
-Piper runtime includes ONNX Runtime (MIT), piper-phonemize (MIT),
-and eSpeak NG (GPL-3.0). Corresponding upstream sources and notices:
-https://github.com/rhasspy/piper-phonemize
-https://github.com/microsoft/onnxruntime
-https://github.com/espeak-ng/espeak-ng
+Silero Models / snakers4: Russian model v5_6_ru, voice kseniya:
+https://github.com/snakers4/silero-models/tree/e382298387332f2bf461fe6eadfde99104611b0c
+https://models.silero.ai/models/tts/ru/v5_6_ru.pt
+Model weights are unmodified and distributed under Creative Commons
+Attribution-NonCommercial-ShareAlike 4.0 International. Full model license:
+silero/LICENSE.txt. Commercial model use requires separate permission.
+This model license is separate from the application and runtime licenses.
 
-Russian Denis and Dmitri model cards are included with the models.
-Their upstream cards identify the voice datasets as CC0:
-https://huggingface.co/rhasspy/piper-voices/tree/5041a7a49ae5b3a0f30e6837769eb03fdbb231bd/ru/ru_RU
+The bundled Python 3.12.10 runtime is governed by the Python Software
+Foundation license; its full license is in silero/python/LICENSE.txt.
+https://www.python.org/downloads/release/python-31210/
+The bundled PyTorch 2.5.1 CPU runtime is governed by the PyTorch BSD-style
+license and its third-party notices, included in the torch wheel metadata.
+https://github.com/pytorch/pytorch/tree/v2.5.1
+Python dependency licenses and notices are retained in *.dist-info directories.
+num2words 0.5.14 is used through its Python library API for Russian numbers;
+its source and license are retained in the packaged wheel. The CLI is not shipped.
+https://github.com/savoirfairelinux/num2words
 
-These tools run as separate local processes. Input and output audio use pipes.
+Speech input and output use memory pipes. Synthesis does not download files
+or contact any cloud service, and does not require an installed system Python.
 No microphone recording is written to disk or transmitted to a network service.
-Runtime asset downloads are not performed by the application.
