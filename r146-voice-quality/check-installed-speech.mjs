@@ -29,7 +29,8 @@ class Cdp{
 try{
  const target=await waitFor(async()=>{const r=await fetch(`http://127.0.0.1:${port}/json/list`);return(await r.json()).find(item=>item.type==='page'&&/^(?:https?:\/\/tauri\.localhost|tauri:\/\/localhost)/.test(item.url))},Boolean,'installed WebView2',90000);
  cdp=await Cdp.open(target.webSocketDebuggerUrl);await cdp.send('Runtime.enable');await cdp.send('Network.enable');
- await waitFor(()=>cdp.evaluate('!!document.querySelector(".authCard")'),Boolean,'clean install authentication');
+ // The loading screen also has .authCard; wait for the actual setup form.
+ await waitFor(()=>cdp.evaluate('({heading:document.querySelector(".authCard h1")?.textContent,fields:document.querySelectorAll(".authCard input[type=password]").length})'),state=>state?.heading==='Настройте вход'&&state.fields===2,'clean install setup form');
  assert.match(await cdp.evaluate('document.querySelector(".authCard h1").textContent'),/Настройте вход/);
  await cdp.evaluate(`(()=>{
   window.__speechSmoke={samples:[],transcripts:[],playback:0,errors:[],energy:0,frames:0};
