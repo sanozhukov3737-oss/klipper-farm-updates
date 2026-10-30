@@ -46,7 +46,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Published base download failed' }
           python r145-prepare-preview.py
           if ($LASTEXITCODE -ne 0) { throw 'Base source binding failed' }
-          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='9b28647a5659c9df96f24c342b20ba00eea90fa8c46fc76e4566bf213f90efe6';p.write_bytes(b)"
+          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='3dad3ed5f8fc97ea2dff6d1902c9119f8027a83c45c1ac56490fb1e6021a1d5f';p.write_bytes(b)"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed speech patch bytes differ' }
           git apply --check r147-voice-latency.patch
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch does not match the reviewed source' }
@@ -74,12 +74,15 @@ jobs:
           $ErrorActionPreference='Stop'
           $env:KF_TEST_PYTHON=(Get-Command python).Source
           $env:KF_VOICE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-unit.json'
+          $env:KF_VOICE_CONVERSATION_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-conversation.json'
+          $env:KF_VOICE_LANGUAGE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-language.json'
+          $env:KF_VOICE_LEARNING_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-learning.json'
           Set-Location work/app
           npm ci --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
           node node_modules/typescript/bin/tsc --noEmit
           if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
-          foreach ($script in @('check-voice-assistant.mjs','check-neural-speech.mjs','check-print-near-end.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
+          foreach ($script in @('check-voice-assistant.mjs','check-voice-language.mjs','check-voice-conversation.mjs','check-voice-learning.mjs','check-voice-file-weight.mjs','check-neural-speech.mjs','check-print-near-end.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
             node "scripts/$script"
             if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
           }
@@ -93,6 +96,28 @@ jobs:
             node "scripts/$script"
             if ($LASTEXITCODE -ne 0) { throw "Frontend verification failed: $script" }
           }
+      - name: Browser dialogue, filename learning and profile isolation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $uiTools=Join-Path $env:RUNNER_TEMP 'kf-preview8-ui-tools'
+          npm install --prefix $uiTools --no-save --ignore-scripts --no-audit --no-fund playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned browser test tools could not be prepared' }
+          $browserCandidates=@(
+            (Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft/Edge/Application/msedge.exe'),
+            (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Microsoft/Edge/Application/msedge.exe'),
+            (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Google/Chrome/Application/chrome.exe')
+          )
+          $browser=@($browserCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }) | Select-Object -First 1
+          if (-not $browser) { throw 'No system Edge or Chrome executable found for browser UI verification' }
+          $env:CHROMIUM_EXECUTABLE=$browser
+          $env:PLAYWRIGHT_MODULE_PATH=Join-Path $uiTools 'node_modules/playwright/index.mjs'
+          $env:KF_VOICE_BROWSER_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-browser.json'
+          $env:KF_VOICE_SCREENSHOT=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-browser.png'
+          $env:KF_VOICE_FAILURE_SCREENSHOT=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-browser-failure.png'
+          Set-Location work/app
+          node ui-tests/voice-assistant-r145.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Browser conversation, learning or profile isolation failed' }
       - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
         id: rustcache
         with:
@@ -132,7 +157,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
           node r146-voice-quality/check-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
-          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW7-2026-10-29';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW8-2026-10-30';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: Klipper-Farm-Neural-Voice-Preview-Windows
