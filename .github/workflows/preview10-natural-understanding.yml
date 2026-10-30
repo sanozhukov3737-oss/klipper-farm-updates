@@ -57,7 +57,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch failed' }
           python r146-voice-quality/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
-          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='ec072f437abd87fa888ce86f4a4d66f5991f2aadc75ab1ed35cc6f45424acbb8';zipfile.ZipFile(p).extractall('.')"
+          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='81323635864d9408f9c9cb69acae1106aeb0d6ac8c6594db089e3b56668a079f';zipfile.ZipFile(p).extractall('.')"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed understanding source archive differs' }
           python r148-understanding/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed Preview10 understanding overlay did not match the exact Preview9 source' }
@@ -157,7 +157,7 @@ jobs:
           Copy-Item $setups[0].FullName ../../candidate/Klipper-Farm-Natural-Understanding-Preview10-setup.exe
           Copy-Item src-tauri/resources/understanding/model.gguf ../../candidate/model.gguf
           $semantic=Get-Content ../../proof/voice-semantic.json -Raw | ConvertFrom-Json
-          if ($semantic.passed -ne $true -or $semantic.cases -lt 17) { throw 'Understanding boundary checks did not complete' }
+          if ($semantic.passed -ne $true -or $semantic.cases -lt 21) { throw 'Understanding boundary checks did not complete' }
       - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         if: steps.rustcache.outputs.cache-hit != 'true'
         with:
@@ -186,7 +186,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
           python -c "from pathlib import Path;p=Path('preview10-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech test normalization failed' }
-          if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne '8bfc613d78bb0338cb434988eaafb9a5b8b95383597f1fa1baf0f8e9b3b47e89') { throw 'Reviewed installed Preview10 speech and understanding test differs' }
+          if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'a4f4c0d3c9f809dab07f2b87eb47bd10687b4d43810e21016b0cff3e712414c9') { throw 'Reviewed installed Preview10 speech and understanding test differs' }
           node preview10-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
           $installed=Get-Content proof/installed-neural-speech.json -Raw | ConvertFrom-Json

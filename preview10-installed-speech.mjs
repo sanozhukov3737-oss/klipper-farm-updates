@@ -36,11 +36,16 @@ try{
  await waitFor(()=>cdp.evaluate('({heading:document.querySelector(".authCard h1")?.textContent,fields:document.querySelectorAll(".authCard input[type=password]").length})'),state=>state?.heading==='Настройте вход'&&state.fields===2,'clean install setup form');
  assert.match(await cdp.evaluate('document.querySelector(".authCard h1").textContent'),/Настройте вход/);
  await cdp.evaluate(`(()=>{
-  window.__speechSmoke={samples:[],transcripts:[],playback:0,errors:[],energy:0,frames:0,nativeTimings:[]};
+  window.__speechSmoke={samples:[],transcripts:[],playback:0,errors:[],energy:0,frames:0,nativeTimings:[],semanticTimings:[]};
   const originalFetch=window.fetch;
   window.fetch=async function(input,options){
-   const started=performance.now(),response=await originalFetch.call(window,input,options),url=new URL(typeof input==='string'?input:input.url??String(input),location.href);
+   const started=performance.now(),url=new URL(typeof input==='string'?input:input.url??String(input),location.href);
    const command=url.hostname==='ipc.localhost'?decodeURIComponent(url.pathname.slice(1)):'';
+   const semantic=command.startsWith('voice_semantic_')?{command,state:'started'}:null;
+   if(semantic)window.__speechSmoke.semanticTimings.push(semantic);
+   let response;
+   try{response=await originalFetch.call(window,input,options)}catch(error){if(semantic)Object.assign(semantic,{state:'failed',milliseconds:Math.round(performance.now()-started),error:String(error)});throw error}
+   if(semantic)Object.assign(semantic,{state:'completed',milliseconds:Math.round(performance.now()-started),ok:response.headers.get('Tauri-Response')==='ok'});
    if(['auth_bootstrap','voice_synthesize','voice_transcribe'].includes(command)){
     const value=(response.headers.get('content-type')??'').startsWith('application/json')?await response.clone().json():await response.clone().text();
     const args=typeof options?.body==='string'?JSON.parse(options.body):{};
@@ -112,11 +117,12 @@ try{
  await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Какой файл'),'installed missing-filename clarification');
  await submitText('Отмена');
  await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Действие отменено'),'installed conversation cancellation');
- await submitText('этот файл');
- await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Какой файл'),'installed missing-reference clarification');
+ const missingReferenceStarted=Date.now();await submitText('этот файл');
+ await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Какой файл'),'installed missing-reference clarification',5000);
+ const missingReferenceMilliseconds=Date.now()-missingReferenceStarted;
  assert.match(await cdp.evaluate('document.querySelector(".kfVoiceLearning summary")?.textContent'),/Запомненные названия: 0/);
  assert.equal(await cdp.evaluate('!!document.querySelector(\'button[aria-label="Включить микрофон"]\')'),true);
- report.conversationUI={passed:true,missingFileClarification:true,cancelClearsReference:true,profileLearningControls:true,generalMicrophoneAvailable:true,physicalPrintersTested:false};
+ report.conversationUI={passed:true,missingFileClarification:true,cancelClearsReference:true,missingReferenceMilliseconds,profileLearningControls:true,generalMicrophoneAvailable:true,physicalPrintersTested:false};
  const semanticContext={printers:[
   {id:'max',name:'K1 Max (Макс)',preset:'creality-k1-max'},
   {id:'k1c',name:'K1C 2025',preset:'creality-k1c-2025'},
@@ -172,7 +178,7 @@ try{
  assert.equal(recovered.kind,'printers');assert.equal(recovered.filter,'free');
  const recoveredWorkers=ownedSemanticProcesses();assert.equal(recoveredWorkers.length,1);
  report.semanticUnderstanding={passed:true,actualInstalledNativeBridge:true,authenticationRequired:unauthenticatedCommands,
-  modelSidecarAvailable:true,prepareCallMilliseconds:semanticPrepareMilliseconds,cases:semanticCases,
+  modelSidecarAvailable:true,prepareCallMilliseconds:semanticPrepareMilliseconds,nativeTimings:await cdp.evaluate('window.__speechSmoke.semanticTimings'),cases:semanticCases,
   ordinaryRequestsReuseOneProcess:true,cancelBeforeRegistration:true,cancelDuringInference:true,cancelledHelperReaped:true,recoveredAfterCancellation:true,
   interpretationOnly:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,cleanExitCleanupVerified:false};
  const dialogueScreenshot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(proof,'installed-conversation.png'),Buffer.from(dialogueScreenshot.data,'base64'));
