@@ -1,0 +1,213 @@
+name: Build and verify Preview10 natural offline understanding
+'on':
+  push:
+    branches: [r146-offline-voice-quality]
+    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs]
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  actions: read
+jobs:
+  windows:
+    if: github.ref == 'refs/heads/r146-offline-voice-quality'
+    runs-on: windows-2022
+    timeout-minutes: 120
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /r145-*
+            /r146-voice-quality/
+            /r147-voice-latency.patch
+            /preview10-installed-speech.mjs
+            /preview10-understanding-source.zip
+            /.github/workflows/preview10-natural-understanding.yml
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@67ef31d5b988238dd797d409d6f9574278e20537
+        with:
+          toolchain: 1.98.0
+          components: clippy
+      - name: Restore exact Preview9 source and prepare pinned offline engines
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force incoming,proof,candidate | Out-Null
+          if ((Get-FileHash r145-offline-voice-preview.zip).Hash.ToLowerInvariant() -ne '2b788d52aafaa94899e1fdfabb800e19aefff392e6cfafe787d49afc0ec7e8c2') { throw 'Reviewed original voice source differs' }
+          gh release download r144-ota --repo $env:GITHUB_REPOSITORY --pattern KF-R144-FULL.zip --dir incoming
+          if ($LASTEXITCODE -ne 0) { throw 'Published base download failed' }
+          python r145-prepare-preview.py
+          if ($LASTEXITCODE -ne 0) { throw 'Base source binding failed' }
+          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='fc2c7ddea4eae96878eedf816e22db501f9edecec938758aa08b8899d656c8ac';p.write_bytes(b)"
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed speech patch bytes differ' }
+          git apply --check r147-voice-latency.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch does not match the reviewed source' }
+          git apply r147-voice-latency.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch failed' }
+          python r146-voice-quality/apply.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
+          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='ec072f437abd87fa888ce86f4a4d66f5991f2aadc75ab1ed35cc6f45424acbb8';zipfile.ZipFile(p).extractall('.')"
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed understanding source archive differs' }
+          python r148-understanding/apply.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed Preview10 understanding overlay did not match the exact Preview9 source' }
+          python work/app/scripts/prepare-neural-speech.py --cache incoming/speech
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned speech engine preparation failed' }
+          python r146-voice-quality/prepare-windows-runtime.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'App-local speech runtime preparation failed' }
+          Remove-Item -LiteralPath work/app/.speech-worker-build -Recurse -Force
+          python work/app/scripts/check-silero-runtime.py
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged offline Kseniya voice failed' }
+          Copy-Item work/app/silero-runtime-proof.json proof/silero-runtime.json
+          python work/app/scripts/check-speech-workers.py r145-installed-voice-audio.zip
+          if ($LASTEXITCODE -ne 0) { throw 'Five consecutive warm speech requests failed' }
+          Copy-Item work/app/speech-worker-proof.json proof/speech-workers.json
+          python work/app/scripts/prepare-voice-understanding.py --cache incoming/understanding --model-sidecar
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned static understanding runtimes or required model sidecar preparation failed' }
+          Copy-Item work/app/src-tauri/resources/understanding/manifest.json proof/understanding-assets.json
+          Invoke-WebRequest -Uri 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip' -OutFile incoming/voice-model.zip
+          python work/app/scripts/prepare-voice-model.py incoming/voice-model.zip
+          if ($LASTEXITCODE -ne 0) { throw 'Confirmation model preparation failed' }
+      - name: Voice understanding boundaries, lifecycle and existing printer regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:KF_TEST_PYTHON=(Get-Command python).Source
+          $env:KF_VOICE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-unit.json'
+          $env:KF_VOICE_CONVERSATION_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-conversation.json'
+          $env:KF_VOICE_LANGUAGE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-language.json'
+          $env:KF_VOICE_LEARNING_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-learning.json'
+          $env:KF_VOICE_DISPATCH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-dispatch.json'
+          $env:KF_VOICE_DIAGNOSTICS_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-diagnostics.json'
+          $env:KF_VOICE_TASK_EVIDENCE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-task-evidence.json'
+          $env:KF_VOICE_SEMANTIC_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-semantic.json'
+          Set-Location work/app
+          python scripts/check-voice-understanding-preparation.py 2>&1 | Tee-Object ../../proof/understanding-preparation.log
+          if ($LASTEXITCODE -ne 0) { throw 'Offline understanding preparation checks failed' }
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
+          node node_modules/typescript/bin/tsc --noEmit
+          if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+          $regressionResults=@()
+          foreach ($script in @('check-large-file-hash.mjs','check-voice-assistant.mjs','check-voice-semantic.mjs','check-voice-understanding-assets.mjs','check-voice-language.mjs','check-voice-conversation.mjs','check-voice-learning.mjs','check-voice-catalog.mjs','check-voice-task-queue.mjs','check-voice-task-evidence.mjs','check-voice-dispatch.mjs','check-voice-diagnostics.mjs','check-background-mode.mjs','check-voice-file-weight.mjs','check-neural-speech.mjs','check-print-near-end.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-start-delivery.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
+            $regressionResults+=@{script=$script;passed=$true}
+          }
+          $regressionResults | ConvertTo-Json -Depth 3 | Set-Content ../../proof/regressions.json -Encoding utf8NoBOM
+      - name: Build and bind complete offline frontend
+        shell: pwsh
+        run: |
+          Set-Location work/app
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Offline frontend build failed' }
+          foreach ($script in @('lock-v20-6-dist.mjs','check-frontend-contract.mjs','generate-release-manifests.mjs','check-release-portability.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Frontend verification failed: $script" }
+          }
+      - name: Browser dialogue, filename learning and profile isolation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $uiTools=Join-Path $env:RUNNER_TEMP 'kf-preview10-ui-tools'
+          npm install --prefix $uiTools --no-save --ignore-scripts --no-audit --no-fund playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned browser test tools could not be prepared' }
+          $browserCandidates=@(
+            (Join-Path ([Environment]::GetFolderPath('ProgramFilesX86')) 'Microsoft/Edge/Application/msedge.exe'),
+            (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Microsoft/Edge/Application/msedge.exe'),
+            (Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Google/Chrome/Application/chrome.exe')
+          )
+          $browser=@($browserCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }) | Select-Object -First 1
+          if (-not $browser) { throw 'No system Edge or Chrome executable found for browser UI verification' }
+          $env:CHROMIUM_EXECUTABLE=$browser
+          $env:PLAYWRIGHT_MODULE_PATH=Join-Path $uiTools 'node_modules/playwright/index.mjs'
+          $env:KF_VOICE_BROWSER_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-browser.json'
+          $env:KF_VOICE_SCREENSHOT=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-browser.png'
+          $env:KF_VOICE_FAILURE_SCREENSHOT=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-browser-failure.png'
+          Set-Location work/app
+          node ui-tests/voice-assistant-r145.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'Browser conversation, learning or profile isolation failed' }
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: rustcache
+        with:
+          path: work/app/.klipper-build-cache
+          key: windows-neural-voice-rust198-${{ hashFiles('work/app/MANIFEST-SHA256.txt') }}
+          restore-keys: windows-neural-voice-rust198-
+      - name: Native Windows tests, Clippy and NSIS installer
+        id: native
+        shell: pwsh
+        run: |
+          $env:KF_TEST_PYTHON=(Get-Command python).Source
+          Set-Location work/app
+          node scripts/build-and-install-windows.mjs --build-only
+          if ($LASTEXITCODE -ne 0) { throw 'Native checks or installer build failed' }
+          Copy-Item .klipper-build-cache/target/v20-rust-tests-last.log ../../proof/native-tests.log
+          $setups=@(Get-ChildItem INSTALLER -Filter '*.exe')
+          if ($setups.Count -ne 1) { throw 'Expected one installer' }
+          Copy-Item $setups[0].FullName ../../candidate/Klipper-Farm-Natural-Understanding-Preview10-setup.exe
+          Copy-Item src-tauri/resources/understanding/model.gguf ../../candidate/model.gguf
+          $semantic=Get-Content ../../proof/voice-semantic.json -Raw | ConvertFrom-Json
+          if ($semantic.passed -ne $true -or $semantic.cases -lt 17) { throw 'Understanding boundary checks did not complete' }
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        if: steps.rustcache.outputs.cache-hit != 'true'
+        with:
+          path: work/app/.klipper-build-cache
+          key: windows-neural-voice-rust198-${{ hashFiles('work/app/MANIFEST-SHA256.txt') }}
+      - name: Install the required sidecar package and verify actual speech and understanding
+        timeout-minutes: 20
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=(Resolve-Path candidate/Klipper-Farm-Natural-Understanding-Preview10-setup.exe).Path
+          $model=(Resolve-Path candidate/model.gguf).Path
+          $pins=Get-Content work/app/scripts/voice-understanding-assets.json -Raw | ConvertFrom-Json
+          $modelPins=@($pins.assets | Where-Object { $_.kind -eq 'model' })
+          if ($modelPins.Count -ne 1) { throw 'Expected one pinned required understanding sidecar' }
+          $modelPin=$modelPins[0]
+          if ((Get-Item -LiteralPath $model).Length -ne $modelPin.bytes -or (Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash.ToLowerInvariant() -cne $modelPin.sha256) { throw 'Candidate model sidecar differs from its pin' }
+          $install=Join-Path $env:RUNNER_TEMP 'KF-Preview10-Понимание-Ксения'
+          $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Clean installation failed' }
+          New-Item -ItemType Directory -Force proof/smoke | Out-Null
+          node work/app/scripts/check-desktop-startup-smoke.mjs "$install/klipper-farm-client.exe" "$install/klipper-farmd.exe" proof/smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Installed application startup failed' }
+          Expand-Archive r145-installed-voice-audio.zip voice-audio
+          python -c "import wave;from pathlib import Path;p=Path('voice-audio/stock.wav');a=wave.open(str(p),'rb');params=a.getparams();data=a.readframes(a.getnframes());a.close();b=wave.open('voice-audio/stock-padded.wav','wb');b.setparams(params);b.writeframes(data+bytes(params.framerate*params.nchannels*params.sampwidth*4));b.close()"
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
+          python -c "from pathlib import Path;p=Path('preview10-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed speech test normalization failed' }
+          if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne '8bfc613d78bb0338cb434988eaafb9a5b8b95383597f1fa1baf0f8e9b3b47e89') { throw 'Reviewed installed Preview10 speech and understanding test differs' }
+          node preview10-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
+          if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
+          $installed=Get-Content proof/installed-neural-speech.json -Raw | ConvertFrom-Json
+          if ($installed.passed -ne $true -or $installed.semanticUnderstanding.passed -ne $true -or $installed.semanticUnderstanding.cleanExitCleanupVerified -ne $true -or $installed.semanticUnderstanding.cases.Count -ne 4) { throw 'Installed native understanding verification did not complete' }
+          $modelInfo=@{fileName='model.gguf';bytes=(Get-Item -LiteralPath $model).Length;sha256=(Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash.ToLowerInvariant();producer=$pins.model.producer;quantizedRepository=$pins.model.repository;quantizedRevision=$pins.model.revision;sourceRepository=$pins.model.baseRepository;sourceRevision=$pins.model.baseRevision;license=$pins.model.license}
+          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW10-2026-10-30';installedSequence=144;voice='Silero Kseniya';distribution='zip-installer-and-required-model-sidecar';standaloneInstaller=$false;requiredSidecar=$modelInfo;cleanInstallVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Natural-Understanding-Preview10-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Preview10-Installer-And-Required-Model
+          path: candidate
+          compression-level: 0
+          retention-days: 30
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Preview10-Natural-Understanding-Evidence
+          path: |
+            proof/*.json
+            proof/*.png
+            proof/*.log
+            proof/smoke/*.json
+            work/app/.klipper-build-cache/logs
+          retention-days: 30
+
