@@ -23,6 +23,7 @@ jobs:
             /.gitattributes
             /preview9-installed-speech.mjs
             /r145-installed-voice-audio.zip
+            /r147-voice-latency.patch
             /r146-voice-quality/check-installed-background-tray.ps1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -37,6 +38,12 @@ jobs:
           New-Item -ItemType Directory -Force proof,incoming,candidate | Out-Null
           python -c "from pathlib import Path;p=Path('preview9-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
           if ($LASTEXITCODE -ne 0) { throw 'Installed test line ending normalization failed' }
+          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='fc2c7ddea4eae96878eedf816e22db501f9edecec938758aa08b8899d656c8ac';p.write_bytes(b)"
+          if ($LASTEXITCODE -ne 0) { throw 'Original reviewed patch differs' }
+          git apply --check --include=r146-voice-quality/check-installed-background-tray.ps1 r147-voice-latency.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Original tray helper cannot be restored' }
+          git apply --include=r146-voice-quality/check-installed-background-tray.ps1 r147-voice-latency.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Original tray helper restoration failed' }
           $job=gh api "repos/$env:GITHUB_REPOSITORY/actions/jobs/123965662005" | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0 -or $job.run_id -ne 41021814808 -or $job.head_sha -ne 'edbb9ef93b6d91f6929d39f9d4b00c29bbc7f7ed') { throw 'Original native job source differs' }
           foreach ($number in @(7,8,9,11,12)) {
