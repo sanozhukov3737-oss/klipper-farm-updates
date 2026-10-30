@@ -73,7 +73,8 @@ jobs:
           source_sha='edbb9ef93b6d91f6929d39f9d4b00c29bbc7f7ed'
           fingerprint=json.loads((cache/'source-fingerprint-v1.json').read_text())
           assert fingerprint['buildId']==identity, fingerprint
-          assert fingerprint['manifestSha256']=='816750645554e1f2f06d3bdd4e8bb6181887014c480b472f483fabaf64f0ba64', fingerprint
+          assert fingerprint['manifestSha256']=='88400b0d339a7a1451b537a30449e00fa75c9babebaca0ed4f1871d21e1af27b', fingerprint
+          assert hashlib.sha256(bytes.fromhex(fingerprint['manifestSha256'])).hexdigest()=='816750645554e1f2f06d3bdd4e8bb6181887014c480b472f483fabaf64f0ba64', 'GitHub hashFiles cache binding differs'
           log=(cache/'logs/BUILD-AND-INSTALL.log').read_text(encoding='utf-8-sig')
           assert identity in log and 'BUILD SUCCESSFUL' in log
           artifact=json.loads(subprocess.check_output(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts/12965332737'],text=True))
