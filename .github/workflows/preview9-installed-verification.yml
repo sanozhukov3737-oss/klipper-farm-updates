@@ -1,0 +1,132 @@
+name: Verify and deliver the exact Preview9 installer
+'on':
+  push:
+    branches: [r146-offline-voice-quality]
+    paths: [.github/workflows/preview9-installed-verification.yml, preview9-installed-speech.mjs]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  installed-verification:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /.gitattributes
+            /preview9-installed-speech.mjs
+            /r145-installed-voice-audio.zip
+            /r146-voice-quality/check-installed-background-tray.ps1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - name: Verify the exact successful native build and test inputs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force proof,incoming,candidate | Out-Null
+          python -c "from pathlib import Path;p=Path('preview9-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed test line ending normalization failed' }
+          $job=gh api "repos/$env:GITHUB_REPOSITORY/actions/jobs/123965662005" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $job.run_id -ne 41021814808 -or $job.head_sha -ne 'edbb9ef93b6d91f6929d39f9d4b00c29bbc7f7ed') { throw 'Original native job source differs' }
+          foreach ($number in @(7,8,9,11,12)) {
+            $step=@($job.steps | Where-Object { $_.number -eq $number })
+            if ($step.Count -ne 1 -or $step[0].conclusion -ne 'success') { throw "Original required step $number did not pass" }
+          }
+          if ((Get-FileHash preview9-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'fcb9b4aaddac2422ad346a9851e6aed746e0d493cbfbfa7eae8a6f5a1d350adb') { throw 'Reviewed installed test differs' }
+          if ((Get-FileHash r146-voice-quality/check-installed-background-tray.ps1).Hash.ToLowerInvariant() -ne 'b29d5f92a1555c85a4301a1df4d8e5b7898b6f653c0b79c6ea2474ffc1e265b1') { throw 'Original native tray test differs' }
+          if ((Get-FileHash r145-installed-voice-audio.zip).Hash.ToLowerInvariant() -ne '877fcb4eed482e345c7b48bf3cf903944355e2b400ce0d7c8336b96563d296ce') { throw 'Original speech fixture differs' }
+          $job | ConvertTo-Json -Depth 12 | Set-Content proof/source-native-job.json -Encoding utf8NoBOM
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        id: exactcache
+        with:
+          path: work/app/.klipper-build-cache
+          key: windows-neural-voice-rust198-816750645554e1f2f06d3bdd4e8bb6181887014c480b472f483fabaf64f0ba64
+          fail-on-cache-miss: true
+      - name: Bind the recovered installer to its native tests and exact cache
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ('${{ steps.exactcache.outputs.cache-hit }}' -ne 'true') { throw 'Exact source cache was not restored' }
+          @'
+          from pathlib import Path
+          import hashlib,json,os,re,shutil,subprocess,zipfile
+          root=Path.cwd(); cache=root/'work/app/.klipper-build-cache'
+          identity='V20.6-R14.5-OFFLINE-VOICE-PREVIEW9-2026-10-30'
+          source_sha='edbb9ef93b6d91f6929d39f9d4b00c29bbc7f7ed'
+          fingerprint=json.loads((cache/'source-fingerprint-v1.json').read_text())
+          assert fingerprint['buildId']==identity, fingerprint
+          assert fingerprint['manifestSha256']=='816750645554e1f2f06d3bdd4e8bb6181887014c480b472f483fabaf64f0ba64', fingerprint
+          log=(cache/'logs/BUILD-AND-INSTALL.log').read_text(encoding='utf-8-sig')
+          assert identity in log and 'BUILD SUCCESSFUL' in log
+          artifact=json.loads(subprocess.check_output(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts/12965332737'],text=True))
+          digest='f5ffcb8e64236af6373cfe698ad322f0f208fb42cf401537baa996ec77b67513'
+          assert artifact['expired'] is False and artifact['digest']=='sha256:'+digest
+          assert artifact['workflow_run']['id']==41021814808 and artifact['workflow_run']['head_sha']==source_sha
+          original=root/'incoming/source-evidence.zip'
+          with original.open('wb') as target:
+              subprocess.run(['gh','api',f'repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts/12965332737/zip'],stdout=target,check=True)
+          with original.open('rb') as source: assert hashlib.file_digest(source,'sha256').hexdigest()==digest
+          with zipfile.ZipFile(original) as archive:
+              unit=json.loads(archive.read('proof/voice-browser.json'))
+              assert unit['passed'] is True and unit['cases']==20
+              regressions=json.loads(archive.read('proof/regressions.json'))
+              assert regressions and all(row['passed'] is True for row in regressions)
+              native=archive.read('proof/native-tests.log').decode('utf-8-sig')
+              native=re.sub(r'\x1b\[[0-9;]*m','',native)
+              assert '257 passed; 0 failed; 2 ignored' in native
+              failure=json.loads(archive.read('proof/installed-neural-speech-failure.json'))
+              assert "+ 'visible'" in failure['error'] and "- 'hidden'" in failure['error']
+              for name in ('voice-browser.json','regressions.json','native-tests.log','voice-unit.json','voice-dispatch.json','voice-diagnostics.json','voice-task-evidence.json','voice-conversation.json','voice-language.json','voice-learning.json'):
+                  (root/'proof'/name).write_bytes(archive.read('proof/'+name))
+          setup=cache/'target/release/bundle/nsis/Klipper Farm_1.14.5_x64-setup.exe'
+          assert 600*1024**2 < setup.stat().st_size < 1200*1024**2
+          with setup.open('rb') as source:
+              assert source.read(2)==b'MZ';source.seek(0);installer_sha=hashlib.file_digest(source,'sha256').hexdigest()
+          shutil.copyfile(setup,root/'candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe')
+          report={'passed':True,'buildId':identity,'sourceRunId':41021814808,'sourceJobId':123965662005,'sourceHeadSha':source_sha,'sourceEvidenceId':12965332737,'sourceEvidenceSha256':digest,'cacheFingerprint':fingerprint,'nativeCasesPassed':257,'nativeCasesFailed':0,'browserCasesPassed':20,'applicationSourceChanged':False,'installer':{'bytes':setup.stat().st_size,'sha256':installer_sha}}
+          (root/'proof/recovered-build.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report))
+          '@ | python
+          if ($LASTEXITCODE -ne 0) { throw 'Recovered source binding failed' }
+      - name: Clean install and verify native hidden window, timers, voice and tray
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=(Resolve-Path candidate/Klipper-Farm-Neural-Voice-Preview-setup.exe).Path
+          $install=Join-Path $env:RUNNER_TEMP 'KF-Preview9-Ксения'
+          $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Clean installation failed' }
+          Expand-Archive r145-installed-voice-audio.zip voice-audio
+          python -c "import wave;from pathlib import Path;p=Path('voice-audio/stock.wav');a=wave.open(str(p),'rb');params=a.getparams();data=a.readframes(a.getnframes());a.close();b=wave.open('voice-audio/stock-padded.wav','wb');b.setparams(params);b.writeframes(data+bytes(params.framerate*params.nchannels*params.sampwidth*4));b.close()"
+          if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone preparation failed' }
+          node preview9-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
+          if ($LASTEXITCODE -ne 0) { throw 'Installed native background or speech check failed' }
+          $bound=Get-Content proof/recovered-build.json -Raw | ConvertFrom-Json
+          $installed=Get-Content proof/installed-neural-speech.json -Raw | ConvertFrom-Json
+          if ($installed.passed -ne $true -or $installed.backgroundMode.passed -ne $true -or $installed.backgroundMode.nativeWindowHidden -ne $true -or $installed.backgroundMode.hiddenMilliseconds -lt 315000) { throw 'Installed verification did not complete' }
+          if ((Get-FileHash $setup).Hash.ToLowerInvariant() -ne $bound.installer.sha256) { throw 'Verified installer changed' }
+          @{preview=$true;stablePublished=$false;buildRunId='41021814808';buildHeadSha='edbb9ef93b6d91f6929d39f9d4b00c29bbc7f7ed';verifiedRunId=$env:GITHUB_RUN_ID;verifiedHeadSha=$env:GITHUB_SHA;buildId=$bound.buildId;installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;applicationSourceChanged=$false;sourceNativeJobId=123965662005;sourceEvidenceId=12965332737;cacheFingerprint=$bound.cacheFingerprint;installer=$bound.installer} | ConvertTo-Json -Depth 8 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Neural-Voice-Preview-Windows
+          path: candidate
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Preview9-Installed-Verification-Evidence
+          path: proof
+          retention-days: 30
