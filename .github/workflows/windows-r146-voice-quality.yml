@@ -25,6 +25,7 @@ jobs:
             /r145-*
             /r146-voice-quality/
             /r147-voice-latency.patch
+            /preview9-installed-speech.mjs
             /.github/workflows/windows-r146-voice-quality.yml
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -161,7 +162,10 @@ jobs:
           Expand-Archive r145-installed-voice-audio.zip voice-audio
           python -c "import wave;from pathlib import Path;p=Path('voice-audio/stock.wav');a=wave.open(str(p),'rb');params=a.getparams();data=a.readframes(a.getnframes());a.close();b=wave.open('voice-audio/stock-padded.wav','wb');b.setparams(params);b.writeframes(data+bytes(params.framerate*params.nchannels*params.sampwidth*4));b.close()"
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
-          node r146-voice-quality/check-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
+          python -c "from pathlib import Path;p=Path('preview9-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
+          if ($LASTEXITCODE -ne 0) { throw 'Installed speech test normalization failed' }
+          if ((Get-FileHash preview9-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'fcb9b4aaddac2422ad346a9851e6aed746e0d493cbfbfa7eae8a6f5a1d350adb') { throw 'Reviewed installed speech test differs' }
+          node preview9-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
           @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW9-2026-10-30';installedSequence=144;voice='Silero Kseniya';cleanInstallVerified=$true;actualInstalledWebView=$true;physicalPrintersTested=$false;installer=@{bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 6 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
