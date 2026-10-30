@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "buildId": "V20.6-R14.5-OFFLINE-VOICE-PREVIEW9-2026-10-30",
+  "baseline": "629062859edd9007aa33dca3bcac72329b71c204",
+  "sourceFiles": 67,
+  "originalBeforeHashesIndependentlyVerified": true,
+  "cleanPatchApplyVerified": true,
+  "patchBytes": 1178151,
+  "patchSha256": "fc2c7ddea4eae96878eedf816e22db501f9edecec938758aa08b8899d656c8ac",
+  "patchBlob": "444b7ebb3192dac734782ff5ec5880eeea28ea46",
+  "workflowBlob": "57fad49c71360d18b42ee10d53561ae3091cb995",
+  "cleanApplyDirectory": "/workspace/scratch/30ee224422bb/preview9-clean-patch-1wlbnclj",
+  "mainAndStableChanged": false
+}

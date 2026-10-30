@@ -1,0 +1,160 @@
+{
+  "passed": true,
+  "coreCases": 268,
+  "results": [
+    {
+      "script": "check-voice-assistant.mjs",
+      "passed": true,
+      "summary": [
+        "Voice assistant: 46 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-language.mjs",
+      "passed": true,
+      "summary": [
+        "Voice language: 15 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-conversation.mjs",
+      "passed": true,
+      "summary": [
+        "Voice conversation: 24 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-learning.mjs",
+      "passed": true,
+      "summary": [
+        "Voice filename learning: 25 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-catalog.mjs",
+      "passed": true,
+      "summary": [
+        "Voice catalog: 20 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-task-queue.mjs",
+      "passed": true,
+      "summary": [
+        "Voice task queue: 20 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-task-evidence.mjs",
+      "passed": true,
+      "summary": [
+        "Voice task history evidence: 17 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-dispatch.mjs",
+      "passed": true,
+      "summary": [
+        "Voice dispatch: 24 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-diagnostics.mjs",
+      "passed": true,
+      "summary": [
+        "Voice diagnostics: 15 cases passed"
+      ]
+    },
+    {
+      "script": "check-voice-file-weight.mjs",
+      "passed": true,
+      "summary": [
+        "Voice file-weight metadata: 8 cases passed"
+      ]
+    },
+    {
+      "script": "check-neural-speech.mjs",
+      "passed": true,
+      "summary": [
+        "Neural speech: 23 cases passed"
+      ]
+    },
+    {
+      "script": "check-print-near-end.mjs",
+      "passed": true,
+      "summary": [
+        "Near-end print notifications: 17 cases passed"
+      ]
+    },
+    {
+      "script": "check-print-start-delivery.mjs",
+      "passed": true,
+      "summary": [
+        "Print-start delivery boundary: 14 cases passed"
+      ]
+    },
+    {
+      "script": "check-background-mode.mjs",
+      "passed": true,
+      "summary": [
+        "Background contract passed: native auth, current schema, WebView preservation, explicit exits and secure frontend calls"
+      ]
+    },
+    {
+      "script": "check-security.mjs",
+      "passed": true,
+      "summary": [
+        "security invariants OK: password/PIN auth, shared lockout, RBAC, CSP, Moonraker transport and signing password"
+      ]
+    },
+    {
+      "script": "check-local-library.mjs",
+      "passed": true,
+      "summary": [
+        "local library OK: model-shared storage, lossless legacy merge, safe folder deletion, stable WebView2 paint and checked print/queue flow"
+      ]
+    },
+    {
+      "script": "check-local-library-print-target.mjs",
+      "passed": true,
+      "summary": [
+        "Local library print target: evidence-only refresh stays valid; 9 target/profile/model safety changes still block stale preflight."
+      ]
+    },
+    {
+      "script": "check-gcode-validation.mjs",
+      "passed": true,
+      "summary": [
+        "gcode validation OK: centered FlashForge limits, metadata and streaming scan of 220,000 moves"
+      ]
+    },
+    {
+      "script": "check-print-start-confirmation.mjs",
+      "passed": true,
+      "summary": [
+        "PASS actor confirmed matching job"
+      ]
+    },
+    {
+      "script": "check-print-filename-preservation.mjs",
+      "passed": true,
+      "summary": [
+        "Print filename preservation: 92 cases passed; exact raw names, one start, read-only recheck, unsafe paths blocked."
+      ]
+    },
+    {
+      "script": "check-printer-fault-recovery.mjs",
+      "passed": true,
+      "summary": [
+        "Printer fault recovery: 15 behavioral cases passed (actual MoonrakerClient and notification tracker)."
+      ]
+    },
+    {
+      "script": "check-r9-clean-installer.mjs",
+      "passed": true,
+      "summary": [
+        "R9.9 direct NSIS installer OK: one build entry, 9 real-stage contracts, no legacy FIX/smoke gate"
+      ]
+    }
+  ]
+}
