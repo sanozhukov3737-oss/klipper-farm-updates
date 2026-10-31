@@ -72,7 +72,7 @@ try{
  await cdp.evaluate('document.querySelector(".wizard .wizardNext").click()');
  await waitFor(()=>cdp.evaluate('!!document.querySelector(\'button[aria-label="Голосовой помощник"]\')'),Boolean,'actual authenticated application',60000);
  const identity=await cdp.evaluate(`(async()=>await(await fetch(new URL('/BUILD-PROVENANCE.json',location.href))).json())()`);
- assert.equal(identity.buildId,process.env.KF_EXPECTED_BUILD_ID||'V20.6-R14.5-OFFLINE-VOICE-PREVIEW11-2026-10-31');
+ assert.equal(identity.buildId,process.env.KF_EXPECTED_BUILD_ID||'V20.6-R14.5-OFFLINE-VOICE-PREVIEW12-2026-10-31');
  const status=await cdp.evaluate(`window.__TAURI_INTERNALS__.invoke('voice_tools_status',{sessionToken:window.__speechSmokeSession})`);
  assert.equal(status.recognition,true);assert.equal(status.synthesis,true);
  await cdp.evaluate('document.querySelector(\'button[aria-label="Голосовой помощник"]\').click()');
@@ -155,13 +155,21 @@ try{
   {name:'nonliteral-free-printer-question',text:'На каком аппарате можно запустить новую работу?',expected:{kind:'printers',filter:'free'}},
   {name:'named-print-preparation-data',text:'Ксения, закинь держатель на Макс',expected:{kind:'print',printerId:'max',queryContains:'держател'}},
   {name:'stock-with-previous-file-is-still-data',text:'Сколько осталось красного PETG?',context:{...semanticContext,selectedFile:{name:'держатель.gcode'},request:{query:'держатель',action:'print'},selectedPrinterId:'max'},expected:{kind:'stock'}},
-  {name:'unsupported-motion-is-a-clarification',text:'Подними стол на 10 миллиметров',expected:{kind:'clarify'}}
+  {name:'unsupported-motion-is-a-clarification',text:'Подними стол на 10 миллиметров',expected:{kind:'clarify'}},
+  {name:'light-on-is-typed-data',text:'На Максе включи свет',expected:{kind:'control',action:'light-on',printerId:'max'}},
+  {name:'light-off-is-typed-data',text:'Макс, выключи подсветку',expected:{kind:'control',action:'light-off',printerId:'max'}},
+  {name:'pause-is-typed-data',text:'Поставь K1C на паузу',expected:{kind:'control',action:'pause',printerId:'k1c'}},
+  {name:'resume-is-typed-data',text:'Продолжи печать на K1C',expected:{kind:'control',action:'resume',printerId:'k1c'}},
+  {name:'camera-is-typed-data',text:'Открой камеру Макса',expected:{kind:'control',action:'camera',printerId:'max'}},
+  {name:'named-finish-is-typed-data',text:'Когда закончит Макс?',expected:{kind:'forecast',mode:'finish',printerId:'max'}},
+  {name:'first-finish-is-typed-data',text:'Кто освободится первым?',expected:{kind:'forecast',mode:'first'}},
+  {name:'one-hour-is-typed-data',text:'Что будет печататься через час?',expected:{kind:'forecast',mode:'after',minutes:60}}
  ];
  const semanticCases=[],persistentWorkerIds=[];
  for(const [index,fixture] of semanticFixtures.entries()){
   const started=Date.now(),value=await semanticInvoke('voice_semantic_interpret',{requestId:'installed-semantic-'+index,request:{text:fixture.text,context:fixture.context??semanticContext}});
   assert(value&&typeof value==='object'&&!Array.isArray(value));assert.equal(value.kind,fixture.expected.kind,fixture.name);
-  for(const key of ['filter','printerId'])if(fixture.expected[key])assert.equal(value[key],fixture.expected[key],fixture.name);
+  for(const key of ['filter','printerId','action','mode','minutes'])if(fixture.expected[key])assert.equal(value[key],fixture.expected[key],fixture.name);
   if(fixture.expected.queryContains)assert(value.query?.toLowerCase().includes(fixture.expected.queryContains),fixture.name);
   if(value.printerId)assert(semanticContext.printers.some(printer=>printer.id===value.printerId),'invented printer id');
   assert(!Object.hasOwn(value,'command')&&!Object.hasOwn(value,'confirm')&&!Object.hasOwn(value,'start'),'model returned an executable capability');
