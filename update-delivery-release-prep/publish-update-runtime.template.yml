@@ -1,0 +1,184 @@
+name: Publish an accepted immutable Klipper Farm runtime
+'on':
+  workflow_dispatch:
+    inputs:
+      accepted_run_id:
+        description: Successful small-installer Windows acceptance run ID
+        required: true
+        type: string
+      expected_head_sha:
+        description: Reviewed full commit SHA of that accepted run
+        required: true
+        type: string
+permissions: {}
+concurrency:
+  group: klipper-farm-immutable-runtime-publication
+  cancel-in-progress: false
+jobs:
+  publish-runtime:
+    if: github.repository == 'sanozhukov3737-oss/klipper-farm-updates' && github.ref == 'refs/heads/r146-offline-voice-quality'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ACCEPTED_RUN_ID: ${{ inputs.accepted_run_id }}
+      EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+    steps:
+      - name: Verify accepted evidence and publish the unchanged content-addressed runtime
+        shell: python3 {0}
+        run: |
+          import hashlib
+          import json
+          import os
+          import re
+          import stat
+          import subprocess
+          import tempfile
+          import zipfile
+          from pathlib import Path
+
+          REPO = 'sanozhukov3737-oss/klipper-farm-updates'
+          TAG = 'klipper-farm-runtime-v1'
+          ARTIFACT = 'Klipper-Farm-Update-Runtime-For-Publishing'
+          BASE = 'https://github.com/' + REPO + '/releases/download/' + TAG + '/'
+          MAX_BYTES = 2 * 1024 ** 3
+          ACCEPTANCE_FLAGS = (
+              'cleanInstallVerified', 'updateReuseVerified', 'actualInstalledWebView',
+              'actualInstalledSemanticBridge', 'understandingCleanupVerified',
+          )
+
+          def gh(arguments):
+              process = subprocess.run(['gh', *arguments], capture_output=True, text=True)
+              if process.returncode:
+                  raise RuntimeError('GitHub operation failed: ' + ' '.join(arguments[:3]))
+              return process.stdout
+
+          def gh_json(arguments):
+              return json.loads(gh(arguments))
+
+          def sha256(path):
+              with path.open('rb') as source:
+                  return hashlib.file_digest(source, 'sha256').hexdigest()
+
+          def require_regular(path, limit):
+              info = path.lstat()
+              if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size < limit:
+                  raise ValueError('Publication input is not a bounded regular file: ' + path.name)
+              return info.st_size
+
+          def validate_artifacts(directory, run_id, head_sha):
+              report_path = directory / 'component-build-report.json'
+              proof_path = directory / 'update-provenance.json'
+              require_regular(report_path, 1024 * 1024)
+              require_regular(proof_path, 1024 * 1024)
+              report = json.loads(report_path.read_text(encoding='utf-8-sig'))
+              proof = json.loads(proof_path.read_text(encoding='utf-8-sig'))
+              digest = report.get('sha256')
+              if not isinstance(digest, str) or not re.fullmatch('[0-9a-f]{64}', digest):
+                  raise ValueError('Runtime digest is not canonical SHA256')
+              name = 'klipper-farm-runtime-' + digest + '.zip'
+              if report.get('schema') != 1 or report.get('name') != name or report.get('url') != BASE + name:
+                  raise ValueError('Runtime report does not identify the immutable release asset')
+              expected_names = {name, report_path.name, proof_path.name}
+              if {item.name for item in directory.iterdir()} != expected_names:
+                  raise ValueError('Publication artifact must contain only the runtime and its two evidence files')
+              asset = directory / name
+              size = require_regular(asset, MAX_BYTES)
+              if type(report.get('bytes')) is not int or report['bytes'] != size or sha256(asset) != digest:
+                  raise ValueError('Runtime bytes differ from their accepted digest and size')
+              if str(proof.get('buildRunId')) != str(run_id) or proof.get('buildHeadSha') != head_sha:
+                  raise ValueError('Acceptance provenance belongs to a different run or commit')
+              if proof.get('distribution') != 'small-installer-with-verified-components':
+                  raise ValueError('Acceptance provenance is not for the small installer delivery')
+              if any(proof.get(flag) is not True for flag in ACCEPTANCE_FLAGS):
+                  raise ValueError('Required installed Windows acceptance evidence is missing')
+              identity = {'name': name, 'sha256': digest, 'bytes': size, 'url': BASE + name}
+              if proof.get('runtime') != identity:
+                  raise ValueError('Runtime identity differs between the build report and accepted installer')
+              installer = proof.get('installer', {})
+              if (type(installer.get('bytes')) is not int or not 0 < installer['bytes'] <= 512 * 1024 ** 2
+                      or not re.fullmatch('[0-9a-f]{64}', str(installer.get('sha256', '')))
+                      or not str(installer.get('fileName', '')).endswith('-setup.exe')):
+                  raise ValueError('Accepted installer does not satisfy the existing updater contract')
+              with zipfile.ZipFile(asset) as archive:
+                  names = set()
+                  unpacked = 0
+                  for entry in archive.infolist():
+                      relative = entry.filename
+                      parts = relative.split('/')
+                      if (not relative.startswith(('speech/', 'understanding/runtime/'))
+                              or '\\' in relative or relative.casefold() in names
+                              or any(not part or part in ('.', '..') or part.endswith((' ', '.'))
+                                     or re.search(r'[\x00-\x1f:*?"<>|]', part)
+                                     or re.match(r'^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)', part, re.I)
+                                     for part in parts)
+                              or stat.S_ISLNK(entry.external_attr >> 16) or entry.is_dir()):
+                          raise ValueError('Runtime archive has an unexpected or unsafe entry')
+                      names.add(relative.casefold())
+                      unpacked += entry.file_size
+                  if (not 0 < len(names) <= 100000 or unpacked > 16 * 1024 ** 3
+                          or report.get('runtimeFileCount') != len(names)
+                          or report.get('runtimeUnpackedBytes') != unpacked):
+                      raise ValueError('Runtime archive inventory differs from the accepted report')
+              return asset, identity
+
+          run_id = os.environ['ACCEPTED_RUN_ID']
+          head_sha = os.environ['EXPECTED_HEAD_SHA']
+          if not re.fullmatch('[1-9][0-9]{0,19}', run_id) or not re.fullmatch('[0-9a-f]{40}', head_sha):
+              raise ValueError('A run ID and full lowercase reviewed commit SHA are required')
+          run = gh_json(['api', 'repos/' + REPO + '/actions/runs/' + run_id])
+          if (run.get('status') != 'completed' or run.get('conclusion') != 'success'
+                  or run.get('head_sha') != head_sha or run.get('head_branch') != 'r146-offline-voice-quality'
+                  or run.get('path') != '.github/workflows/preview10-natural-understanding.yml'
+                  or run.get('repository', {}).get('full_name') != REPO):
+              raise ValueError('Selected run is not the exact successful Windows acceptance run')
+          artifacts = gh_json(['api', 'repos/' + REPO + '/actions/runs/' + run_id + '/artifacts?per_page=100'])
+          matching = [item for item in artifacts.get('artifacts', []) if item.get('name') == ARTIFACT]
+          if len(matching) != 1 or matching[0].get('expired') is not False:
+              raise ValueError('Expected one live accepted runtime artifact')
+          if not 0 < matching[0].get('size_in_bytes', 0) < MAX_BYTES + 32 * 1024 ** 2:
+              raise ValueError('Runtime artifact exceeds its publication bound')
+          with tempfile.TemporaryDirectory(prefix='kf-runtime-publication-') as temporary:
+              directory = Path(temporary) / 'accepted'
+              directory.mkdir()
+              gh(['run', 'download', run_id, '--repo', REPO, '--name', ARTIFACT, '--dir', str(directory)])
+              asset, identity = validate_artifacts(directory, run_id, head_sha)
+              # A read must distinguish an absent release from an auth/network
+              # failure. Listing release pages returns a concrete absence.
+              releases = gh_json(['api', '--paginate', '--slurp', 'repos/' + REPO + '/releases?per_page=100'])
+              release_rows = [item for page in releases for item in page if item.get('tag_name') == TAG]
+              if len(release_rows) > 1:
+                  raise ValueError('Runtime release identity is ambiguous')
+              if not release_rows:
+                  gh(['release', 'create', TAG, '--repo', REPO, '--target', head_sha,
+                      '--title', 'Klipper Farm verified offline runtimes', '--notes',
+                      'Content-addressed offline runtime components. Installers verify their embedded SHA256 pins.',
+                      '--prerelease', '--latest=false'])
+              else:
+                  release = release_rows[0]
+                  if release.get('draft') is not False or release.get('prerelease') is not True:
+                      raise ValueError('Runtime publication requires its dedicated public prerelease')
+              release = gh_json(['api', 'repos/' + REPO + '/releases/tags/' + TAG])
+              existing = [item for item in release.get('assets', []) if item.get('name') == identity['name']]
+              if len(existing) > 1:
+                  raise ValueError('Runtime release asset identity is ambiguous')
+              if existing:
+                  if existing[0].get('size') != identity['bytes']:
+                      raise ValueError('Existing immutable runtime asset has a different size')
+              else:
+                  # Deliberately no --clobber and no automatic write retry.
+                  gh(['release', 'upload', TAG, str(asset), '--repo', REPO])
+              # Also verify the public bytes after an initial upload. A failed
+              # check leaves the named asset alone; a rerun checks it again.
+              public_dir = Path(temporary) / 'public'
+              public_dir.mkdir()
+              gh(['release', 'download', TAG, '--repo', REPO, '--pattern', identity['name'], '--dir', str(public_dir)])
+              downloaded = public_dir / identity['name']
+              if require_regular(downloaded, MAX_BYTES) != identity['bytes'] or sha256(downloaded) != identity['sha256']:
+                  raise ValueError('Public immutable runtime asset differs from accepted bytes; it will not be overwritten')
+              print('Public runtime matches the accepted SHA256' + ('; no write performed.' if existing else '.'))
+              print('Runtime URL: ' + identity['url'])
+              print('Stable update metadata and signing keys were not changed.')
