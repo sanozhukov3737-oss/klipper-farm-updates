@@ -57,7 +57,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch failed' }
           python r146-voice-quality/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
-          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='51d178088b16c7392a3fd15420859b65ba1405212552c89aaa07c308c5305e91';zipfile.ZipFile(p).extractall('.')"
+          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='2d4338198d7dab6bca4a6c41e7f4824d554af2e9395fb3386411103a29247034';zipfile.ZipFile(p).extractall('.')"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed understanding source archive differs' }
           python r148-understanding/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed Preview12 understanding overlay did not match the exact Preview9 source' }
