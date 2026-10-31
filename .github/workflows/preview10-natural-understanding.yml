@@ -1,4 +1,4 @@
-name: Build and verify Preview12 natural offline understanding
+name: Build and verify small Windows app updates
 'on':
   push:
     branches: [r146-offline-voice-quality]
@@ -39,7 +39,7 @@ jobs:
         with:
           toolchain: 1.98.0
           components: clippy
-      - name: Restore exact Preview9 source and prepare pinned offline engines
+      - name: Restore exact reviewed application source
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -57,7 +57,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch failed' }
           python r146-voice-quality/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
-          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='f7dc53f09cf242dd8f61eec2fdeed1cd1f01c7507f959873b709d4f365cc6312';zipfile.ZipFile(p).extractall('.')"
+          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='9870c087d3fc84f131595e96068458fc5ff8a716a76c7b7f25e298f4b8e85d5b';zipfile.ZipFile(p).extractall('.')"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed understanding source archive differs' }
           python r148-understanding/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed Preview12 understanding overlay did not match the exact Preview9 source' }
@@ -80,6 +80,9 @@ jobs:
           Invoke-WebRequest -Uri 'https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip' -OutFile incoming/voice-model.zip
           python work/app/scripts/prepare-voice-model.py incoming/voice-model.zip
           if ($LASTEXITCODE -ne 0) { throw 'Confirmation model preparation failed' }
+          python work/app/scripts/prepare-update-components.py
+          if ($LASTEXITCODE -ne 0) { throw 'Verified offline component split failed' }
+          Copy-Item work/app/.update-components/component-build-report.json proof/component-build-report.json
       - name: Voice understanding boundaries, lifecycle and existing printer regressions
         shell: pwsh
         run: |
@@ -94,14 +97,20 @@ jobs:
           $env:KF_VOICE_TASK_EVIDENCE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-task-evidence.json'
           $env:KF_VOICE_SEMANTIC_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-semantic.json'
           Set-Location work/app
+          python scripts/check-update-components.py
+          if ($LASTEXITCODE -ne 0) { throw 'Offline component preparation fixtures failed' }
+          & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/check-update-components-windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Windows component integrity and repair fixtures failed' }
           python scripts/check-voice-understanding-preparation.py 2>&1 | Tee-Object ../../proof/understanding-preparation.log
           if ($LASTEXITCODE -ne 0) { throw 'Offline understanding preparation checks failed' }
           npm ci --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { throw 'Locked dependencies failed' }
           node node_modules/typescript/bin/tsc --noEmit
           if ($LASTEXITCODE -ne 0) { throw 'TypeScript failed' }
+          node scripts/prepare-windows-build-cache.mjs --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Windows cache lifecycle checks failed' }
           $regressionResults=@()
-          foreach ($script in @('check-large-file-hash.mjs','check-voice-printer-controls.mjs','check-voice-printer-forecast.mjs','check-voice-printer-dialogue.mjs','check-voice-control-transport.mjs','check-voice-assistant.mjs','check-voice-semantic.mjs','check-voice-pronunciation.mjs','check-voice-understanding-assets.mjs','check-voice-language.mjs','check-voice-conversation.mjs','check-voice-learning.mjs','check-voice-catalog.mjs','check-voice-task-queue.mjs','check-voice-task-evidence.mjs','check-voice-dispatch.mjs','check-voice-diagnostics.mjs','check-background-mode.mjs','check-voice-file-weight.mjs','check-neural-speech.mjs','check-print-near-end.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-start-delivery.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
+          foreach ($script in @('check-update-download.mjs','check-update-signing.mjs','check-large-file-hash.mjs','check-voice-printer-controls.mjs','check-voice-printer-forecast.mjs','check-voice-printer-dialogue.mjs','check-voice-control-transport.mjs','check-voice-assistant.mjs','check-voice-semantic.mjs','check-voice-pronunciation.mjs','check-voice-understanding-assets.mjs','check-voice-language.mjs','check-voice-conversation.mjs','check-voice-learning.mjs','check-voice-catalog.mjs','check-voice-task-queue.mjs','check-voice-task-evidence.mjs','check-voice-dispatch.mjs','check-voice-diagnostics.mjs','check-background-mode.mjs','check-voice-file-weight.mjs','check-neural-speech.mjs','check-print-near-end.mjs','check-neural-speech-assets.mjs','check-security.mjs','check-local-library.mjs','check-local-library-print-target.mjs','check-gcode-validation.mjs','check-print-start-confirmation.mjs','check-print-start-delivery.mjs','check-print-filename-preservation.mjs','check-printer-fault-recovery.mjs','check-r9-clean-installer.mjs')) {
             node "scripts/$script"
             if ($LASTEXITCODE -ne 0) { throw "Regression failed: $script" }
             $regressionResults+=@{script=$script;passed=$true}
@@ -139,7 +148,7 @@ jobs:
           Set-Location work/app
           node ui-tests/voice-assistant-r145.mjs
           if ($LASTEXITCODE -ne 0) { throw 'Browser conversation, learning or profile isolation failed' }
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         id: rustcache
         with:
           path: work/app/.klipper-build-cache
@@ -156,8 +165,15 @@ jobs:
           Copy-Item .klipper-build-cache/target/v20-rust-tests-last.log ../../proof/native-tests.log
           $setups=@(Get-ChildItem INSTALLER -Filter '*.exe')
           if ($setups.Count -ne 1) { throw 'Expected one installer' }
-          Copy-Item $setups[0].FullName ../../candidate/Klipper-Farm-Natural-Understanding-Preview12-setup.exe
-          Copy-Item src-tauri/resources/understanding/model.gguf ../../candidate/model.gguf
+          if ($setups[0].Length -lt 1 -or $setups[0].Length -gt 512MB) { throw 'Installer exceeds the existing updater limit (512 MiB)' }
+          New-Item -ItemType Directory -Force ../../install-input,../../runtime-publish | Out-Null
+          Copy-Item $setups[0].FullName ../../candidate/Klipper-Farm-Update-Delivery-setup.exe
+          Copy-Item $setups[0].FullName ../../install-input/Klipper-Farm-Update-Delivery-setup.exe
+          $components=Get-Content .update-components/component-build-report.json -Raw | ConvertFrom-Json
+          Copy-Item -LiteralPath $components.assetPath -Destination (Join-Path ../../install-input $components.name)
+          Copy-Item -LiteralPath $components.assetPath -Destination (Join-Path ../../runtime-publish $components.name)
+          Copy-Item -LiteralPath $components.modelPath -Destination ../../install-input/model.gguf
+          Copy-Item .update-components/component-build-report.json ../../runtime-publish/component-build-report.json
           $semantic=Get-Content ../../proof/voice-semantic.json -Raw | ConvertFrom-Json
           if ($semantic.passed -ne $true -or $semantic.cases -lt 21) { throw 'Understanding boundary checks did not complete' }
       - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -165,21 +181,23 @@ jobs:
         with:
           path: work/app/.klipper-build-cache
           key: windows-neural-voice-rust198-${{ hashFiles('work/app/MANIFEST-SHA256.txt') }}
-      - name: Install the required sidecar package and verify actual speech and understanding
-        timeout-minutes: 20
+      - name: Verify installed component reuse and actual speech and understanding
+        timeout-minutes: 30
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $setup=(Resolve-Path candidate/Klipper-Farm-Natural-Understanding-Preview12-setup.exe).Path
-          $model=(Resolve-Path candidate/model.gguf).Path
+          $setup=(Resolve-Path install-input/Klipper-Farm-Update-Delivery-setup.exe).Path
+          $model=(Resolve-Path install-input/model.gguf).Path
           $pins=Get-Content work/app/scripts/voice-understanding-assets.json -Raw | ConvertFrom-Json
           $modelPins=@($pins.assets | Where-Object { $_.kind -eq 'model' })
           if ($modelPins.Count -ne 1) { throw 'Expected one pinned required understanding sidecar' }
           $modelPin=$modelPins[0]
           if ((Get-Item -LiteralPath $model).Length -ne $modelPin.bytes -or (Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash.ToLowerInvariant() -cne $modelPin.sha256) { throw 'Candidate model sidecar differs from its pin' }
-          $install=Join-Path $env:RUNNER_TEMP 'KF-Preview12-Понимание-Ксения'
-          $process=Start-Process $setup -ArgumentList ('/S /D='+$install) -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw 'Clean installation failed' }
+          $install=Join-Path $env:RUNNER_TEMP 'KF-Update-Понимание-Ксения'
+          & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File work/app/scripts/check-installed-update-components.ps1 -InstallerPath $setup -InstallRoot $install -ProofPath proof/installed-update-components.json
+          if ($LASTEXITCODE -ne 0) { throw 'Clean install or /UPDATE component reuse failed' }
+          $reuse=Get-Content proof/installed-update-components.json -Raw | ConvertFrom-Json
+          if ($reuse.passed -ne $true) { throw 'Installed component reuse acceptance did not pass' }
           New-Item -ItemType Directory -Force proof/smoke | Out-Null
           node work/app/scripts/check-desktop-startup-smoke.mjs "$install/klipper-farm-client.exe" "$install/klipper-farmd.exe" proof/smoke
           if ($LASTEXITCODE -ne 0) { throw 'Installed application startup failed' }
@@ -193,18 +211,27 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
           $installed=Get-Content proof/installed-neural-speech.json -Raw | ConvertFrom-Json
           if ($installed.passed -ne $true -or $installed.semanticUnderstanding.passed -ne $true -or $installed.semanticUnderstanding.cleanExitCleanupVerified -ne $true -or $installed.semanticUnderstanding.cases.Count -ne 12) { throw 'Installed native understanding verification did not complete' }
-          $modelInfo=@{fileName='model.gguf';bytes=(Get-Item -LiteralPath $model).Length;sha256=(Get-FileHash -LiteralPath $model -Algorithm SHA256).Hash.ToLowerInvariant();producer=$pins.model.producer;quantizedRepository=$pins.model.repository;quantizedRevision=$pins.model.revision;sourceRepository=$pins.model.baseRepository;sourceRevision=$pins.model.baseRevision;license=$pins.model.license}
-          @{preview=$true;stablePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-OFFLINE-VOICE-PREVIEW12-2026-10-31';installedSequence=144;voice='Silero Kseniya';distribution='zip-installer-and-required-model-sidecar';standaloneInstaller=$false;requiredSidecar=$modelInfo;cleanInstallVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Natural-Understanding-Preview12-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/preview-provenance.json -Encoding utf8NoBOM
+          $components=Get-Content work/app/.update-components/component-build-report.json -Raw | ConvertFrom-Json
+          $modelInfo=@{fileName='model.gguf';bytes=$modelPin.bytes;sha256=$modelPin.sha256;producer=$pins.model.producer;quantizedRepository=$pins.model.repository;quantizedRevision=$pins.model.revision;sourceRepository=$pins.model.baseRepository;sourceRevision=$pins.model.baseRevision;license=$pins.model.license}
+          @{preview=$true;stablePublished=$false;runtimePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-UPDATE-DELIVERY-2026-10-31';installedSequence=144;voice='Silero Kseniya';distribution='small-installer-with-verified-components';standaloneInstaller=$true;requiredComponentsFetchedWhenMissing=$true;model=$modelInfo;runtime=@{name=$components.name;url=$components.url;bytes=$components.bytes;sha256=$components.sha256};cleanInstallVerified=$true;updateReuseVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Update-Delivery-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/update-provenance.json -Encoding utf8NoBOM
+          Copy-Item candidate/update-provenance.json runtime-publish/update-provenance.json
+          if (@(Get-ChildItem candidate -File).Count -ne 2 -or @(Get-ChildItem candidate -File | Where-Object { $_.Extension -in @('.zip','.gguf') }).Count -ne 0) { throw 'User installer artifact unexpectedly contains a heavy component' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: Klipper-Farm-Preview12-Installer-And-Required-Model
+          name: Klipper-Farm-Update-Delivery-Installer
           path: candidate
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Klipper-Farm-Update-Runtime-For-Publishing
+          path: runtime-publish
           compression-level: 0
           retention-days: 30
       - if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: Klipper-Farm-Preview12-Natural-Understanding-Evidence
+          name: Klipper-Farm-Update-Delivery-Evidence
           path: |
             proof/*.json
             proof/*.png
