@@ -72,7 +72,7 @@ try{
  await cdp.evaluate('document.querySelector(".wizard .wizardNext").click()');
  await waitFor(()=>cdp.evaluate('!!document.querySelector(\'button[aria-label="Голосовой помощник"]\')'),Boolean,'actual authenticated application',60000);
  const identity=await cdp.evaluate(`(async()=>await(await fetch(new URL('/BUILD-PROVENANCE.json',location.href))).json())()`);
- assert.equal(identity.buildId,process.env.KF_EXPECTED_BUILD_ID||'V20.6-R14.5-OFFLINE-VOICE-PREVIEW10-2026-10-30');
+ assert.equal(identity.buildId,process.env.KF_EXPECTED_BUILD_ID||'V20.6-R14.5-OFFLINE-VOICE-PREVIEW11-2026-10-31');
  const status=await cdp.evaluate(`window.__TAURI_INTERNALS__.invoke('voice_tools_status',{sessionToken:window.__speechSmokeSession})`);
  assert.equal(status.recognition,true);assert.equal(status.synthesis,true);
  await cdp.evaluate('document.querySelector(\'button[aria-label="Голосовой помощник"]\').click()');
@@ -120,9 +120,17 @@ try{
  const missingReferenceStarted=Date.now();await submitText('этот файл');
  await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Какой файл'),'installed missing-reference clarification',5000);
  const missingReferenceMilliseconds=Date.now()-missingReferenceStarted;
- assert.match(await cdp.evaluate('document.querySelector(".kfVoiceLearning summary")?.textContent'),/Запомненные названия: 0/);
+ await submitText('Какие принтеры свободны?');
+ await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text==='В ферме пока нет принтеров','installed empty-farm status reply',5000);
+ const repeatInterpretationsBefore=await cdp.evaluate('window.__speechSmoke.semanticTimings.filter(item=>item.command==="voice_semantic_interpret").length');
+ const missingRepeatStarted=Date.now();await submitText('Макс, поставь то же самое на печать');
+ await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text==='Пока не знаю, какую печать повторить. Выбери файл или назови его название.','installed repeat without history clarifies immediately',5000);
+ const missingRepeatMilliseconds=Date.now()-missingRepeatStarted;
+ assert.equal(await cdp.evaluate('window.__speechSmoke.semanticTimings.filter(item=>item.command==="voice_semantic_interpret").length'),repeatInterpretationsBefore,'missing repeat must not invoke semantic inference');
+ assert.equal(await cdp.evaluate('document.querySelectorAll(".kfVoiceProposal").length'),0);
+ assert.match(await cdp.evaluate('document.querySelector(".kfVoiceLearning:not(.kfVoicePronunciation) summary")?.textContent'),/Запомненные названия: 0/);
  assert.equal(await cdp.evaluate('!!document.querySelector(\'button[aria-label="Включить микрофон"]\')'),true);
- report.conversationUI={passed:true,missingFileClarification:true,cancelClearsReference:true,missingReferenceMilliseconds,profileLearningControls:true,generalMicrophoneAvailable:true,physicalPrintersTested:false};
+ report.conversationUI={passed:true,missingFileClarification:true,cancelClearsReference:true,missingReferenceMilliseconds,emptyFarmNaturalReply:true,missingRepeatClarification:true,missingRepeatMilliseconds,missingRepeatAvoidsInference:true,profileLearningControls:true,generalMicrophoneAvailable:true,physicalPrintersTested:false};
  const semanticContext={printers:[
   {id:'max',name:'K1 Max (Макс)',preset:'creality-k1-max'},
   {id:'k1c',name:'K1C 2025',preset:'creality-k1c-2025'},
