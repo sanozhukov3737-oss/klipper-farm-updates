@@ -57,7 +57,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch failed' }
           python r146-voice-quality/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
-          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='25dcf07579c23634a9668d77e16852cb528cac778e9b3a4bccd0e80a17dc41b4';zipfile.ZipFile(p).extractall('.')"
+          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='e53470c583308e22b4015e242e49d30403a2da0640df555df21d5b808fe63cea';zipfile.ZipFile(p).extractall('.')"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed understanding source archive differs' }
           python r148-understanding/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed Preview12 understanding overlay did not match the exact Preview9 source' }
@@ -65,6 +65,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Offline component preparation fixtures failed' }
           & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File work/app/scripts/check-update-components-windows.ps1
           if ($LASTEXITCODE -ne 0) { throw 'Windows component integrity and repair fixtures failed' }
+          node work/app/scripts/check-release-portability.mjs --text-encoding-self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Release text encoding fixtures failed' }
       - name: Prepare pinned offline speech and understanding components
         shell: pwsh
         run: |
@@ -217,7 +219,7 @@ jobs:
           if ($installed.passed -ne $true -or $installed.semanticUnderstanding.passed -ne $true -or $installed.semanticUnderstanding.cleanExitCleanupVerified -ne $true -or $installed.semanticUnderstanding.cases.Count -ne 12) { throw 'Installed native understanding verification did not complete' }
           $components=Get-Content work/app/.update-components/component-build-report.json -Raw | ConvertFrom-Json
           $modelInfo=@{fileName='model.gguf';bytes=$modelPin.bytes;sha256=$modelPin.sha256;producer=$pins.model.producer;quantizedRepository=$pins.model.repository;quantizedRevision=$pins.model.revision;sourceRepository=$pins.model.baseRepository;sourceRevision=$pins.model.baseRevision;license=$pins.model.license}
-          @{preview=$true;stablePublished=$false;runtimePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-UPDATE-DELIVERY-FIX2-2026-10-31';installedSequence=144;voice='Silero Kseniya';distribution='small-installer-with-verified-components';standaloneInstaller=$true;requiredComponentsFetchedWhenMissing=$true;model=$modelInfo;runtime=@{name=$components.name;url=$components.url;bytes=$components.bytes;sha256=$components.sha256};cleanInstallVerified=$true;updateReuseVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Update-Delivery-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/update-provenance.json -Encoding utf8NoBOM
+          @{preview=$true;stablePublished=$false;runtimePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-UPDATE-DELIVERY-FIX3-2026-10-31';installedSequence=144;voice='Silero Kseniya';distribution='small-installer-with-verified-components';standaloneInstaller=$true;requiredComponentsFetchedWhenMissing=$true;model=$modelInfo;runtime=@{name=$components.name;url=$components.url;bytes=$components.bytes;sha256=$components.sha256};cleanInstallVerified=$true;updateReuseVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Update-Delivery-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/update-provenance.json -Encoding utf8NoBOM
           Copy-Item candidate/update-provenance.json runtime-publish/update-provenance.json
           if (@(Get-ChildItem candidate -File).Count -ne 2 -or @(Get-ChildItem candidate -File | Where-Object { $_.Extension -in @('.zip','.gguf') }).Count -ne 0) { throw 'User installer artifact unexpectedly contains a heavy component' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
