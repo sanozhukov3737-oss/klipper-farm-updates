@@ -39,7 +39,7 @@ jobs:
         with:
           toolchain: 1.98.0
           components: clippy
-      - name: Restore exact reviewed application source
+      - name: Restore reviewed source and verify component installer fixtures
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -57,10 +57,18 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch failed' }
           python r146-voice-quality/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Neural speech source binding failed' }
-          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='9870c087d3fc84f131595e96068458fc5ff8a716a76c7b7f25e298f4b8e85d5b';zipfile.ZipFile(p).extractall('.')"
+          python -c "from pathlib import Path;import hashlib,zipfile;p=Path('preview10-understanding-source.zip');assert hashlib.sha256(p.read_bytes()).hexdigest()=='66b1da2de6741f04c66b00a789ddff46c5aafce748308db8fffe76c559b6416b';zipfile.ZipFile(p).extractall('.')"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed understanding source archive differs' }
           python r148-understanding/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed Preview12 understanding overlay did not match the exact Preview9 source' }
+          python work/app/scripts/check-update-components.py
+          if ($LASTEXITCODE -ne 0) { throw 'Offline component preparation fixtures failed' }
+          & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File work/app/scripts/check-update-components-windows.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'Windows component integrity and repair fixtures failed' }
+      - name: Prepare pinned offline speech and understanding components
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
           python work/app/scripts/prepare-neural-speech.py --cache incoming/speech
           if ($LASTEXITCODE -ne 0) { throw 'Pinned speech engine preparation failed' }
           python r146-voice-quality/prepare-windows-runtime.py work/app
@@ -97,10 +105,6 @@ jobs:
           $env:KF_VOICE_TASK_EVIDENCE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-task-evidence.json'
           $env:KF_VOICE_SEMANTIC_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-semantic.json'
           Set-Location work/app
-          python scripts/check-update-components.py
-          if ($LASTEXITCODE -ne 0) { throw 'Offline component preparation fixtures failed' }
-          & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/check-update-components-windows.ps1
-          if ($LASTEXITCODE -ne 0) { throw 'Windows component integrity and repair fixtures failed' }
           python scripts/check-voice-understanding-preparation.py 2>&1 | Tee-Object ../../proof/understanding-preparation.log
           if ($LASTEXITCODE -ne 0) { throw 'Offline understanding preparation checks failed' }
           npm ci --no-audit --no-fund
@@ -213,7 +217,7 @@ jobs:
           if ($installed.passed -ne $true -or $installed.semanticUnderstanding.passed -ne $true -or $installed.semanticUnderstanding.cleanExitCleanupVerified -ne $true -or $installed.semanticUnderstanding.cases.Count -ne 12) { throw 'Installed native understanding verification did not complete' }
           $components=Get-Content work/app/.update-components/component-build-report.json -Raw | ConvertFrom-Json
           $modelInfo=@{fileName='model.gguf';bytes=$modelPin.bytes;sha256=$modelPin.sha256;producer=$pins.model.producer;quantizedRepository=$pins.model.repository;quantizedRevision=$pins.model.revision;sourceRepository=$pins.model.baseRepository;sourceRevision=$pins.model.baseRevision;license=$pins.model.license}
-          @{preview=$true;stablePublished=$false;runtimePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-UPDATE-DELIVERY-2026-10-31';installedSequence=144;voice='Silero Kseniya';distribution='small-installer-with-verified-components';standaloneInstaller=$true;requiredComponentsFetchedWhenMissing=$true;model=$modelInfo;runtime=@{name=$components.name;url=$components.url;bytes=$components.bytes;sha256=$components.sha256};cleanInstallVerified=$true;updateReuseVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Update-Delivery-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/update-provenance.json -Encoding utf8NoBOM
+          @{preview=$true;stablePublished=$false;runtimePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;buildId='V20.6-R14.5-UPDATE-DELIVERY-FIX1-2026-10-31';installedSequence=144;voice='Silero Kseniya';distribution='small-installer-with-verified-components';standaloneInstaller=$true;requiredComponentsFetchedWhenMissing=$true;model=$modelInfo;runtime=@{name=$components.name;url=$components.url;bytes=$components.bytes;sha256=$components.sha256};cleanInstallVerified=$true;updateReuseVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Update-Delivery-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/update-provenance.json -Encoding utf8NoBOM
           Copy-Item candidate/update-provenance.json runtime-publish/update-provenance.json
           if (@(Get-ChildItem candidate -File).Count -ne 2 -or @(Get-ChildItem candidate -File | Where-Object { $_.Extension -in @('.zip','.gguf') }).Count -ne 0) { throw 'User installer artifact unexpectedly contains a heavy component' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
