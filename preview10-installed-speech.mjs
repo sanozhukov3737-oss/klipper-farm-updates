@@ -72,7 +72,7 @@ try{
  await cdp.evaluate('document.querySelector(".wizard .wizardNext").click()');
  await waitFor(()=>cdp.evaluate('!!document.querySelector(\'button[aria-label="Голосовой помощник"]\')'),Boolean,'actual authenticated application',60000);
  const identity=await cdp.evaluate(`(async()=>await(await fetch(new URL('/BUILD-PROVENANCE.json',location.href))).json())()`);
- assert.equal(identity.buildId,process.env.KF_EXPECTED_BUILD_ID||'V20.6-R14.5-OFFLINE-VOICE-PREVIEW12-2026-10-31');
+ assert.equal(identity.buildId,process.env.KF_EXPECTED_BUILD_ID||'V20.6-R14.5-UPDATE-DELIVERY-FIX4-2026-10-31');
  const status=await cdp.evaluate(`window.__TAURI_INTERNALS__.invoke('voice_tools_status',{sessionToken:window.__speechSmokeSession})`);
  assert.equal(status.recognition,true);assert.equal(status.synthesis,true);
  await cdp.evaluate('document.querySelector(\'button[aria-label="Голосовой помощник"]\').click()');
