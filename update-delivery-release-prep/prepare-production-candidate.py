@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import re
 import shutil
 import stat
@@ -22,13 +23,13 @@ from urllib.parse import urlsplit
 
 
 REPO = 'sanozhukov3737-oss/klipper-farm-updates'
-RUN_ID = 41195183959
-COMMIT = '9a559e32a4faa4b583f990d0b5285138c5ab1895'
+RUN_ID = 41308026467
+COMMIT = '109339dc5e43237880a101d4e04d44c4d1471e68'
 BRANCH = 'r146-offline-voice-quality'
 WORKFLOW_PATH = '.github/workflows/preview10-natural-understanding.yml'
 WORKFLOW_NAME = 'Build and verify small Windows app updates'
-SOURCE_SHA = '51d178088b16c7392a3fd15420859b65ba1405212552c89aaa07c308c5305e91'
-WORKFLOW_SHA = 'e1b6848514f30da84d4659728676f88d18308771bb743499e5457fbb237e63a8'
+SOURCE_SHA = '3bea56d4f00f5e9385513b5f528e978a2d6e6d769acf963920b56b5362cdd36d'
+WORKFLOW_SHA = '36c21e82e41ac4bca864b5155a1386ebb203634e62d6e47705481aae48bb776e'
 FIX4_BUILD = 'V20.6-R14.5-UPDATE-DELIVERY-FIX4-2026-10-31'
 PRODUCTION_BUILD = 'V20.6-R14.5-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-10-31'
 PUBLIC_KEY = '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb'
@@ -125,7 +126,7 @@ const ok=crypto.verify(null,Buffer.concat([Buffer.from('klipper-farm-update-mani
 Buffer.from(JSON.stringify(u))]),crypto.createPublicKey({key:der,format:'der',type:'spki'}),Buffer.from(m.signatureHex,'hex'));
 process.exitCode=ok?0:1;});
 """
-    result = subprocess.run(['node', '-e', verifier], input=json.dumps({'manifest': manifest, 'key': PUBLIC_KEY}),
+    result = subprocess.run([os.environ.get('KF_NODE', 'node'), '-e', verifier], input=json.dumps({'manifest': manifest, 'key': PUBLIC_KEY}),
                             text=True, capture_output=True, timeout=15)
     require(result.returncode == 0, 'Stable manifest signature does not match the existing trust key')
 
@@ -184,7 +185,7 @@ def make_candidate(source: bytes, workflow: bytes):
     require(manifest['buildId'] == FIX4_BUILD and manifest['stableInstalledSequence'] == 144,
             'FIX4 overlay identity differs')
     rows = manifest['files']
-    require(len(rows) == 56 and not any(row['path'] == 'UPDATE-CHANNEL.json' for row in rows),
+    require(len(rows) == 57 and not any(row['path'] == 'UPDATE-CHANNEL.json' for row in rows),
             'FIX4 source manifest inventory differs')
     require(len({row['path'] for row in rows}) == len(rows)
             and set(names) == {PREFIX + 'apply.py', manifest_name,

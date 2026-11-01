@@ -1,0 +1,18 @@
+{
+  "localDraftOnly": true,
+  "stablePublished": false,
+  "runtimePublished": false,
+  "ciDispatched": false,
+  "acceptedRunId": 41308026467,
+  "acceptedCommit": "109339dc5e43237880a101d4e04d44c4d1471e68",
+  "buildId": "V20.6-R14.5-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-10-31",
+  "installedSequence": 145,
+  "sourceSha256": "68bbd41b281bad88d61dbbb280b1da2824227234a6619fc056b7c5d7997c4d1b",
+  "workflowSha256": "9848fcdf5bcdb2b539fc03e21e8c3cc21d1b8be419b5173725d0cae38e5e944e",
+  "inputHashes": {
+    "acceptedRun": "4316566d7437c77001625ab3328cd5ac0a8f11eb6b0f7212b36b38360f8144f5",
+    "acceptedProvenance": "b0edd0161e201fc48cfe327f13829c89b7e59d288b4857b1e6a951185b5c2f9b",
+    "authenticatedStableManifest": "631533701d2e61a698b4cc5696201209982eaf1a0c7c6c79d1528707903b2654"
+  },
+  "nextRequirement": "Review and run Windows acceptance for this exact production candidate; no stable release is published."
+}

@@ -175,7 +175,7 @@ class CandidateTests(unittest.TestCase):
             self.assertEqual(before_guards, {key: after_guards[key] for key in before_guards})
             self.assertEqual(after_guards['UPDATE-CHANNEL.json'], builder.CHANNEL_BEFORE_SHA)
             self.assertEqual(len(after_guards), len(manifest['files']))
-            self.assertEqual(len(manifest['files']), 57)
+            self.assertEqual(len(manifest['files']), 58)
             for name in after.namelist():
                 self.assertNotIn(builder.FIX4_BUILD.encode(), after.read(name), name)
             self.assertIn(b'channel.installedSequence,145', after.read(builder.PREFIX + 'changes/scripts/check-r9-clean-installer.mjs'))

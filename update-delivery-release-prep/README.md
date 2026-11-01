@@ -2,7 +2,7 @@
 
 This directory prepares a release candidate. It does not publish an application update, publish runtime assets, sign a manifest, or run GitHub Actions.
 
-The current Windows acceptance run is [FIX4 / 41195183959](https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/41195183959), commit `9a559e32a4faa4b583f990d0b5285138c5ab1895` on `r146-offline-voice-quality`. Completion and acceptance must be checked before using its output. The existing stable release remains `r144-ota`.
+The accepted Windows run is [FIX4 / 41308026467](https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/41308026467), commit `109339dc5e43237880a101d4e04d44c4d1471e68` on `r146-offline-voice-quality`. A sequence-145 production candidate was prepared from it (`production-candidate-proof.json`); its own complete Windows acceptance run must succeed before any stable publication. The existing stable release remains `r144-ota`.
 
 ## Candidate preparation
 
