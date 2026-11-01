@@ -47,7 +47,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Published base download failed' }
           python r145-prepare-preview.py
           if ($LASTEXITCODE -ne 0) { throw 'Base source binding failed' }
-          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='fc2c7ddea4eae96878eedf816e22db501f9edecec938758aa08b8899d656c8ac';p.write_bytes(b)"
+          python -c "from pathlib import Path;import hashlib;p=Path('r147-voice-latency.patch');b=p.read_bytes().replace(b'\r\n',b'\n');assert hashlib.sha256(b).hexdigest()=='fa6bed13931306aa5962e11db7eb2669d928ee27e25743d55d7f4b71957c9531';p.write_bytes(b)"
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed speech patch bytes differ' }
           git apply --check r147-voice-latency.patch
           if ($LASTEXITCODE -ne 0) { throw 'Speech latency patch does not match the reviewed source' }
