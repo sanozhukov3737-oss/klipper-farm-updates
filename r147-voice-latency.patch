@@ -12719,7 +12719,7 @@ index d4015ae..a33568f 100644
              && root.join("whisper/ggml-small-q5_1.bin").is_file()
              && root.join("whisper/recognition.args").is_file(),
          synthesis: tool(&root.join("silero/python"), "python").is_file()
-@@ -54,6 +119,130 @@ pub(crate) fn voice_tools_status(
+@@ -54,6 +119,131 @@ pub(crate) fn voice_tools_status(
      })
  }
  
@@ -12829,7 +12829,8 @@ index d4015ae..a33568f 100644
 +    };
 +    if restart { *slot = None; *slot = Some(SpeechWorker::start(root, synthesis, model)?); }
 +    if let Some(input) = input {
-+        let result = slot.as_mut().ok_or("Речевой модуль не подготовлен")?.request(input, Duration::from_secs(40));
++        // CPU-only runners transcribe a padded phrase in ~40s; keep the ceiling generous.
++        let result = slot.as_mut().ok_or("Речевой модуль не подготовлен")?.request(input, Duration::from_secs(120));
 +        if result.is_err() { *slot = None; }
 +        result
 +    } else { Ok(Vec::new()) }
