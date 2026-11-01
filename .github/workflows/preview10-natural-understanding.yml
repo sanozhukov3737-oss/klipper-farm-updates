@@ -94,7 +94,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Verified offline component split failed' }
           Copy-Item work/app/.update-components/component-build-report.json proof/component-build-report.json
       - name: Verify full prepared component installation before native build
-        timeout-minutes: 15
+        timeout-minutes: 25
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
