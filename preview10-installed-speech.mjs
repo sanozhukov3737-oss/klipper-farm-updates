@@ -26,7 +26,7 @@ class Cdp{
  });socket.addEventListener('close',()=>{for(const request of this.pending.values()){clearTimeout(request.timer);request.reject(new Error('WebView closed'))}this.pending.clear()})}
  static async open(url){const socket=new WebSocket(url);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('CDP open timeout')),15000);socket.addEventListener('open',()=>{clearTimeout(timer);resolve()},{once:true});socket.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('CDP connection failed'))},{once:true})});return new Cdp(socket)}
  send(method,params={}){return new Promise((resolve,reject)=>{const id=++this.next,timer=setTimeout(()=>{this.pending.delete(id);reject(new Error('CDP timeout: '+method))},120000);this.pending.set(id,{resolve,reject,timer});this.socket.send(JSON.stringify({id,method,params}))})}
- async evaluate(expression){const result=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true,userGesture:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description??result.exceptionDetails.text);return result.result?.value}
+ async evaluate(expression){const result=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true,userGesture:true});if(result.exceptionDetails)throw new Error('EVALUATE FAILED: '+JSON.stringify(result.exceptionDetails));return result.result?.value}
  close(){this.socket.close()}
 }
 try{
@@ -137,7 +137,7 @@ try{
   {id:'forge',name:'Flashforge 5M (Форж)',preset:'flashforge-ad5m'},
   {id:'ke',name:'Ender 3 V3 KE',preset:'ender3-v3-ke'}
  ],fileChoices:[],printerChoices:[]};
- const semanticInvoke=(command,args={})=>cdp.evaluate(`window.__TAURI_INTERNALS__.invoke(${JSON.stringify(command)},{...${JSON.stringify(args)},sessionToken:window.__speechSmokeSession})`);
+ const semanticInvoke=(command,args={})=>cdp.evaluate(`window.__TAURI_INTERNALS__.invoke(${JSON.stringify(command)},{...${JSON.stringify(args)},sessionToken:window.__speechSmokeSession}).then(value=>value,reason=>{throw new Error('semantic invoke rejected: reason-type='+typeof reason+' detail='+String(reason&&reason.message?reason.message:reason))})`);
  const unauthenticatedCommands=[];
  for(const [command,args] of [
   ['voice_semantic_status',{}],['voice_semantic_prepare',{}],

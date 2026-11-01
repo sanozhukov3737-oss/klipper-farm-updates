@@ -221,7 +221,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
           python -c "from pathlib import Path;p=Path('preview10-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech test normalization failed' }
-          if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'f12e94325e815cd3a88066cf5421d0223a14dba5fc8184ebee330ef765146460') { throw 'Reviewed installed speech and understanding test differs' }
+          if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'fa05e18fc864867700a90e5a733affca6d11bd982a31c9e8ea8dfb2e6cb10464') { throw 'Reviewed installed speech and understanding test differs' }
           node preview10-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
           $installed=Get-Content proof/installed-neural-speech.json -Raw | ConvertFrom-Json
