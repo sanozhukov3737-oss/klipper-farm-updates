@@ -20127,8 +20127,8 @@ index 5064149..c326ea6 100644
        "beforeSha256": null,
 -      "sha256": "e7b6790c4c0d1cbe06af61529406c13e5e86d62a72870d86560f152d1bd0660d",
 -      "bytes": 4371
-+      "sha256": "3f4cf4981a2d4887b840a4cbbf44a326ee941df404f307815e720f1ade0a56cf",
-+      "bytes": 27044
++      "sha256": "738817478cfc05b83e8ac0e9b3675291d9ee66f3ef0f4aca1881f3a82f970e57",
++      "bytes": 27136
      },
      {
 -      "path": "scripts/silero-synthesize.py",
