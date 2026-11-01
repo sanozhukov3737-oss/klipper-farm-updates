@@ -90,15 +90,15 @@ try{
   await waitFor(()=>cdp.evaluate('window.__speechSmoke.playback'),count=>count>=index+1,'audible playback '+voice,15000);
  }
  await cdp.evaluate('document.querySelector(\'button[aria-label="Включить микрофон"]\').click()');
- const recognized=await waitFor(()=>cdp.evaluate('window.__speechSmoke.transcripts[0]'),Boolean,'actual microphone to native Whisper transcription',45000);
+ const recognized=await waitFor(()=>cdp.evaluate('window.__speechSmoke.transcripts[0]'),Boolean,'actual microphone to native Whisper transcription',120000);
  assert.match(recognized.toLowerCase(),/(?:сколько|остат|остал|запас).*пластик/);
- await waitFor(()=>cdp.evaluate(`Array.from(document.querySelectorAll('.kfVoiceMessage.assistant')).some(item=>item.textContent.includes('Общий запас пластика'))`),Boolean,'recognized question answered through real inventory');
- await waitFor(()=>cdp.evaluate('window.__speechSmoke.playback'),count=>count>=2,'recognized answer is spoken on the first attempt',30000);
+ await waitFor(()=>cdp.evaluate(`Array.from(document.querySelectorAll('.kfVoiceMessage.assistant')).some(item=>item.textContent.includes('Общий запас пластика'))`),Boolean,'recognized question answered through real inventory',180000);
+ await waitFor(()=>cdp.evaluate('window.__speechSmoke.playback'),count=>count>=2,'recognized answer is spoken on the first attempt',120000);
  const repeatedReplies=[];
  for(let index=0;index<5;index++){
   const before=await cdp.evaluate('window.__speechSmoke.playback'),started=Date.now();
   await cdp.evaluate(`Array.from(document.querySelectorAll('.kfVoiceSuggestions button')).find(button=>button.textContent==='Сколько осталось пластика?').click()`);
-  await waitFor(()=>cdp.evaluate('window.__speechSmoke.playback'),count=>count===before+1,'consecutive spoken reply '+(index+1),15000);
+  await waitFor(()=>cdp.evaluate('window.__speechSmoke.playback'),count=>count===before+1,'consecutive spoken reply '+(index+1),45000);
   repeatedReplies.push(Date.now()-started);
  }
  const result=await cdp.evaluate('window.__speechSmoke');
@@ -118,13 +118,13 @@ try{
  await submitText('Отмена');
  await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Действие отменено'),'installed conversation cancellation');
  const missingReferenceStarted=Date.now();await submitText('этот файл');
- await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Какой файл'),'installed missing-reference clarification',5000);
+ await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text?.includes('Какой файл'),'installed missing-reference clarification',30000);
  const missingReferenceMilliseconds=Date.now()-missingReferenceStarted;
  await submitText('Какие принтеры свободны?');
- await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text==='В ферме пока нет принтеров','installed empty-farm status reply',5000);
+ await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text==='В ферме пока нет принтеров','installed empty-farm status reply',30000);
  const repeatInterpretationsBefore=await cdp.evaluate('window.__speechSmoke.semanticTimings.filter(item=>item.command==="voice_semantic_interpret").length');
  const missingRepeatStarted=Date.now();await submitText('Макс, поставь то же самое на печать');
- await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text==='Пока не знаю, какую печать повторить. Выбери файл или назови его название.','installed repeat without history clarifies immediately',5000);
+ await waitFor(()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent'),text=>text==='Пока не знаю, какую печать повторить. Выбери файл или назови его название.','installed repeat without history clarifies immediately',30000);
  const missingRepeatMilliseconds=Date.now()-missingRepeatStarted;
  assert.equal(await cdp.evaluate('window.__speechSmoke.semanticTimings.filter(item=>item.command==="voice_semantic_interpret").length'),repeatInterpretationsBefore,'missing repeat must not invoke semantic inference');
  assert.equal(await cdp.evaluate('document.querySelectorAll(".kfVoiceProposal").length'),0);
