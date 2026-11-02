@@ -1,0 +1,35 @@
+{
+  "baseBuildId": "V20.6-R14.6-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-02",
+  "buildId": "V20.6-R14.6-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-02",
+  "files": [
+    {
+      "path": "src/lib/voiceAssistant.ts",
+      "sha256": "970be8d17d99b02d5309836452c9f6b88fc267d4241210fff460ea211f8b625e",
+      "bytes": 72040,
+      "beforeSha256": "59b0010a8c3efd0c7e2beee56cf495872407788f956cadcc535368c2cef54415"
+    },
+    {
+      "path": "src/lib/voiceDiagnostics.ts",
+      "sha256": "8c803cea5040a5ef41989eb5bc9655502e9714364bdbe2541f531ec0fac433de",
+      "bytes": 11727,
+      "beforeSha256": "226919a400a08ff7efdfe54f5ac2a23985aa159c622a2361740aa481f6ee5b75"
+    },
+    {
+      "path": "src/components/VoiceAssistantPanel.tsx",
+      "sha256": "7a04dba92c93920f9597627f5d60d5f14ad87318b171e4fa37f750c9295c288e",
+      "bytes": 33193,
+      "beforeSha256": "ae3651f3154d4fee90494c1078e202f19c01ce305d89f9e9d67fa59eead22b10"
+    },
+    {
+      "path": "src/components/VoiceDiagnosticsPanel.tsx",
+      "sha256": "23094bd3cb5e0dd9f062e055a63ee8743959766424bd8aeb37b06f58c18f38a1",
+      "bytes": 4155,
+      "beforeSha256": "7296eff01b720cad50def1e8d20585e0c2e4cc29e4cce9813b28222d0dad918b"
+    },
+    {
+      "path": "scripts/check-voice-responsiveness.mjs",
+      "sha256": "c2feda05a05dfd98d4aac147fa855e75de6e52022659ebf976b19a1914da28c9",
+      "bytes": 4510
+    }
+  ]
+}
