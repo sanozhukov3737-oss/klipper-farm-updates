@@ -1,0 +1,76 @@
+{
+  "buildId": "V20.6-R14.5-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-10-31",
+  "beforeBuildId": "V20.6-R14.5-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-10-31",
+  "files": [
+    {
+      "path": "scripts/voice-semantic-schema.json",
+      "sha256": "f748ad322dfd5599025d2de16e8b80c3a63d60ad2d2e33e112d90d0dbe0432d0",
+      "beforeSha256": "abd6f990870fdcb926946ac9a3fc6bcc265449b8ad5c4e3337dde1ef4e6e4df0"
+    },
+    {
+      "path": "scripts/voice-understanding-prompt.txt",
+      "sha256": "cb814d7ee06f0e573820e3e88e8603390429ea13b1bc5dadc87f9c89ad2d7309",
+      "beforeSha256": "7828b312357a2af9cb496b8201623a175a2cd48b7b1a8dcc18cd6f67e8819d4f"
+    },
+    {
+      "path": "scripts/silero-synthesize.py",
+      "sha256": "6f8406f7a584630d90c47e7e8854d7d5dc2c8b1cd721c70540464fdb720b9e74",
+      "beforeSha256": "b93e50ed3c8257b8a5c700e505b8c0eeb5de55ef0fe82a7a1485a162686c346a"
+    },
+    {
+      "path": "scripts/check-speech-pronunciation.py",
+      "sha256": "a43e201c91c51274a87ee93796eecdd912d0ea62596e98bfcb475e26c05ea7c2",
+      "beforeSha256": "69cc152e65e56bde719fe1ade542355c3b643456a9621932ebf5d8eefe36a048"
+    },
+    {
+      "path": "scripts/check-voice-navigate.mjs",
+      "sha256": "509fa59f50b6254d0e346b19fa19144c4fd811500b20de966c03c6bd5a8d45ab",
+      "beforeSha256": null
+    },
+    {
+      "path": "src/lib/voiceCommands.ts",
+      "sha256": "1ff9c37e310abb39fae0e5d62f7d4073b8668d8d062f1f0b44730e7e7de8159e",
+      "beforeSha256": "1a9c17ccee1a278dcd1ecab3104bba34c06b8c5043ccf73a89c1647b5bb2fbe5"
+    },
+    {
+      "path": "src/lib/voiceSemantic.ts",
+      "sha256": "311c4a57b7163b8de58f4f2199b10b21a9a049162c36274fe628b35f4ddc7d2b",
+      "beforeSha256": "8dc7f2455f6a7c6e7962135fad324fc8467256aee49619e75c4d938ef8058f29"
+    },
+    {
+      "path": "src/lib/voiceAssistant.ts",
+      "sha256": "59b0010a8c3efd0c7e2beee56cf495872407788f956cadcc535368c2cef54415",
+      "beforeSha256": "a0a08dade2c034fa5a7c742f76c6fd12718f97f9f87cb990e93caf55b32f0904"
+    },
+    {
+      "path": "src/lib/voiceEventSpeech.ts",
+      "sha256": "7a242d82a5ecd6f952d464a311d4c46d833f7f3d480b7c8478dda0f79e1bc45c",
+      "beforeSha256": null
+    },
+    {
+      "path": "src/components/VoiceAssistantPanel.tsx",
+      "sha256": "ae3651f3154d4fee90494c1078e202f19c01ce305d89f9e9d67fa59eead22b10",
+      "beforeSha256": "e7385566a6a1721ea81048929ae9435d94641041f40f7558f48d24c2276dfdcc"
+    },
+    {
+      "path": "src/components/VoiceEventSpeechSettings.tsx",
+      "sha256": "001a33e72e674e7899b63224a581a65bf3211f01bdc237a5c707d98aa5966270",
+      "beforeSha256": null
+    },
+    {
+      "path": "src/components/SystemPanel.tsx",
+      "sha256": "35eb651490059a1aaff3eae59edc2ebaba89a14b6e3b58904f8cce894518b136",
+      "beforeSha256": "57a05e2da3d4b701d190770d44e59113a1118589030e8d2084112418de400040"
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "7aae8e27e4fbacd247ff1dc431a81ea53f4a371ca1978c7f55b8ac1fa806b09e",
+      "beforeSha256": "056d281b0995ff692666d1c6c8d4321469894ae04505fc7b4d3d162e1f43300a"
+    },
+    {
+      "path": "src-tauri/src/offline_semantic.rs",
+      "sha256": "820051080ce664a2e0dcfcaf89f7e398d71d9e22c5fdc5c730e6c6a52b76499c",
+      "beforeSha256": "9a6c95662008d48ec3ef49f006977602f77551f46bbe478f92490b2308690747"
+    }
+  ]
+}
