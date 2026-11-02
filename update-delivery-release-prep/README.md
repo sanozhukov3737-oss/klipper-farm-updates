@@ -2,7 +2,7 @@
 
 This directory prepares a release candidate. It does not publish an application update, publish runtime assets, sign a manifest, or run GitHub Actions.
 
-The accepted Windows run is [FIX4 / 41308026467](https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/41308026467), commit `109339dc5e43237880a101d4e04d44c4d1471e68` on `r146-offline-voice-quality`. A sequence-145 production candidate was prepared from it (`production-candidate-proof.json`); its own complete Windows acceptance run must succeed before any stable publication. The existing stable release remains `r144-ota`.
+The accepted Windows run is [R145-source / 41428990883](https://github.com/sanozhukov3737-oss/klipper-farm-updates/actions/runs/41428990883), commit `81c479aff830e863b1a7820abaa7919704211ca6` on `r146-offline-voice-quality`. A sequence-146 production candidate was prepared from it (`production-candidate-proof.json`); its own complete Windows acceptance run must succeed before any stable publication. The existing stable release remains `r145-ota`.
 
 ## Candidate preparation
 
@@ -10,7 +10,7 @@ The accepted Windows run is [FIX4 / 41308026467](https://github.com/sanozhukov37
 
 The preparation creates separate source and workflow outputs with the next embedded update sequence, and binds the new source archive hash in that workflow. The resulting application needs its own complete Windows acceptance run. A successful FIX4 run alone does not make the prepared production candidate accepted.
 
-The current public stable manifest has sequence 144. Its Ed25519 signature was verified using the application's unchanged embedded public key. `public-stable-r144-fixture.json` is a public test fixture; it must not be used as a substitute for a fresh stable manifest when preparing a release.
+The current public stable manifest has sequence 145. Its Ed25519 signature was verified using the application's unchanged embedded public key. `public-stable-r144-fixture.json` is a public test fixture; it must not be used as a substitute for a fresh stable manifest when preparing a release.
 
 ## Publication prerequisites
 

@@ -14,11 +14,11 @@ overlay = Path(__file__).resolve().parent
 manifest = json.loads((overlay / 'source-manifest.json').read_text(encoding='utf-8'))
 channel = json.loads((root / 'UPDATE-CHANNEL.json').read_text(encoding='utf-8-sig'))
 expected_channel = {'endpoint': 'https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json', 'publicKeyHex': '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb', 'channel': 'stable', 'installedSequence': 145}
-if channel != expected_channel:
-    raise SystemExit('Expected exact unchanged trust channel at sequence 145')
+if channel not in (expected_channel, dict(expected_channel, installedSequence=146)):
+    raise SystemExit('Expected exact unchanged trust channel at sequence 145 or this sequence-146 candidate')
 identity = (root / 'RELEASE-BUILD-ID.txt').read_text(encoding='utf-8-sig').strip()
 if identity != manifest['buildId']:
-    raise SystemExit('Expected exact R145 production candidate source before R149 voice actions')
+    raise SystemExit('Expected exact accepted R145-source or this sequence-146 candidate before R149 voice actions')
 
 def canonical(data):
     return data.replace(b'\r\n', b'\n')
