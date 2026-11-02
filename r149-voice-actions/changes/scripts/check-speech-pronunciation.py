@@ -85,7 +85,7 @@ class PronunciationTests(unittest.TestCase):
         self.assertEqual(synthesize(original), result)
         self.assertEqual(len(result), 4)
         self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0]['text'], 'Своб+одных пр+интеров сейчас нет. Файл «печать.gcode».')
+        self.assertEqual(calls[0]['text'], 'Своб+одных пр+интеров сейчас нет. Ф+айл «печать.gcode».')
         self.assertEqual(calls[0]['speaker'], 'kseniya')
         self.assertEqual(calls[0]['sample_rate'], 48000)
         for flag in ['put_accent', 'put_stress_homo', 'put_yo', 'put_yo_homo']:

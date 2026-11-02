@@ -19,8 +19,13 @@
     },
     {
       "path": "scripts/check-speech-pronunciation.py",
-      "sha256": "a43e201c91c51274a87ee93796eecdd912d0ea62596e98bfcb475e26c05ea7c2",
+      "sha256": "ebeb4da82019bba60c7159a955d915f26445f77ebda2412d109ccee9eb97311c",
       "beforeSha256": "69cc152e65e56bde719fe1ade542355c3b643456a9621932ebf5d8eefe36a048"
+    },
+    {
+      "path": "scripts/check-silero-runtime.py",
+      "sha256": "9e3f19ef9e86b204526d45c7ce5511dd35f524e5bcc3294be2425c2e2b11f011",
+      "beforeSha256": "c79a2c264fbdcc124db6d46dc10cfea755d75077bf6b91c616b2a9208b826030"
     },
     {
       "path": "scripts/check-voice-navigate.mjs",
