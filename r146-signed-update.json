@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "channel": "stable",
+  "sequence": 146,
+  "version": "1.14.6-r146",
+  "publishedAt": 1793630550696,
+  "artifact": {
+    "url": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/download/r146-ota/Klipper-Farm-R146-setup.exe",
+    "sha256": "ef7832cc86386e6de148ad38ef816f1311aab2eacb379bbc4e606483665a0444",
+    "sizeBytes": 285321278
+  },
+  "releaseNotes": "Ксения стала полноценным голосовым ассистентом фермы.\n\n- Новые голосовые команды: открыть камеру принтера по имени, открыть флешку, поставить то же самое на печать.\n- Голосом открываются разделы программы: инструменты, очередь, ТВ, настройки, история, катушки, файлы.\n- Ксения озвучивает ошибки принтеров, фактическое завершение печати и окончание филамента.\n- Исправлены ударения в русской речи.",
+  "signerKeyId": "dd76481818aff65865ea9d2d194056f5",
+  "signatureHex": "5781cd1cfe9832b2f9310028e4b418f4a475abcda63f2f766859e5fea6acb1db1d23a98d39e49c3efe6aa760aef8ea7e6b4c10b56f0e08179f6d2cad5bbaee0b"
+}
