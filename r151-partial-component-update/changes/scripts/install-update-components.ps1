@@ -96,12 +96,26 @@ function Show-ComponentProgress {
 
 function Write-ComponentState {
   $statePath = Get-SafePath $InstallRoot '.klipper-component-state.json'
+  # Per-file size + mtime records let the next verification run trust files
+  # that cannot have changed since this verified state was written, instead of
+  # re-hashing hundreds of megabytes on every launch.
+  $fileTable = New-Object 'Collections.Generic.List[object]'
+  foreach ($row in $expected.Values) {
+    $fullPath = Get-SafePath $InstallRoot $row.path
+    try {
+      $item = Get-Item -LiteralPath $fullPath -Force -ErrorAction Stop
+      if (-not $item.PSIsContainer) {
+        $fileTable.Add([pscustomobject]@{ path=$row.path; size=[long]$item.Length; mtime=$item.LastWriteTimeUtc.Ticks })
+      }
+    } catch { }
+  }
   $state = @{ schema=1; runtimeSha256=$runtime.sha256; modelSha256=$model.sha256;
     runtimeFiles=$expected.Count; runtimeReusedFiles=($expected.Count - $missing.Count);
     runtimeReusedBytes=($unpackedBytes - (($missing | Measure-Object -Property bytes -Sum).Sum));
     modelReused=(-not $needModel); networkDownloadBytes=$script:networkDownloadBytes;
-    localCopyBytes=$script:localCopyBytes; installedAtUtc=[DateTime]::UtcNow.ToString('o') }
-  [IO.File]::WriteAllText($statePath, ($state | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+    localCopyBytes=$script:localCopyBytes; files=$fileTable.ToArray();
+    installedAtUtc=[DateTime]::UtcNow.ToString('o') }
+  [IO.File]::WriteAllText($statePath, ($state | ConvertTo-Json -Depth 4), [Text.UTF8Encoding]::new($false))
   $previousError = Get-SafePath $InstallRoot '.klipper-component-install-error.txt'
   if (Test-Path -LiteralPath $previousError -PathType Leaf) { Remove-Item -LiteralPath $previousError -Force }
 }
@@ -366,6 +380,26 @@ try {
   $expected = New-Object 'Collections.Generic.Dictionary[string,object]' ([StringComparer]::OrdinalIgnoreCase)
   $missing = New-Object 'Collections.Generic.List[object]'
   [long]$unpackedBytes = 0
+  # A state file written by a previous fully verified installation records
+  # size + mtime for every runtime file. While the runtime pin is unchanged,
+  # files whose size and mtime still match that trusted record cannot have
+  # been replaced since they were verified, so the per-file SHA256 pass (which
+  # took minutes on large farms) is limited to files that actually changed.
+  $trustedFiles = $null
+  $componentStatePath = Get-SafePath $InstallRoot '.klipper-component-state.json'
+  if (Test-Path -LiteralPath $componentStatePath -PathType Leaf) {
+    try {
+      $savedState = [IO.File]::ReadAllText($componentStatePath, [Text.UTF8Encoding]::new($false, $true)) | ConvertFrom-Json
+      if ($savedState.schema -eq 1 -and $savedState.runtimeSha256 -ceq $runtime.sha256 -and $savedState.files) {
+        $trustedFiles = New-Object 'Collections.Generic.Dictionary[string,object]' ([StringComparer]::OrdinalIgnoreCase)
+        foreach ($record in @($savedState.files)) {
+          if ($record -and $record.path -and ($record.PSObject.Properties['mtime'] -ne $null)) {
+            $trustedFiles[$record.path] = $record
+          }
+        }
+      }
+    } catch { $trustedFiles = $null }
+  }
   Show-ComponentProgress
   $checkedFiles = 0
   foreach ($row in $runtime.files) {
@@ -379,6 +413,17 @@ try {
     $expected.Add($row.path, $row)
     $unpackedBytes += [long]$row.bytes
     if ($unpackedBytes -gt 16GB) { throw 'Embedded runtime exceeds its unpacked bound.' }
+    $trustedRecord = $null
+    if ($trustedFiles -and $trustedFiles.TryGetValue($row.path, [ref]$trustedRecord)) {
+      $item = Get-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
+      if ($item -and -not $item.PSIsContainer -and $item.Length -eq [long]$row.bytes -and
+          $item.Length -eq [long]$trustedRecord.size -and
+          $item.LastWriteTimeUtc.Ticks -eq [long]$trustedRecord.mtime) {
+        $checkedFiles++
+        if ($checkedFiles % 500 -eq 0) { Set-Status ('Проверяю установленные файлы: ' + $checkedFiles + ' / ' + $runtime.files.Count) }
+        continue
+      }
+    }
     if (-not (Test-PinnedFile $path $row)) { $missing.Add($row) }
     $checkedFiles++
     if ($checkedFiles % 100 -eq 0) { Set-Status ('Проверяю установленные файлы: ' + $checkedFiles + ' / ' + $runtime.files.Count) }
