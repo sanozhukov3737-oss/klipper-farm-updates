@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 
 function Get-UpdateCacheScope($value) {
   if (-not $value.cacheRoot) { return $null }
@@ -93,7 +93,7 @@ try {
   if ($scope -or -not $payload.cacheRoot) { try { Write-UpdateFailure $scope $log $message } catch { } }
   if ($handoffComplete) { Clear-UpdateCacheAttempt $scope }
   Add-Type -AssemblyName PresentationFramework
-  [System.Windows.MessageBox]::Show(('Klipper Farm: обновление не установлено. ' + $message), 'Klipper Farm') | Out-Null
+  [System.Windows.MessageBox]::Show(('Klipper Farm: update was not installed. ' + $message), 'Klipper Farm') | Out-Null
   if (Test-Path -LiteralPath $payload.executable) { Start-Process -FilePath $payload.executable }
   exit 1
 }

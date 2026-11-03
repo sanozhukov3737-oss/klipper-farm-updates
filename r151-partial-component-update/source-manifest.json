@@ -12,8 +12,8 @@
     },
     {
       "path": "scripts/apply-online-update.ps1",
-      "sha256": "106da60ffcf176b4b9b57886bc66b9e957cee65ad609e051cf78f111284a5d74",
-      "bytes": 5483,
+      "sha256": "f21e4e9738abbf6b91de1f523dc7550ddd53ca0bbbe9dfc3f594390514d495ee",
+      "bytes": 5456,
       "beforeSha256": "6ab1fb5003f8222b19cd2586944eb14ffca7e539c2a7e13fdd0e449434ee2e92"
     }
   ]
