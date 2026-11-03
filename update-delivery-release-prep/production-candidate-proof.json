@@ -1,18 +1,18 @@
 {
-  "localDraftOnly": true,
-  "stablePublished": false,
-  "runtimePublished": false,
-  "ciDispatched": false,
-  "acceptedRunId": 41619561071,
-  "acceptedCommit": "4cd8024023441aef3d496c361474650602ed17f9",
-  "buildId": "V20.6-R14.8-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
-  "installedSequence": 148,
-  "sourceSha256": "62c26ce0cc5c6090018f4e0a2d81949dd513051fd13b690a70b2457479c27c9f",
-  "workflowSha256": "6edb97c271f56ebda25c6324f517653fd318596c92905a7a447a7d3975308ae0",
+  "localDraftOnly": false,
+  "stablePublished": true,
+  "runtimePublished": true,
+  "ciDispatched": true,
+  "acceptedRunId": 41650823873,
+  "acceptedCommit": "f27881a8e8026bd86c604cd3f29625b163d2e500",
+  "buildId": "V20.6-R14.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
+  "installedSequence": 149,
+  "sourceSha256": "dcef8d48c8b20b063a11924b325bd4684b594d9447e2d3c3079b0c0d70784ce2",
+  "workflowSha256": "f0241902e97375d381d4032be46c74bcc11cb4eef0cbe50a3c494eae7cb400ca",
   "inputHashes": {
-    "acceptedRun": "97e0b8694ad552dd41f826b58ded2d12676fc8a3786d35b64e4ab96a9d75d5f1",
-    "acceptedProvenance": "c872ad3423b55638e3595e18862105d40a1e9ea042c49b988f0f2ec3fc21bc92",
-    "authenticatedStableManifest": "fd675a94747d13e0b7ccb3a750f0773db854729cdea5ffb532f4db800b59420f"
+    "acceptedRun": "beacd41a29bf4a1a31ce6170141df1926c12e2b2023f1d243eb23d2a6b2bf86a",
+    "acceptedProvenance": "beacd41a29bf4a1a31ce6170141df1926c12e2b2023f1d243eb23d2a6b2bf86a",
+    "authenticatedStableManifest": "d0827e286da59bdade4e0bbf24e629947b01bc1e5d15a7c0f60e4f27e213e554"
   },
-  "nextRequirement": "Review and run Windows acceptance for this exact production candidate; no stable release is published."
+  "nextRequirement": "Stable release r149-ota is published from accepted run 41650823873; monitor installed clients updating to sequence 149."
 }
