@@ -31,6 +31,7 @@ WORKFLOW_NAME = 'Build and verify small Windows app updates'
 SOURCE_SHA = '4aee8bd890cab6cf82596ec4ed373ed9446f3c939c616bf005c1e07817f3c74a'
 ACCEPTED_BUILD = 'V20.6-R14.6-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-02'
 PREVIOUS_ACCEPTED_BUILD = 'V20.6-R14.6-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-02'
+PREVIEW9_BUILD = 'V20.6-R14.5-OFFLINE-VOICE-PREVIEW9-2026-10-30'
 PRODUCTION_BUILD = 'V20.6-R14.7-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03'
 PUBLIC_KEY = '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb'
 CHANNEL = {'endpoint': f'https://github.com/{REPO}/releases/latest/download/update-v20.json',
@@ -223,7 +224,7 @@ def make_candidate(source: bytes, workflow: bytes, workflow_sha: str):
         files[entry] = data
         row.update(sha256=digest(canonical(data)), bytes=len(canonical(data)))
     rows.sort(key=lambda row: row['path'])
-    manifest.update(buildId=PRODUCTION_BUILD, beforeBuildId=PREVIOUS_ACCEPTED_BUILD,
+    manifest.update(buildId=PRODUCTION_BUILD, beforeBuildId=PREVIEW9_BUILD,
                     stableInstalledSequence=147, beforeInstalledSequence=146,
                     reviewedPreviousPreviewCommit=COMMIT)
     files[manifest_name] = (json.dumps(manifest, ensure_ascii=False, indent=2) + '\n').encode()
