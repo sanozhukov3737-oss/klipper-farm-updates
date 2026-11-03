@@ -3,16 +3,16 @@
   "stablePublished": false,
   "runtimePublished": false,
   "ciDispatched": false,
-  "acceptedRunId": 41483216363,
-  "acceptedCommit": "42a48824efbf757f6245fe265bc0eac10c6cee81",
-  "buildId": "V20.6-R14.7-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
-  "installedSequence": 147,
-  "sourceSha256": "3d98db3953ab9a4de13f2f785d827029cf9a0694a3fe9cdba828475cfb1b0672",
-  "workflowSha256": "baf163df105458f3a42340eb4d56ee43736a1dca707289b7a8d4365e6c76c8d8",
+  "acceptedRunId": 41619561071,
+  "acceptedCommit": "4cd8024023441aef3d496c361474650602ed17f9",
+  "buildId": "V20.6-R14.8-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
+  "installedSequence": 148,
+  "sourceSha256": "62c26ce0cc5c6090018f4e0a2d81949dd513051fd13b690a70b2457479c27c9f",
+  "workflowSha256": "6edb97c271f56ebda25c6324f517653fd318596c92905a7a447a7d3975308ae0",
   "inputHashes": {
-    "acceptedRun": "eb7c86e7d1e376b61ef1fffa87ab2e4ec10c7f5dd9f5bac7733afc2375f2cc7c",
-    "acceptedProvenance": "f04c74b3ddb1ddf936600942a37abf3216a09c1ec5bbddf2d39c88f97fa89e19",
-    "authenticatedStableManifest": "db3550e962a9d49cfec0c1b03c94e43f5bcd4950703efaa7c85a849e4abd1d9c"
+    "acceptedRun": "97e0b8694ad552dd41f826b58ded2d12676fc8a3786d35b64e4ab96a9d75d5f1",
+    "acceptedProvenance": "c872ad3423b55638e3595e18862105d40a1e9ea042c49b988f0f2ec3fc21bc92",
+    "authenticatedStableManifest": "fd675a94747d13e0b7ccb3a750f0773db854729cdea5ffb532f4db800b59420f"
   },
   "nextRequirement": "Review and run Windows acceptance for this exact production candidate; no stable release is published."
 }
