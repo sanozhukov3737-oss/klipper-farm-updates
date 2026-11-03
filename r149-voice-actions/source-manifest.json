@@ -1,6 +1,6 @@
 {
-  "buildId": "V20.6-R14.6-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-02",
-  "beforeBuildId": "V20.6-R14.5-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-10-31",
+  "buildId": "V20.6-R14.7-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
+  "beforeBuildId": "V20.6-R14.6-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-02",
   "files": [
     {
       "path": "scripts/voice-semantic-schema.json",
