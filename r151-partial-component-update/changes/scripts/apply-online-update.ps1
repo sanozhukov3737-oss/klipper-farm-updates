@@ -70,8 +70,17 @@ try {
   Assert-Installer
   # The daemon can outlive the desktop client and hold component files open;
   # the installer kills it too, but a stuck daemon must never stall the update.
-  foreach ($name in @('klipper-farmd.exe','klipper-farmd-x86_64-pc-windows-msvc.exe','klipper-farmd-x86_64-pc-windows-gnu.exe')) {
-    & (Join-Path $env:SystemRoot 'System32\taskkill.exe') /F /T /IM $name 2>$null | Out-Null
+  # Windows PowerShell 5.1 promotes native stderr to a terminating error while
+  # $ErrorActionPreference is 'Stop' (2>$null does not prevent it), and every
+  # alias below is normally absent, so a missing process must stay a no-op.
+  $helperErrorPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    foreach ($name in @('klipper-farmd.exe','klipper-farmd-x86_64-pc-windows-msvc.exe','klipper-farmd-x86_64-pc-windows-gnu.exe')) {
+      & (Join-Path $env:SystemRoot 'System32\taskkill.exe') /F /T /IM $name 2>$null | Out-Null
+    }
+  } finally {
+    $ErrorActionPreference = $helperErrorPreference
   }
   Start-Sleep -Seconds 1
   $directory = Split-Path -Parent $payload.executable

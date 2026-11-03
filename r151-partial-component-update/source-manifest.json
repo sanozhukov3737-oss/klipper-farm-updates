@@ -1,7 +1,7 @@
 {
   "schema": "klipper-farm-source-overlay@1",
-  "baseBuildId": "V20.6-R14.8-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
-  "buildId": "V20.6-R14.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
+  "baseBuildId": "V20.6-R14.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
+  "buildId": "V20.6-R15.0-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
   "canonicalLineEndings": true,
   "files": [
     {
@@ -12,8 +12,8 @@
     },
     {
       "path": "scripts/apply-online-update.ps1",
-      "sha256": "f21e4e9738abbf6b91de1f523dc7550ddd53ca0bbbe9dfc3f594390514d495ee",
-      "bytes": 5456,
+      "sha256": "b2e05d55f89c83cff7c890f7b36a5a98ca6f28cc37d0398204e5f9caeba92f7c",
+      "bytes": 5762,
       "beforeSha256": "6ab1fb5003f8222b19cd2586944eb14ffca7e539c2a7e13fdd0e449434ee2e92"
     }
   ]
