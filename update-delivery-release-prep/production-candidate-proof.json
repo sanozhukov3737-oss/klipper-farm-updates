@@ -3,16 +3,16 @@
   "stablePublished": true,
   "runtimePublished": true,
   "ciDispatched": true,
-  "acceptedRunId": 41650823873,
-  "acceptedCommit": "f27881a8e8026bd86c604cd3f29625b163d2e500",
-  "buildId": "V20.6-R14.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
-  "installedSequence": 149,
-  "sourceSha256": "dcef8d48c8b20b063a11924b325bd4684b594d9447e2d3c3079b0c0d70784ce2",
-  "workflowSha256": "f0241902e97375d381d4032be46c74bcc11cb4eef0cbe50a3c494eae7cb400ca",
+  "acceptedRunId": 41691336434,
+  "acceptedCommit": "7697c71833d38f4192c64d1c7fd45a84b3314f8f",
+  "buildId": "V20.6-R15.0-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
+  "installedSequence": 150,
+  "sourceSha256": "b853d550aa332ae4bfdd3d3e95326eaf70fb6a72f551e287ae0ee41744f7e358",
+  "workflowSha256": "b1b60be839502eaaeda4e6f8e5062d83a2bf58319c0c0971eb0abc5800a3302c",
   "inputHashes": {
-    "acceptedRun": "beacd41a29bf4a1a31ce6170141df1926c12e2b2023f1d243eb23d2a6b2bf86a",
-    "acceptedProvenance": "beacd41a29bf4a1a31ce6170141df1926c12e2b2023f1d243eb23d2a6b2bf86a",
-    "authenticatedStableManifest": "d0827e286da59bdade4e0bbf24e629947b01bc1e5d15a7c0f60e4f27e213e554"
+    "acceptedRun": "4e79e4ca5d5e2535ada6a5221fd585030f6e60abfaa24c51762d135caea58b3e",
+    "acceptedProvenance": "4e79e4ca5d5e2535ada6a5221fd585030f6e60abfaa24c51762d135caea58b3e",
+    "authenticatedStableManifest": "733feff309f5ed33b3eb1897fa62c42d1c74f050b138874b1fd75212d7d6236f"
   },
-  "nextRequirement": "Stable release r149-ota is published from accepted run 41650823873; monitor installed clients updating to sequence 149."
+  "nextRequirement": "Stable release r150-ota is published from accepted run 41691336434; monitor installed clients updating to sequence 150."
 }
