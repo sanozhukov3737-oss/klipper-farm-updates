@@ -1,4 +1,4 @@
-"""Apply the reviewed R152 engine-start-reliability source over the exact sequence-150 candidate.
+"""Apply the reviewed R152 engine-start-reliability source over the exact sequence-151 candidate.
 
 The desktop client used to give klipper-farmd only 30 seconds to publish its
 IPC endpoint after a fresh install or update. On hosts under peak load
@@ -20,11 +20,11 @@ overlay = Path(__file__).resolve().parent
 manifest = json.loads((overlay / 'source-manifest.json').read_text(encoding='utf-8'))
 channel = json.loads((root / 'UPDATE-CHANNEL.json').read_text(encoding='utf-8-sig'))
 expected_channel = {'endpoint': 'https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json', 'publicKeyHex': '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb', 'channel': 'stable', 'installedSequence': 148}
-if channel not in (expected_channel, dict(expected_channel, installedSequence=149), dict(expected_channel, installedSequence=150)):
-    raise SystemExit('Expected exact unchanged trust channel at sequence 149 or this sequence-150 candidate')
+if channel not in (expected_channel, dict(expected_channel, installedSequence=149), dict(expected_channel, installedSequence=150), dict(expected_channel, installedSequence=151)):
+    raise SystemExit('Expected exact unchanged trust channel at sequence 149, the sequence-150 release or this sequence-151 candidate')
 identity = (root / 'RELEASE-BUILD-ID.txt').read_text(encoding='utf-8-sig').strip()
 if identity != manifest['buildId']:
-    raise SystemExit('Expected exact accepted sequence-150 candidate before R152 engine-start reliability')
+    raise SystemExit('Expected exact accepted sequence-151 candidate before R152 engine-start reliability')
 
 def canonical(data):
     return data.replace(b'\r\n', b'\n')
@@ -50,4 +50,4 @@ for row in manifest['files']:
 for target, source in rows:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(canonical(source.read_bytes()))
-print('Applied reviewed R152 engine-start-reliability source over the exact sequence-150 candidate.')
+print('Applied reviewed R152 engine-start-reliability source over the exact sequence-151 candidate.')

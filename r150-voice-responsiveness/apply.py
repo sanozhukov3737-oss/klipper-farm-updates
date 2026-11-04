@@ -16,8 +16,8 @@ overlay = Path(__file__).resolve().parent
 manifest = json.loads((overlay / 'source-manifest.json').read_text(encoding='utf-8'))
 channel = json.loads((root / 'UPDATE-CHANNEL.json').read_text(encoding='utf-8-sig'))
 expected_channel = {'endpoint': 'https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json', 'publicKeyHex': '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb', 'channel': 'stable', 'installedSequence': 146}
-if channel not in (expected_channel, dict(expected_channel, installedSequence=147), dict(expected_channel, installedSequence=148), dict(expected_channel, installedSequence=149), dict(expected_channel, installedSequence=150)):
-    raise SystemExit('Expected exact unchanged trust channel at sequence 146, the sequence-147 release, the sequence-148 release, the sequence-149 release or this sequence-150 candidate')
+if channel not in (expected_channel, dict(expected_channel, installedSequence=147), dict(expected_channel, installedSequence=148), dict(expected_channel, installedSequence=149), dict(expected_channel, installedSequence=150), dict(expected_channel, installedSequence=151)):
+    raise SystemExit('Expected exact unchanged trust channel at sequence 146, the sequence-147 release, the sequence-148 release, the sequence-149 release, the sequence-150 release or this sequence-151 candidate')
 identity = (root / 'RELEASE-BUILD-ID.txt').read_text(encoding='utf-8-sig').strip()
 if identity != manifest['buildId']:
     raise SystemExit('Expected exact accepted sequence-146 candidate before R150 voice responsiveness')

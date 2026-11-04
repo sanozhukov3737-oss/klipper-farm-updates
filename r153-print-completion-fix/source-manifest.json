@@ -1,0 +1,18 @@
+{
+  "baseBuildId": "V20.6-R15.0-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
+  "buildId": "V20.6-R15.1-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-04",
+  "files": [
+    {
+      "path": "src/App.tsx",
+      "sha256": "1a566f634922816458966adcd0fb80f0535896380aab8417c044992133070e9b",
+      "bytes": 85455,
+      "beforeSha256": "7aae8e27e4fbacd247ff1dc431a81ea53f4a371ca1978c7f55b8ac1fa806b09e"
+    },
+    {
+      "path": "src/lib/printerFault.ts",
+      "sha256": "a30190a2c8200546f93ddaa79624a5055c34f80663e5d3ee6c845b49d63010d7",
+      "bytes": 2786,
+      "beforeSha256": "e61de04d33160858d352a2d310de5f66018216364f5573509fcc4eab5667dc4a"
+    }
+  ]
+}
