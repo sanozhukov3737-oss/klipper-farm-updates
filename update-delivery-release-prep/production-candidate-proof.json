@@ -3,16 +3,16 @@
   "stablePublished": true,
   "runtimePublished": true,
   "ciDispatched": true,
-  "acceptedRunId": 41691336434,
-  "acceptedCommit": "7697c71833d38f4192c64d1c7fd45a84b3314f8f",
-  "buildId": "V20.6-R15.0-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-03",
-  "installedSequence": 150,
-  "sourceSha256": "b853d550aa332ae4bfdd3d3e95326eaf70fb6a72f551e287ae0ee41744f7e358",
-  "workflowSha256": "b1b60be839502eaaeda4e6f8e5062d83a2bf58319c0c0971eb0abc5800a3302c",
+  "acceptedRunId": 41808965045,
+  "acceptedCommit": "48d2d01c12e58a4eeb28d4c4560b68633877dcac",
+  "buildId": "V20.6-R15.1-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-04",
+  "installedSequence": 151,
+  "sourceSha256": "4fc971582b5a4e94bcc509014a43a22cd51c4ec8e23dbea133f8329704300d94",
+  "workflowSha256": "7702d878b23a89eb77d86c4022a781bd7ad583448e0a81249bd6d5935400de86",
   "inputHashes": {
-    "acceptedRun": "4e79e4ca5d5e2535ada6a5221fd585030f6e60abfaa24c51762d135caea58b3e",
-    "acceptedProvenance": "4e79e4ca5d5e2535ada6a5221fd585030f6e60abfaa24c51762d135caea58b3e",
-    "authenticatedStableManifest": "733feff309f5ed33b3eb1897fa62c42d1c74f050b138874b1fd75212d7d6236f"
+    "acceptedRun": "c3aa157d086dc5d1d1e118d96fc0bf32110112794833afdbe13a7f6f6a9fe3dd",
+    "acceptedProvenance": "c3aa157d086dc5d1d1e118d96fc0bf32110112794833afdbe13a7f6f6a9fe3dd",
+    "authenticatedStableManifest": "391faa10bd716894d5b5b21f52e675c091d6e87481c4ebb18f353d83cf245851"
   },
-  "nextRequirement": "Stable release r150-ota is published from accepted run 41691336434; monitor installed clients updating to sequence 150."
+  "nextRequirement": "Stable release r151-ota is published from accepted run 41808965045; monitor installed clients updating to sequence 151 and confirm K1 Max announces print completion instead of a fault after the post-print Klipper restart."
 }
