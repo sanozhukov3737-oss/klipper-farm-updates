@@ -2,7 +2,7 @@ name: Build and verify small Windows app updates
 'on':
   push:
     branches: [r146-offline-voice-quality]
-    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'version-stamp/**']
+    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'r154-storage-on-d/**', 'version-stamp/**']
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -31,6 +31,7 @@ jobs:
             /r151-partial-component-update/
             /r152-engine-start-reliability/
             /r153-print-completion-fix/
+            /r154-storage-on-d/
             /preview10-installed-speech.mjs
             /preview10-understanding-source.zip
             /version-stamp/
@@ -77,6 +78,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R152 engine-start-reliability overlay did not match the exact sequence-151 candidate' }
           python r153-print-completion-fix/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R153 print-completion-fix overlay did not match the exact sequence-151 candidate' }
+          python r154-storage-on-d/apply.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed R154 storage-on-d overlay did not match the exact sequence-151 candidate' }
           python work/app/scripts/check-update-components.py
           if ($LASTEXITCODE -ne 0) { throw 'Offline component preparation fixtures failed' }
           & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File work/app/scripts/check-update-components-windows.ps1

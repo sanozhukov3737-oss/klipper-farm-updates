@@ -1,0 +1,68 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.1-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-04",
+  "buildId": "V20.6-R15.1-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-04",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src-tauri/src/storage_paths.rs",
+      "sha256": "d7e4c8eb44ccc4c9a7837c9475014f468679ea035c5da2c4c7b24373e96a93fb",
+      "bytes": 9786,
+      "beforeSha256": null
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "972b8540c9030ae6025d1bdfbc1edfc4c3f014b9ca7169b1bcaee6a06699538e",
+      "bytes": 175748,
+      "beforeSha256": "7f3dc1e1b6c94436efad61402e99bf21f898be99ffb991c414721fe9d6232e32"
+    },
+    {
+      "path": "src-tauri/src/database.rs",
+      "sha256": "bf3cd2d05b44aea1671a08748ec0b465d7182a4a10b1011fc1c6cd76c468661c",
+      "bytes": 4493,
+      "beforeSha256": "2aa3144b1d13fac438ca094bfce11060f6b554d59603164ec684e63c1dc9c205"
+    },
+    {
+      "path": "src-tauri/src/engine_client.rs",
+      "sha256": "82abf1e1953ee567ac5f2fb552894bf70e574c0c86e8c4c84f29ce4ca8da2dfe",
+      "bytes": 53145,
+      "beforeSha256": "ba21fd292032e80fd4a73cdb0c6bc5defd908b5ccbe286cd91b7c5f7cb93d4cf"
+    },
+    {
+      "path": "src-tauri/src/desktop_startup.rs",
+      "sha256": "f9cf128589c83dd0ae088c90d89c7e2e65015a36c2337077f171bcfdf45e4e26",
+      "bytes": 9001,
+      "beforeSha256": "e98a5474ee9de60e98af7c0033f19e85ac93bc5da0083759a4a98e24810eaa96"
+    },
+    {
+      "path": "src-tauri/src/headless_engine.rs",
+      "sha256": "01b888f2468fe14bfb89106b803d8b73a7619a70465ec669bcc94658917311c7",
+      "bytes": 70742,
+      "beforeSha256": "81f05c3236f48cda1de600bf9c9736b97976e7611cab90ac9d92cf94fcbdcab4"
+    },
+    {
+      "path": "src-tauri/src/system_commands.rs",
+      "sha256": "ad1339d95f7a1d3bfe47e01ebd552ecb744f5c2ebf9c1b4c796ad493bf1c49da",
+      "bytes": 21461,
+      "beforeSha256": "547e64c4fae285522e69093a35b75033b69d9980436df5c25a120fd5b24fad9b"
+    },
+    {
+      "path": "src-tauri/src/online_updates.rs",
+      "sha256": "3abbc0cd98d73d0796dec669a8d4037831477d951222cc518b938718f2dc417e",
+      "bytes": 27116,
+      "beforeSha256": "0c319884ed394949f718d6c1f63af56cf6cd966908b1ab1bfd31d2de482119f7"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/diagnostics.rs",
+      "sha256": "0b588f8d4a344df6ffaf42fdafd8bf41b03a568b2fac0ffcb38cbd2f580e7944",
+      "bytes": 18570,
+      "beforeSha256": "01e2bca9203a48b79609cf49326222e77575d8b38da27488312828ff78086c17"
+    },
+    {
+      "path": "scripts/check-local-library.mjs",
+      "sha256": "f272a805340754fd9aea7709579c3a8c1e19925a4a110d92b1a4f7cc18fd894e",
+      "bytes": 13354,
+      "beforeSha256": "534cfadfa07577649c5320d4e41554232ce8dd8ebc762a8e4768a8a6bb861167"
+    }
+  ]
+}
