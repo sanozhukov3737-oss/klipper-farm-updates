@@ -1,0 +1,4 @@
+{
+  "version": "1.15.2",
+  "notes": "Single source of truth for the application version. scripts/stamp-version.py writes this value into the reviewed source tree after all reviewed overlays are applied and before the native build."
+}

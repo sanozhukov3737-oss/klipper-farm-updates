@@ -2,7 +2,7 @@ name: Build and verify small Windows app updates
 'on':
   push:
     branches: [r146-offline-voice-quality]
-    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**']
+    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'version-stamp/**']
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -33,6 +33,7 @@ jobs:
             /r153-print-completion-fix/
             /preview10-installed-speech.mjs
             /preview10-understanding-source.zip
+            /version-stamp/
             /.github/workflows/preview10-natural-understanding.yml
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -82,6 +83,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Windows component integrity and repair fixtures failed' }
           node work/app/scripts/check-release-portability.mjs --text-encoding-self-test
           if ($LASTEXITCODE -ne 0) { throw 'Release text encoding fixtures failed' }
+      - name: Stamp release version and single-instance identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Force proof | Out-Null
+          python version-stamp/stamp-version.py --app work/app --audit --audit-strict --report proof/version-stamp.json
+          if ($LASTEXITCODE -ne 0) { throw 'Release version stamping failed' }
+          $stamped=Get-Content proof/version-stamp.json -Raw | ConvertFrom-Json
+          $expected=(Get-Content version-stamp/version.json -Raw | ConvertFrom-Json).version
+          if ($stamped.to -cne $expected) { throw 'Stamped version differs from version-stamp/version.json' }
+          $channel=Get-Content work/app/UPDATE-CHANNEL.json -Raw | ConvertFrom-Json
+          $identity=(Get-Content work/app/RELEASE-BUILD-ID.txt -Raw).Trim()
+          "Stamped $($stamped.from) -> $($stamped.to) in $($stamped.applied.Count) files; sequence $($channel.installedSequence); build $identity"
       - name: Prepare pinned offline speech and understanding components
         shell: pwsh
         run: |
@@ -206,6 +220,12 @@ jobs:
           Copy-Item .update-components/component-build-report.json ../../runtime-publish/component-build-report.json
           $semantic=Get-Content ../../proof/voice-semantic.json -Raw | ConvertFrom-Json
           if ($semantic.passed -ne $true -or $semantic.cases -lt 21) { throw 'Understanding boundary checks did not complete' }
+      - name: Verify stamped version in built artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          node version-stamp/check-version-stamp.mjs --app work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Built artifacts do not carry the stamped version or single-instance identity' }
       - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         if: steps.rustcache.outputs.cache-hit != 'true'
         with:
