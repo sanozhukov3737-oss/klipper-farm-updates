@@ -106,11 +106,15 @@ class StampError(RuntimeError):
 
 
 def read_text(path: Path) -> str:
-    return path.read_text(encoding="utf-8", newline="")
+    # Path.read_text() только с Python 3.13 принимает newline=; сборка идёт на 3.12,
+    # поэтому читаем через open(), сохраняя байты строк без преобразования концов строк.
+    with open(path, encoding="utf-8", newline="") as stream:
+        return stream.read()
 
 
 def write_text(path: Path, text: str) -> None:
-    path.write_text(text, encoding="utf-8", newline="")
+    with open(path, "w", encoding="utf-8", newline="") as stream:
+        stream.write(text)
 
 
 def strip_line_endings(text: str) -> str:
@@ -367,9 +371,32 @@ def stamp_sbom(root: Path, old: str, new: str, report: Report) -> None:
     report.rule(relative, changed, "SBOM project packages")
 
 
-def verify_no_leftovers(root: Path, old: str, report: Report) -> None:
+def project_lock_versions(root: Path) -> dict[str, str]:
+    """Версии только собственных пакетов из Cargo.lock.
+
+    Сырой поиск подстроки по Cargo.lock даёт ложные срабатывания: версия стороннего
+    крейта может случайно совпасть с целевой (например, smallvec 1.15.2).
+    """
+    path = root / PurePosixPath("src-tauri/Cargo.lock")
+    versions: dict[str, str] = {}
+    if not path.is_file():
+        return versions
+    name_pattern = re.compile(r'^name\s*=\s*"([^"]+)"\s*$')
+    version_pattern = re.compile(r'^version\s*=\s*"([^"]+)"\s*$')
+    current: str | None = None
+    for line in read_text(path).splitlines():
+        name_match = name_pattern.match(line.strip())
+        if name_match:
+            current = name_match.group(1)
+            continue
+        version_match = version_pattern.match(line.strip())
+        if version_match and current in OWN_CRATES:
+            versions[current] = version_match.group(1)
+    return versions
+
+
+def verify_no_leftovers(root: Path, old: str, new: str, report: Report) -> None:
     managed = [relative for relative, _, _, _ in version_rules(old, "0.0.0")]
-    managed.append("src-tauri/Cargo.lock")
     leftovers = []
     for relative in managed:
         path = root / PurePosixPath(relative)
@@ -379,6 +406,14 @@ def verify_no_leftovers(root: Path, old: str, report: Report) -> None:
         for number, line in enumerate(text.splitlines(), start=1):
             if old in line:
                 leftovers.append(f"{relative}:{number}: {line.strip()[:120]}")
+    # Cargo.lock сверяем по пакетам, а не по подстроке: чужая версия может совпасть.
+    stale = {
+        name: version
+        for name, version in project_lock_versions(root).items()
+        if version == old
+    }
+    if stale:
+        leftovers.extend(f"src-tauri/Cargo.lock: {name} = {version}" for name, version in stale.items())
     if leftovers:
         raise StampError("managed files still reference the previous version:\n  " + "\n  ".join(leftovers))
 
@@ -398,7 +433,7 @@ def audit(root: Path, old: str, report: Report) -> None:
         if any(part in SKIP_DIRS for part in relative.parts):
             continue
         try:
-            text = path.read_text(encoding="utf-8", newline="")
+            text = read_text(path)
         except (UnicodeDecodeError, OSError):
             continue
         relative_posix = relative.as_posix()
@@ -484,7 +519,7 @@ def main() -> int:
         stamp_sbom(root, old, new, report)
         stamp_mutex(root, report)
         stamp_security_check(root, report)
-        verify_no_leftovers(root, old, report)
+        verify_no_leftovers(root, old, new, report)
         print(f"Stamped version {old} -> {new} in {len(report.applied)} managed files")
 
     if (args.audit or args.audit_strict) and old != new:
