@@ -1,0 +1,92 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "buildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-audit-hardening.mjs",
+      "sha256": "3b183a9542c4d1419b959069f4cb134e54b4f057b3e43389130c6bf9ec47d70f",
+      "bytes": 6696,
+      "beforeSha256": "1bb470402af395f3ad654d06cddf235c3b15450efa949c217697ccecce851007"
+    },
+    {
+      "path": "scripts/check-fix3-10-engine-quarantine-ui-recovery.mjs",
+      "sha256": "148a3fd55a28de0f92ee006e162934d588b1cd65bdf0b64c7fa295a4cca52f94",
+      "bytes": 3516,
+      "beforeSha256": "e52147e8da36156fd0da3683cf5fe57535582ce59e4d67dce8580c24c8c200c2"
+    },
+    {
+      "path": "scripts/check-fix3-11-stale-daemon-takeover.mjs",
+      "sha256": "9168ccfc6886a1639584952a5b4f891bcc6b1d01482d1caad1d93557048aad54",
+      "bytes": 2332,
+      "beforeSha256": "f74c41beb59e5c2522b48330f097ccf1bb7677852d6bba280a7e95fea361fd7a"
+    },
+    {
+      "path": "scripts/check-fix3-12-engine-ownership-recovery.mjs",
+      "sha256": "51b23bb64de4da6e418adf5914d7717f7f2a2fc23b8c5459b759498da00b49ab",
+      "bytes": 3215,
+      "beforeSha256": "89cddedd96a0d26c8f22f18d8b79e419d213c207ad4903577b853c0a68024bf1"
+    },
+    {
+      "path": "scripts/check-fix3-13-identity-connection-recovery.mjs",
+      "sha256": "16624f87d54ea1f30099fbf5b5e2c01252fee5e9b31562d6d631724a2012a903",
+      "bytes": 5800,
+      "beforeSha256": "92d9a68228d390ff288d0a10f1dbf9ecc02d3b933ddb4a7deb2c3f0809d91d3b"
+    },
+    {
+      "path": "scripts/check-fix3-14-verified-mutex-owner-recovery.mjs",
+      "sha256": "af0066ade194da201e4191f5d5619511f6f3e67f1b36f1e7f69400d5338da404",
+      "bytes": 4626,
+      "beforeSha256": "aaed61f3a734a2f615b91c99b2b891011bcca6dd0ab27d5776b8d93938c9f6f5"
+    },
+    {
+      "path": "scripts/check-fix3-15-clean-quarantine-gate.mjs",
+      "sha256": "1e4abbdd32e4d1fc5d75802a020f247ab496e124a23099865418d68da3ee99c3",
+      "bytes": 1283,
+      "beforeSha256": "9d07ee36afefe5700f4b96875a0a6fd977a7c065ac16b2ff5c20351b9a3d9035"
+    },
+    {
+      "path": "scripts/check-fix3-3-daemon-recovery.mjs",
+      "sha256": "3804fa8b175b454451aad421d486b8e80eee45259ef6288dd8336fe0139750ad",
+      "bytes": 4148,
+      "beforeSha256": "3804fa8b175b454451aad421d486b8e80eee45259ef6288dd8336fe0139750ad"
+    },
+    {
+      "path": "scripts/check-fix3-4-windows-ipc-probe.mjs",
+      "sha256": "4f9c6bdd350a508e0a4df6fde78d3fcae01cc68ab1de78682b9e4cef786c387e",
+      "bytes": 3256,
+      "beforeSha256": "4f9c6bdd350a508e0a4df6fde78d3fcae01cc68ab1de78682b9e4cef786c387e"
+    },
+    {
+      "path": "scripts/check-fix3-5-restart-lifecycle.mjs",
+      "sha256": "7b17db3e8758684e46442cd4025780ee0727843f69d1d53782a5cee39bee6c32",
+      "bytes": 2802,
+      "beforeSha256": "7b17db3e8758684e46442cd4025780ee0727843f69d1d53782a5cee39bee6c32"
+    },
+    {
+      "path": "scripts/check-fix3-6-durable-actor-recovery.mjs",
+      "sha256": "b8096ab46cfdab4b648c72738d64ea76b3a36d868e5ee7c985f654b542fde695",
+      "bytes": 3076,
+      "beforeSha256": "b8096ab46cfdab4b648c72738d64ea76b3a36d868e5ee7c985f654b542fde695"
+    },
+    {
+      "path": "scripts/check-fix3-7-windows-socket-shutdown.mjs",
+      "sha256": "47d130689f7bce104177839b2d65ad4396589720b962981eb621a0eb04b00135",
+      "bytes": 1738,
+      "beforeSha256": "db91e826db40c17693e0bbabb708d11d6082bbce35117b8aee8713e4f3243fbb"
+    },
+    {
+      "path": "scripts/check-fix3-8-graceful-windows-ipc-drain.mjs",
+      "sha256": "508ffb4f52f18b4c11dc27341818ab3c48b37456a276b9d160e76c200fc9918a",
+      "bytes": 2911,
+      "beforeSha256": "7aad770242c2c84645ef02be9c489d52654e98a80c1f77e8a67f1b5ad246fef6"
+    },
+    {
+      "path": "scripts/check-fix3-9-nonblocking-actor-snapshot.mjs",
+      "sha256": "bc0b69d9df6e3f876b7a56b34d245d0378cf054a8f7132a3131c7cd8a1abca2e",
+      "bytes": 2609,
+      "beforeSha256": "dc94cd2278ae214fac9f1f2bebdea503da58cb41d93c74d5ff1538bb64828881"
+    }
+  ]
+}
