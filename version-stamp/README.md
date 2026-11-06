@@ -17,7 +17,7 @@
 
 `.github/workflows/preview10-natural-understanding.yml`:
 
-1. **после** всех проверенных оверлеев (`r145`…`r153/apply.py`) и **до** сборки —
+1. **после** всех проверенных оверлеев (`r145`…`r154/apply.py`) и **до** сборки —
    `stamp-version.py`. Раньше нельзя: каждый оверлей сверяет `beforeSha256`/`source-manifest.json`
    своего файла и упадёт на изменённом содержимом. Позже нельзя: `generate-release-manifests.mjs`
    пересчитывает `MANIFEST-SHA256.txt`, `npm run build` впекает версию в `dist`, а
