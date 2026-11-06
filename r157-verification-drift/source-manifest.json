@@ -1,0 +1,44 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "buildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-audit-hardening.mjs",
+      "sha256": "d54014814b1bfe4982e2d98915036a7b564c1ac4a101a982c58b8c7d737bb21f",
+      "bytes": 6697,
+      "beforeSha256": "3b183a9542c4d1419b959069f4cb134e54b4f057b3e43389130c6bf9ec47d70f"
+    },
+    {
+      "path": "scripts/check-fix3-3-daemon-recovery.mjs",
+      "sha256": "5902197afcc2c18ecfe08da233bfeaa45ac46ee9064e6ad4dd816f4a66f805d0",
+      "bytes": 3858,
+      "beforeSha256": "3804fa8b175b454451aad421d486b8e80eee45259ef6288dd8336fe0139750ad"
+    },
+    {
+      "path": "scripts/check-fix3-4-windows-ipc-probe.mjs",
+      "sha256": "204e307a26afcda75c788746cab4d6b1718053938b47c051d81c7446fe03d71c",
+      "bytes": 2928,
+      "beforeSha256": "4f9c6bdd350a508e0a4df6fde78d3fcae01cc68ab1de78682b9e4cef786c387e"
+    },
+    {
+      "path": "scripts/check-fix3-6-durable-actor-recovery.mjs",
+      "sha256": "187c3a7bb5eefd1557b7c55b0fb3f56ce8234e206b0ac053273443863b61b38b",
+      "bytes": 3032,
+      "beforeSha256": "b8096ab46cfdab4b648c72738d64ea76b3a36d868e5ee7c985f654b542fde695"
+    },
+    {
+      "path": "scripts/check-fix3-11-stale-daemon-takeover.mjs",
+      "sha256": "60b87227d6900c551a9e49797a5afb8c63832b29ff57c29f684c728276db8c35",
+      "bytes": 2151,
+      "beforeSha256": "9168ccfc6886a1639584952a5b4f891bcc6b1d01482d1caad1d93557048aad54"
+    },
+    {
+      "path": "scripts/check-fix3-12-engine-ownership-recovery.mjs",
+      "sha256": "b903ce9f810a62814b6e93959a45908ca7c3ce07755ec7e4712b8679f1d1f2c2",
+      "bytes": 3034,
+      "beforeSha256": "51b23bb64de4da6e418adf5914d7717f7f2a2fc23b8c5459b759498da00b49ab"
+    }
+  ]
+}
