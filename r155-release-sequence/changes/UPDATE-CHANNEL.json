@@ -1,0 +1,6 @@
+{
+  "endpoint": "https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json",
+  "publicKeyHex": "28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb",
+  "channel": "stable",
+  "installedSequence": 152
+}
