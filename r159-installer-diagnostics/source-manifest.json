@@ -1,0 +1,20 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "buildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src-tauri/windows/installer-hooks.nsh",
+      "sha256": "ed83ece85992a317e0788608dcceb1c4fbaab75d0d82fb04f76afd3bac09a710",
+      "bytes": 5462,
+      "beforeSha256": "d924e9f1e9f510d8b5968010cdf4c9e8023d2e378f483ac6bd88f1988d26ed43"
+    },
+    {
+      "path": "scripts/apply-online-update.ps1",
+      "sha256": "a98de5f2f0796021ccbdbca70e3f0214c902bcd209400a5b582e5ffc18684751",
+      "bytes": 7670,
+      "beforeSha256": "b2e05d55f89c83cff7c890f7b36a5a98ca6f28cc37d0398204e5f9caeba92f7c"
+    }
+  ]
+}

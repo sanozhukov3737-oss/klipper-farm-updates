@@ -1,0 +1,38 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "buildId": "V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src-tauri/src/storage_commands.rs",
+      "sha256": "f605679597624ecb079132c5f3a570e6c30fff80f203a0e316aba25a0185373f",
+      "bytes": 5883,
+      "beforeSha256": null
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "53be19748bbe71592e783011a29bbb34976fc3a4f237223ce500fa609c46a82a",
+      "bytes": 175818,
+      "beforeSha256": "972b8540c9030ae6025d1bdfbc1edfc4c3f014b9ca7169b1bcaee6a06699538e"
+    },
+    {
+      "path": "src-tauri/src/storage_paths.rs",
+      "sha256": "d314dc101950a2d99d5a3a7c7166e18b55e73af71106ffa6ad14ce04b3883623",
+      "bytes": 9797,
+      "beforeSha256": "d7e4c8eb44ccc4c9a7837c9475014f468679ea035c5da2c4c7b24373e96a93fb"
+    },
+    {
+      "path": "src/lib/native.ts",
+      "sha256": "65eefa89b1ed07072e69d33c8720b6dc352dbbf77b3536a35cf69e2632c722f8",
+      "bytes": 6167,
+      "beforeSha256": "e3ddacf8cb6db5c48774fc1a5db611150fee8250675be575ff1aba843bd65558"
+    },
+    {
+      "path": "src/components/SystemPanel.tsx",
+      "sha256": "dee6a5d2ed9d43164694baa68af63799b1cee1dbdbcbf1d05c45f87457513357",
+      "bytes": 22597,
+      "beforeSha256": "35eb651490059a1aaff3eae59edc2ebaba89a14b6e3b58904f8cce894518b136"
+    }
+  ]
+}
