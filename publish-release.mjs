@@ -26,6 +26,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const REPOSITORY = 'sanozhukov3737-oss/klipper-farm-updates';
 const WORKFLOW_PATH = '.github/workflows/preview10-natural-understanding.yml';
@@ -48,7 +49,7 @@ const note = message => console.log('  ' + message);
 
 function parseArguments(argv) {
   const options = { repo: REPOSITORY, dryRun: false };
-  const valued = new Set(['--run-id', '--head-sha', '--sequence', '--version', '--installer', '--notes', '--key', '--repo', '--work-dir']);
+  const valued = new Set(['--run-id', '--head-sha', '--sequence', '--version', '--installer', '--notes', '--key', '--repo', '--work-dir', '--channel']);
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index];
     if (flag === '--dry-run') {
@@ -67,6 +68,7 @@ function parseArguments(argv) {
   --installer   local installer built by that run
   --notes       release notes markdown
   --key         publisher private key, or KF_PUBLISHER_KEY_PATH
+  --channel     packaged UPDATE-CHANNEL.json that carries the trusted public key
   --dry-run     run every check and stop before creating the release`);
       process.exit(0);
     }
@@ -85,6 +87,16 @@ function gh(argumentsList) {
 
 function ghJson(argumentsList) {
   return JSON.parse(gh(argumentsList));
+}
+
+function releaseByTag(repository, tag) {
+  // /releases/tags/<tag> отвечает 404 для черновика: тег появляется только
+  // после публикации. Поэтому черновик ищем в общем списке.
+  const pages = ghJson(['api', '--paginate', '--slurp', `repos/${repository}/releases?per_page=100`]);
+  const rows = pages.flat().filter(item => item.tag_name === tag);
+  if (rows.length === 0) fail(`release ${tag} does not exist`);
+  if (rows.length > 1) fail(`release ${tag} is ambiguous`);
+  return rows[0];
 }
 
 function sha256(file) {
@@ -191,7 +203,9 @@ function main() {
   console.log('7. sign manifest');
   const signedPath = path.join(workDir, 'update-v20.json');
   const signArguments = [
-    path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), 'sign-update.mjs'),
+    // fileURLToPath, а не URL.pathname: путь установки содержит пробел ("klipper Farm"),
+    // и pathname вернул бы его как %20, из-за чего node не нашёл бы скрипт.
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'sign-update.mjs'),
     '--sequence', String(sequence),
     '--version', version,
     '--sha256', installerSha,
@@ -202,6 +216,9 @@ function main() {
   if (options.key ?? process.env.KF_PUBLISHER_KEY_PATH) {
     signArguments.push('--key', options.key ?? process.env.KF_PUBLISHER_KEY_PATH);
   }
+  // Канал задаёт публичный ключ, которому доверяют установленные клиенты; без него
+  // sign-update.mjs отказывается подписывать в рабочем каталоге без work/app.
+  if (options.channel) { signArguments.push('--channel', options.channel); }
   process.stdout.write(execFileSync(process.execPath, signArguments, { encoding: 'utf8' }));
   check(fs.existsSync(signedPath), 'signing produced no manifest');
 
@@ -212,15 +229,21 @@ function main() {
   const stagedInstaller = path.join(workDir, installerName);
   fs.copyFileSync(installerPath, stagedInstaller);
 
-  gh(['release', 'create', tag, '--repo', repository, '--target', headSha, '--title', title, '--notes-file', notesPath, '--draft']);
-  note(`draft ${tag}: ${title}`);
+  let draftExists = false;
+  try { draftExists = releaseByTag(repository, tag).draft === true; } catch { draftExists = false; }
+  if (!draftExists) {
+    gh(['release', 'create', tag, '--repo', repository, '--target', headSha, '--title', title, '--notes-file', notesPath, '--draft']);
+    note(`draft ${tag}: ${title}`);
+  } else {
+    note(`draft ${tag} already exists; reusing it`);
+  }
 
   console.log('9. upload');
   gh(['release', 'upload', tag, '--repo', repository, stagedInstaller, signedPath]);
   note('installer and manifest uploaded');
 
   console.log('10. verify uploaded bytes');
-  const draft = ghJson(['api', `repos/${repository}/releases/tags/${tag}`]);
+  const draft = releaseByTag(repository, tag);
   for (const [name, localPath] of [[installerName, stagedInstaller], ['update-v20.json', signedPath]]) {
     const asset = (draft.assets ?? []).find(item => item.name === name);
     check(asset, 'uploaded asset is missing: ' + name);
