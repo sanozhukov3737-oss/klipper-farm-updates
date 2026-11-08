@@ -166,3 +166,4 @@ r162-shutdown-reason/** -text
 r163-release-sequence/** -text
 r164-update-resume/** -text
 r165-reliability/** -text
+r166-backup-compaction/** -text
