@@ -8,7 +8,7 @@
       "path": "scripts/apply-online-update.ps1",
       "sha256": "3e76be13d7c7d8d2642aacf1accb4417cffa907a081a3990db9d6f37929d4039",
       "bytes": 11396,
-      "beforeSha256": "b2e05d55f89c83cff7c890f7b36a5a98ca6f28cc37d0398204e5f9caeba92f7c"
+      "beforeSha256": "a98de5f2f0796021ccbdbca70e3f0214c902bcd209400a5b582e5ffc18684751"
     },
     {
       "path": "scripts/check-release-portability.mjs",
