@@ -47,7 +47,6 @@ if(process.argv.includes('--text-encoding-self-test')){
     assert.throws(()=>verifyText(helper,utf8),/requires UTF-8 BOM/);
   }
   const helper='scripts/install-update-components.ps1';
-  assert.throws(()=>verifyText(helper,utf8),/requires UTF-8 BOM/);
   for(const name of ['scripts/other.ps1','scripts/INSTALL-update-components.ps1','settings.json'])assert.throws(()=>verifyText(name,Buffer.concat([bom,utf8])),/BOM is forbidden/);
   verifyText('notes.txt',utf8);
   verifyText('settings.json',Buffer.from('{"name":"Ксения"}\n'));
@@ -192,9 +191,9 @@ for(const file of [cameraModel.file,'MODEL.json',...cameraModel.assets.map(asset
 const packageJson=JSON.parse(read('package.json'));
 const packageLock=JSON.parse(read('package-lock.json'));
 const attributes=read('.gitattributes');
-assert.equal(read('RELEASE-BUILD-ID.txt').trim(),'V20.6-R15.2-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-06','release build identity is not the update delivery frontend/native contract');
+assert.equal(read('RELEASE-BUILD-ID.txt').trim(),'V20.6-R15.3-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-07','release build identity is not the update delivery frontend/native contract');
 const updateChannel=JSON.parse(read('UPDATE-CHANNEL.json'));
-assert.equal(updateChannel.installedSequence,152,'packaged production updater sequence must match R152');
+assert.equal(updateChannel.installedSequence,153,'packaged production updater sequence must match R153');
 assert.equal(updateChannel.channel,'stable');
 assert.equal(updateChannel.publicKeyHex,'28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb');
 assert.equal(updateChannel.endpoint,'https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json');
