@@ -163,3 +163,4 @@ r159-installer-diagnostics/** -text
 r160-release-sequence/** -text
 r161-update-progress/** -text
 r162-shutdown-reason/** -text
+r163-release-sequence/** -text
