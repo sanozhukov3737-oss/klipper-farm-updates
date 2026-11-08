@@ -9,6 +9,12 @@
       "sha256": "3e76be13d7c7d8d2642aacf1accb4417cffa907a081a3990db9d6f37929d4039",
       "bytes": 11396,
       "beforeSha256": "a98de5f2f0796021ccbdbca70e3f0214c902bcd209400a5b582e5ffc18684751"
+    },
+    {
+      "path": "scripts/check-release-portability.mjs",
+      "sha256": "5df4032e67f848848910fd33c2f3b3457f6368f94729bd40814324b8eaff6342",
+      "bytes": 22040,
+      "beforeSha256": "aaab5970af0ccec53c2e93259e163edb241f7668df3d5cda44db84b371cb1ef0"
     }
   ]
 }
