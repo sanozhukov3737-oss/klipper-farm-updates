@@ -1,0 +1,32 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.4-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-08",
+  "buildId": "V20.6-R15.4-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-08",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src-tauri/src/transactional_core/moonraker_transport.rs",
+      "sha256": "22010e06bbcb04acf179e9ca4154ec4ec2e2da097dd4eb26751c8476c69d8ead",
+      "bytes": 10922,
+      "beforeSha256": "3b3e3c2d67568780ed2d0f5023bcd903c3dcaae132c7b8d097a7542fbe7d83bf"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/database_writer.rs",
+      "sha256": "f80aa7e067114ba4b8353c1a9490522ecbf44b6858583b2d89611fcc641d10ce",
+      "bytes": 33164,
+      "beforeSha256": "6419c0da05e3f9f17c838969b7d59a3710401b58373fbb70aaa32d3c48332b85"
+    },
+    {
+      "path": "src-tauri/src/transactional_core/farm_coordinator.rs",
+      "sha256": "7f37774e2864d40c627db3b51fd234238f9790fa7b1acd571b80581e836e4a8a",
+      "bytes": 6280,
+      "beforeSha256": "0d467f048f3aa1aca29d54cdb6d03aab52222291e3a397fc6b7525b0ac28b327"
+    },
+    {
+      "path": "src/lib/moonraker.ts",
+      "sha256": "28b4cf2156e01605d725df0c6b13d8bff39ff224112ed8239ece5b210849c58b",
+      "bytes": 137917,
+      "beforeSha256": "31b7b6cf8ceaf767dd57e7aa50f6a20abfecd1170c8eab966fac08816ce79040"
+    }
+  ]
+}
