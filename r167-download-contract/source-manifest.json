@@ -1,0 +1,14 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.4-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-08",
+  "buildId": "V20.6-R15.4-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-08",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-update-download.mjs",
+      "sha256": "22f322f2d18b8177e77e94fc10cde8742bffbba072d75973f0cb44f655770403",
+      "bytes": 4349,
+      "beforeSha256": "5903c3ff0935864e658d4b1fd9b037a5ce19078cfb912afc075f581992ea4815"
+    }
+  ]
+}
