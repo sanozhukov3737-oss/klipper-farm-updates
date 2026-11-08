@@ -2,7 +2,7 @@ name: Build and verify small Windows app updates
 'on':
   push:
     branches: [r146-offline-voice-quality]
-    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'r154-storage-on-d/**', 'r155-release-sequence/**', 'r156-verification-identity/**', 'r157-verification-drift/**', 'r158-storage-visibility/**', 'r159-installer-diagnostics/**', 'r160-release-sequence/**', 'version-stamp/**']
+    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'r154-storage-on-d/**', 'r155-release-sequence/**', 'r156-verification-identity/**', 'r157-verification-drift/**', 'r158-storage-visibility/**', 'r159-installer-diagnostics/**', 'r160-release-sequence/**', 'r161-update-progress/**', 'r162-shutdown-reason/**', 'version-stamp/**']
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -38,6 +38,8 @@ jobs:
             /r158-storage-visibility/
             /r159-installer-diagnostics/
             /r160-release-sequence/
+            /r161-update-progress/
+            /r162-shutdown-reason/
             /preview10-installed-speech.mjs
             /preview10-understanding-source.zip
             /version-stamp/
@@ -98,6 +100,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R159 installer-diagnostics overlay did not match the exact sequence-152 candidate' }
           python r160-release-sequence/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R160 release-sequence overlay did not match the exact sequence-152 candidate' }
+          python r161-update-progress/apply.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed R161 update-progress overlay did not match the exact sequence-153 candidate' }
+          python r162-shutdown-reason/apply.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed R162 shutdown-reason overlay did not match the exact sequence-153 candidate' }
           python work/app/scripts/check-update-components.py
           if ($LASTEXITCODE -ne 0) { throw 'Offline component preparation fixtures failed' }
           & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File work/app/scripts/check-update-components-windows.ps1
