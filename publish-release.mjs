@@ -81,8 +81,33 @@ function parseArguments(argv) {
   return options;
 }
 
+// Сетевые сбои к GitHub — таймауты TLS и обрывы — приходят пачками и не зависят от
+// нашего кода. Повторяем чтение, но только те команды, что ничего не меняют:
+// повтор записи (загрузка ассета, создание релиза) мог бы создать дубликат.
+const READ_ONLY = new Set(['api', 'release', 'run']);
+const RETRY_DELAYS = [2000, 5000, 10000, 20000, 30000, 45000];
+
 function gh(argumentsList) {
-  return execFileSync('gh', argumentsList, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  const command = argumentsList[0];
+  const readOnly = READ_ONLY.has(command) && !argumentsList.includes('create')
+    && !argumentsList.includes('upload') && !argumentsList.includes('edit');
+  const attempts = readOnly ? RETRY_DELAYS.length + 1 : 1;
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return execFileSync('gh', argumentsList, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    } catch (error) {
+      lastError = error;
+      const stderr = String(error.stderr ?? '');
+      const transient = /TLS handshake timeout|i\/o timeout|connection reset|aborted|EOF|502|503|504/.test(stderr);
+      if (!readOnly || !transient || attempt === attempts) throw error;
+      const wait = RETRY_DELAYS[attempt - 1];
+      console.log(`  сеть: повтор через ${wait / 1000}с (${stderr.split('\n')[0].slice(0, 80)})`);
+      const until = Date.now() + wait;
+      while (Date.now() < until) { /* короткая пауза без внешних процессов */ }
+    }
+  }
+  throw lastError;
 }
 
 function ghJson(argumentsList) {
