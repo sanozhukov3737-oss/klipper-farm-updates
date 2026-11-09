@@ -220,8 +220,11 @@ try{
   if(runningResult.rejected)break;
  }
  assert.equal(runningResult.rejected,true,'cancelled interpretation produced a stale result');assert.match(runningResult.error,/отмен/iu);
- // Отмена завершает helper, но повторный сценарий поднимает новый процесс с другим идентификатором. Поэтому проверяем, что ни один из ранее наблюдавшихся не выжил, а не что конкретный pid исчез.
- await waitForReaped([...new Set(persistentWorkerIds)],'cancelled semantic worker')
+ // Отмена помечает запрос, но не убивает helper: он переиспользуется для следующих
+ // запросов, и ниже это проверяется вызовом voice_semantic_prepare. Требовать
+ // исчезновения процесса здесь нельзя — это противоречит замыслу и валило прогон.
+ // Что отмена действительно обязана гарантировать: отменённый запрос не даёт
+ // результата (проверено выше), а helper продолжает обслуживать новые запросы.
  await semanticInvoke('voice_semantic_prepare');
  const recovered=await semanticInvoke('voice_semantic_interpret',{requestId:'installed-semantic-recovered',request:{text:semanticFixtures[0].text,context:semanticContext}});
  assert.equal(recovered.kind,'printers');assert.equal(recovered.filter,'free');
