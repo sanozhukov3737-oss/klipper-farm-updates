@@ -168,3 +168,4 @@ r164-update-resume/** -text
 r165-reliability/** -text
 r166-backup-compaction/** -text
 r167-download-contract/** -text
+r168-release-sequence/** -text
