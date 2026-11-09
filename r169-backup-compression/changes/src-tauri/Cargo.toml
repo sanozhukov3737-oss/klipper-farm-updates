@@ -1,0 +1,93 @@
+[package]
+name="klipper-farm-client"
+version="1.14.5"
+description="Klipper farm desktop client"
+authors= ["OpenAI"]
+edition="2021"
+default-run="klipper-farm-client"
+autobins=false
+
+[[bin]]
+name="klipper-farm-client"
+path="src/main.rs"
+
+[[bin]]
+name="klipper-farmd"
+path="src/bin/klipper-farmd.rs"
+
+[[bin]]
+name="klipper-farm-ipc-probe"
+path="src/bin/klipper-farm-ipc-probe.rs"
+
+[workspace]
+resolver="2"
+members=[
+  "crates/kf-domain",
+  "crates/kf-engine",
+  "crates/kf-ipc",
+  "crates/kf-moonraker",
+  "crates/kf-storage",
+  "crates/kf-update",
+]
+
+[workspace.dependencies]
+serde={version="1",features=["derive"]}
+serde_json="1"
+sha2="0.10"
+thiserror="2.0"
+tokio={version="1.53.1",features=["io-util","net","rt-multi-thread","sync","time"]}
+rusqlite={version="0.32",features=["backup","bundled"]}
+ed25519-dalek={version="2.2.0",default-features=false,features=["fast","std","zeroize"]}
+url="2"
+[lib]
+name="klipper_farm_client_lib"
+# Desktop-only release: staticlib/cdylib are needed only for mobile targets.
+crate-type= ["rlib"]
+[features]
+default=[]
+fault-injection=[]
+[build-dependencies]
+tauri-build= {version="2",features= [] }
+[dependencies]
+# Keep every production default except common-controls-v6. That optional
+# feature imports TaskDialogIndirect, but Cargo's Windows unit-test executables
+# do not carry Tauri's Common Controls v6 application manifest and fail in the
+# Windows loader before the tests can start.
+tauri= {version="2",default-features=false,features=["wry","compression","dynamic-acl","x11","dbus","tray-icon"]}
+serde= {version="1",features= ["derive"] }
+serde_json="1"
+thiserror="2.0"
+rusqlite= {version="0.32",features= ["backup","bundled"] }
+# Сжатие резервных копий: 844 МБ базы дают примерно 106 МБ архива (7.5x).
+flate2= {version="1.1",default-features=false,features=["rust_backend"]}
+keyring= {version="4.1",features= ["v1"] }
+tauri-plugin-notification="2"
+tauri-plugin-autostart="2"
+url="2"
+hmac="0.12"
+sha2="0.10"
+getrandom="0.2"
+hex="0.4"
+subtle="2.6"
+if-addrs="0.15"
+socket2="0.6.5"
+libc="0.2"
+tokio= {version="1.53.1",features= ["io-util","net","rt-multi-thread","sync","time"] }
+ed25519-dalek= {version="2.2.0",default-features=false,features= ["fast","std","zeroize"] }
+kf-domain={path="crates/kf-domain"}
+kf-engine={path="crates/kf-engine"}
+kf-ipc={path="crates/kf-ipc"}
+kf-moonraker={path="crates/kf-moonraker"}
+kf-storage={path="crates/kf-storage"}
+kf-update={path="crates/kf-update"}
+
+[target.'cfg(windows)'.dependencies]
+windows={version="=0.61.3",features=["Security_Credentials_UI","Win32_System_WinRT"]}
+windows-future="=0.2.1"
+windows-sys= {version="0.61",features= ["Win32_Foundation","Win32_Security","Win32_System_JobObjects","Win32_Storage_FileSystem","Win32_System_Threading","Win32_UI_WindowsAndMessaging"] }
+uds_windows="1.2.1"
+
+[profile.release]
+debug=0
+incremental=false
+strip="symbols"
