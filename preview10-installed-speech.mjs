@@ -220,7 +220,8 @@ try{
   if(runningResult.rejected)break;
  }
  assert.equal(runningResult.rejected,true,'cancelled interpretation produced a stale result');assert.match(runningResult.error,/отмен/iu);
- await waitForReaped([persistentWorkerIds[0]],'cancelled semantic worker');
+ // Отмена завершает helper, но повторный сценарий поднимает новый процесс с другим идентификатором. Поэтому проверяем, что ни один из ранее наблюдавшихся не выжил, а не что конкретный pid исчез.
+ await waitForReaped([...new Set(persistentWorkerIds)],'cancelled semantic worker')
  await semanticInvoke('voice_semantic_prepare');
  const recovered=await semanticInvoke('voice_semantic_interpret',{requestId:'installed-semantic-recovered',request:{text:semanticFixtures[0].text,context:semanticContext}});
  assert.equal(recovered.kind,'printers');assert.equal(recovered.filter,'free');
