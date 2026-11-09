@@ -9,6 +9,12 @@
       "sha256": "4e91abbbdd339e4d9914b6c7a42e5f182cf81705dd13b9da52eef9b7a483ea6d",
       "bytes": 20423,
       "beforeSha256": "6f8406f7a584630d90c47e7e8854d7d5dc2c8b1cd721c70540464fdb720b9e74"
+    },
+    {
+      "path": "scripts/check-speech-pronunciation.py",
+      "sha256": "da24da0e27eb8fb1125ee515f35e0aaf6a8d120d95c5c997802c5185c85c95dc",
+      "bytes": 6873,
+      "beforeSha256": "ebeb4da82019bba60c7159a955d915f26445f77ebda2412d109ccee9eb97311c"
     }
   ]
 }
