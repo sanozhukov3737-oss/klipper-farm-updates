@@ -105,7 +105,7 @@ try{
   }
   const transcriptIndex=attempt-1;
   await cdp.evaluate(microphoneButton+'.click()');
-  recognized=await waitFor(()=>cdp.evaluate(`window.__speechSmoke.transcripts[${transcriptIndex}]`),Boolean,'actual microphone to native Whisper transcription attempt '+attempt,120000);
+  recognized=await waitFor(()=>cdp.evaluate(`window.__speechSmoke.transcripts[${transcriptIndex}]?.text`),Boolean,'actual microphone to native Whisper transcription attempt '+attempt,120000);
   if(plasticQuestion.test(String(recognized).toLowerCase()))break;
  }
  assert.match(String(recognized).toLowerCase(),plasticQuestion,'question was not recognised correctly in '+recognitionAttempts+' attempts');
