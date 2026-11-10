@@ -51,6 +51,12 @@
       "sha256": "b731e943c2211b08a85bf7f7f9d0b5d758ddae430c3dcc5c484708ded9d7f981",
       "bytes": 15412,
       "beforeSha256": "883063ce463ea7a3fe075e5ec3964951a3352879fb8ebdbd63bcfebbdd71308c"
+    },
+    {
+      "path": "ui-tests/voice-assistant-r145.tsx",
+      "sha256": "3ede3ef97870d1d5c19af5b894be4a02fe1055cc0b71a46b7aee24a4730419e2",
+      "bytes": 11024,
+      "beforeSha256": "7223f38e3b92eaee1e00695ccfeaf3e2e75b846f075fc375feff962c8dbc9305"
     }
   ]
 }
