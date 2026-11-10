@@ -14,19 +14,19 @@
       "path": "src/lib/neuralSpeech.ts",
       "sha256": "a4d04592d8b19e24a07e578dd99e6d57b4a38b289583f23ecfabf839913edf8b",
       "bytes": 16044,
-      "beforeSha256": "7d4716a5a6e49805f9e3341342fb65f8ee724cde8eec45b18088f3381744f381"
+      "beforeSha256": "bf7a2e5ca851ae585d32621c0b4b463b089aee063ded73a3a34f63580454b980"
     },
     {
       "path": "src/components/VoiceAssistantPanel.tsx",
       "sha256": "6fac4daf09a986c0a81c6a0527c90641668fb433f615d58d5ea9a170be7594bb",
       "bytes": 33718,
-      "beforeSha256": "ae3651f3154d4fee90494c1078e202f19c01ce305d89f9e9d67fa59eead22b10"
+      "beforeSha256": "7a04dba92c93920f9597627f5d60d5f14ad87318b171e4fa37f750c9295c288e"
     },
     {
       "path": "src-tauri/src/offline_voice.rs",
       "sha256": "9fffc700811608b320f7ba1c3ff1b37dd80d386042c593b9604df7d5b4d660d1",
       "bytes": 28225,
-      "beforeSha256": "6eb8ecbd324a2ca6b51b8e5c226aab6a73ba3e712455d6dc5348bf3bfc76c7dc"
+      "beforeSha256": "738817478cfc05b83e8ac0e9b3675291d9ee66f3ef0f4aca1881f3a82f970e57"
     },
     {
       "path": "scripts/whisper-worker.cpp",
@@ -44,13 +44,13 @@
       "path": "scripts/check-voice-diagnostics.mjs",
       "sha256": "1478c445ff167cc5046b0615bbd483377bb215d350904b280561269b05b61383",
       "bytes": 16610,
-      "beforeSha256": "1478c445ff167cc5046b0615bbd483377bb215d350904b280561269b05b61383"
+      "beforeSha256": "378fbd991febc72c3af40b385c41b45e39cf3f284d7f729ab7003d98cfdaa9d9"
     },
     {
       "path": "scripts/check-neural-speech.mjs",
       "sha256": "b731e943c2211b08a85bf7f7f9d0b5d758ddae430c3dcc5c484708ded9d7f981",
       "bytes": 15412,
-      "beforeSha256": "b731e943c2211b08a85bf7f7f9d0b5d758ddae430c3dcc5c484708ded9d7f981"
+      "beforeSha256": "883063ce463ea7a3fe075e5ec3964951a3352879fb8ebdbd63bcfebbdd71308c"
     }
   ]
 }
