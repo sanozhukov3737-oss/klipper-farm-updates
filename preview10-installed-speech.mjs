@@ -100,7 +100,7 @@ try{
  for(let attempt=1;attempt<=recognitionAttempts;attempt++){
   if(attempt>1){
    // Предыдущая попытка уже завершилась сама: кнопка вернулась в состояние простоя.
-   await waitFor(()=>cdp.evaluate(microphoneButton),Boolean,'microphone idle before recognition attempt '+attempt,90000);
+   await waitFor(()=>cdp.evaluate(`!!(`+microphoneButton+`)`),Boolean,'microphone idle before recognition attempt '+attempt,90000);
    await delay(500);
   }
   const transcriptIndex=attempt-1;
