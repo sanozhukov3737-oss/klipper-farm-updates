@@ -1,0 +1,32 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-13",
+  "buildId": "V20.6-R15.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-13",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/lib/printForecast.ts",
+      "sha256": "d303cd23ff710ac46d219d7734670e47962227444ad55b44b7a065144ccaf312",
+      "bytes": 4713,
+      "beforeSha256": "d523b44b3cff3ad9a3f9d5152b0dc355b58b05d41404c0eb57b8668de77cae76"
+    },
+    {
+      "path": "src/components/ProductionPanel.tsx",
+      "sha256": "0a0ee7c1088313fbc96dc09b62eb45ac811bdd87e00774c730c0d09d93814b80",
+      "bytes": 23973,
+      "beforeSha256": "cd272fe05341aa79d3620649e8607d1cd2e131dd4a6ce40698b8b689a90d1ef6"
+    },
+    {
+      "path": "src/components/AnalyticsPanel.tsx",
+      "sha256": "ca762710d184b27cd8d7687b0d35aedecf36c6def6bbe3099d461c296fd476bc",
+      "bytes": 7490,
+      "beforeSha256": "1425ca6bc3304b913fcb749843ebffa81b11736bf5725e7607a38c7e016fccb5"
+    },
+    {
+      "path": "scripts/check-print-forecast.mjs",
+      "sha256": "60d662c3204608c80e2380ea8d451bad6e48eb471ee4b8757123cfc6035660fa",
+      "bytes": 5001,
+      "beforeSha256": "b0845dc558b8f260175e1262817138f46dc26d8e21fd045f3d6ee3239ab7521e"
+    }
+  ]
+}
