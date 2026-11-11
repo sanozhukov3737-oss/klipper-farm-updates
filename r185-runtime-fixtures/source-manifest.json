@@ -1,0 +1,14 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.10-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-14",
+  "buildId": "V20.6-R15.10-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-14",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-silero-runtime.py",
+      "sha256": "678b338c781abd2c8753ac37400e33da596a6120684207cd0ee79ce13cf5b9e8",
+      "bytes": 5078,
+      "beforeSha256": "9e3f19ef9e86b204526d45c7ce5511dd35f524e5bcc3294be2425c2e2b11f011"
+    }
+  ]
+}
