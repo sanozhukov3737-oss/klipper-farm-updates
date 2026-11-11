@@ -1,0 +1,20 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-13",
+  "buildId": "V20.6-R15.9-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-13",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/silero-synthesize.py",
+      "sha256": "90dedcfaf2c127244556130dbe186ff071a6387eb80305a20687ca76ad13c6a0",
+      "bytes": 26992,
+      "beforeSha256": "2d9e344313743f5b0cb963b4f0678c37756c9d03961367a3f01181f3b87e1fb9"
+    },
+    {
+      "path": "scripts/check-speech-pronunciation.py",
+      "sha256": "aaaccf6e806725d6744faa39273ce9b00f2a6521756a946f5c9aa88a0535b288",
+      "bytes": 9786,
+      "beforeSha256": "db2841d8abc6678d4b517a8a29e1ccbaf9627ee93af2aed8f3c01747f1fbb0d6"
+    }
+  ]
+}
