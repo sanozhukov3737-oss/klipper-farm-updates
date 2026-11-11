@@ -5,16 +5,16 @@
   "canonicalLineEndings": true,
   "files": [
     {
+      "path": "src/components/SystemPanel.tsx",
+      "sha256": "46be07c3117f2e371b6f3ce686adca8f7cb5b221be91c5d3026d9ee70849756f",
+      "bytes": 23552,
+      "beforeSha256": "dee6a5d2ed9d43164694baa68af63799b1cee1dbdbcbf1d05c45f87457513357"
+    },
+    {
       "path": "src/components/ProductionPanel.tsx",
       "sha256": "cd272fe05341aa79d3620649e8607d1cd2e131dd4a6ce40698b8b689a90d1ef6",
       "bytes": 23094,
       "beforeSha256": "45b5101fd1b3d9efe320f4cbdfc95fb5a5e7e0cbc192db2f65af38583da0d03b"
-    },
-    {
-      "path": "src/components/SystemPanel.tsx",
-      "sha256": "86482a869f034421c9141fefc3e96534c553455618cc3bb849ddc54383371d24",
-      "bytes": 23552,
-      "beforeSha256": "132a7b4cb0a0e9f497182ad1bc72a06b126aa129b3e7df48d39aeccc4469c808"
     },
     {
       "path": "src/components/AnalyticsPanel.tsx",
@@ -36,9 +36,9 @@
     },
     {
       "path": "package.json",
-      "sha256": "97a202a33e096a0053d79c0bd754aa37ac8405234d0fa2ba910b9eb6da4f626f",
+      "sha256": "81c212480d78e7d573b68aed8acc0c2f78e03a58caffb963d497f38c08f7e089",
       "bytes": 6686,
-      "beforeSha256": "e4719af54dbe98c0e108e7e4b35a5c699923ebdd080408b3796ee852314747fd"
+      "beforeSha256": "4811e7229f35ffbca1adce27d58c9ccba184058876f158eb1bb9fb05e63cdbad"
     }
   ]
 }
