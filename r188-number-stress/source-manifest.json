@@ -1,0 +1,32 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.11-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-15",
+  "buildId": "V20.6-R15.11-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-15",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/generate-speech-stress.py",
+      "sha256": "9c31eaa2d974684534d46dd8d84167e42a42a94e55b4572c793c1b8ceb27b242",
+      "bytes": 11005,
+      "beforeSha256": "70465f44f6eae855dcc546cfaba25bc4ae6e754e762da2542524908265042f25"
+    },
+    {
+      "path": "scripts/silero-synthesize.py",
+      "sha256": "0eba0953a022cb257133c42d9ae1dab770d3e63a9e24792b2fe3fa09f0f55ea9",
+      "bytes": 104549,
+      "beforeSha256": "d897bfc8df16a896f1e7bcad9b5722365f34af11ea92cac101ef959a1feacfc1"
+    },
+    {
+      "path": "scripts/check-speech-pronunciation.py",
+      "sha256": "384ef6df9c5fb44cb5647f9de4c868bedd687ee21a3290fe7c8097768a38ae9f",
+      "bytes": 10234,
+      "beforeSha256": "ef4354cf1db72b9acdfa833aa813fc8ffec48ab42db8dbfa1372d0f135cea510"
+    },
+    {
+      "path": "scripts/check-silero-runtime.py",
+      "sha256": "b345312c1c4d23be41a2efd6a785cf4e34c45ad204c2f71988469090fd01669c",
+      "bytes": 5085,
+      "beforeSha256": "678b338c781abd2c8753ac37400e33da596a6120684207cd0ee79ce13cf5b9e8"
+    }
+  ]
+}
