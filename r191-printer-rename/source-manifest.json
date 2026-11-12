@@ -1,0 +1,14 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.12-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-16",
+  "buildId": "V20.6-R15.12-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-16",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/components/PrinterSettings.tsx",
+      "sha256": "81be819cdf59f68346d04e61f639ca256731b811c1c4ed19a002ed7b0d6a3876",
+      "bytes": 25522,
+      "beforeSha256": "c06ccf1aca870d161ce88746f8b8f1c7063ef6810d79a5ba95cd1f996ff2d901"
+    }
+  ]
+}
