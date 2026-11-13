@@ -2,7 +2,7 @@ name: Build and verify small Windows app updates
 'on':
   push:
     branches: [r146-offline-voice-quality]
-    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'r154-storage-on-d/**', 'r155-release-sequence/**', 'r156-verification-identity/**', 'r157-verification-drift/**', 'r158-storage-visibility/**', 'r159-installer-diagnostics/**', 'r160-release-sequence/**', 'r161-update-progress/**', 'r162-shutdown-reason/**', 'r163-release-sequence/**', 'r164-update-resume/**', 'r165-reliability/**', 'r166-backup-compaction/**', 'r167-download-contract/**', 'r168-release-sequence/**', 'r169-backup-compression/**', 'r170-release-sequence/**', 'r171-speech-pronunciation/**', 'r172-file-name-speech/**', 'r173-release-sequence/**', 'r174-recognition-accuracy/**', 'r175-release-sequence/**', 'r176-poll-backoff/**', 'r177-print-safety/**', 'r178-release-sequence/**', 'r179-file-forecast/**', 'r180-stale-check-repair/**', 'r181-speech-stress/**', 'r182-assistant-vocabulary/**', 'r183-generated-stress/**', 'r184-release-sequence/**', 'r185-runtime-fixtures/**', 'r186-camera-fallback/**', 'r187-release-sequence/**', 'r188-number-stress/**', 'r189-camera-webrtc/**', 'r190-release-sequence/**', 'r191-printer-rename/**', 'r193-upload-queue/**', 'r194-number-speech/**', 'r195-speech-hardening/**', 'r196-fault-reasons/**', 'version-stamp/**']
+    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'r154-storage-on-d/**', 'r155-release-sequence/**', 'r156-verification-identity/**', 'r157-verification-drift/**', 'r158-storage-visibility/**', 'r159-installer-diagnostics/**', 'r160-release-sequence/**', 'r161-update-progress/**', 'r162-shutdown-reason/**', 'r163-release-sequence/**', 'r164-update-resume/**', 'r165-reliability/**', 'r166-backup-compaction/**', 'r167-download-contract/**', 'r168-release-sequence/**', 'r169-backup-compression/**', 'r170-release-sequence/**', 'r171-speech-pronunciation/**', 'r172-file-name-speech/**', 'r173-release-sequence/**', 'r174-recognition-accuracy/**', 'r175-release-sequence/**', 'r176-poll-backoff/**', 'r177-print-safety/**', 'r178-release-sequence/**', 'r179-file-forecast/**', 'r180-stale-check-repair/**', 'r181-speech-stress/**', 'r182-assistant-vocabulary/**', 'r183-generated-stress/**', 'r184-release-sequence/**', 'r185-runtime-fixtures/**', 'r186-camera-fallback/**', 'r187-release-sequence/**', 'r188-number-stress/**', 'r189-camera-webrtc/**', 'r190-release-sequence/**', 'r191-printer-rename/**', 'r193-upload-queue/**', 'r194-number-speech/**', 'r195-speech-hardening/**', 'r196-fault-reasons/**', 'r197-release-sequence/**', 'version-stamp/**']
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -73,6 +73,7 @@ jobs:
             /r194-number-speech/
             /r195-speech-hardening/
             /r196-fault-reasons/
+            /r197-release-sequence/
             /preview10-installed-speech.mjs
             /preview10-understanding-source.zip
             /version-stamp/
@@ -203,6 +204,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R195 speech-hardening overlay did not match the exact sequence-162 candidate' }
           python r196-fault-reasons/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R196 fault-reasons overlay did not match the exact sequence-162 candidate' }
+          python r197-release-sequence/apply.py work/app
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed R197 release-sequence overlay did not match the exact sequence-162 candidate' }
           python work/app/scripts/check-update-components.py
           if ($LASTEXITCODE -ne 0) { throw 'Offline component preparation fixtures failed' }
           & powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File work/app/scripts/check-update-components-windows.ps1
@@ -383,19 +386,19 @@ jobs:
           python -c "from pathlib import Path;p=Path('preview10-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech test normalization failed' }
           if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'd19e900dfa7acf5d07c306bf3b20aa41b4be727028bcf51769a0c48c0c8fc0e9') { throw 'Reviewed installed speech and understanding test differs' }
-          $env:KF_EXPECTED_BUILD_ID='V20.6-R15.12-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-16'
+          $env:KF_EXPECTED_BUILD_ID='V20.6-R15.13-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-17'
           node preview10-installed-speech.mjs "$install/klipper-farm-client.exe" voice-audio/stock-padded.wav proof
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech pipeline failed' }
           $installed=Get-Content proof/installed-neural-speech.json -Raw | ConvertFrom-Json
           if ($installed.passed -ne $true -or $installed.semanticUnderstanding.passed -ne $true -or $installed.semanticUnderstanding.cleanExitCleanupVerified -ne $true -or $installed.semanticUnderstanding.cases.Count -ne 12) { throw 'Installed native understanding verification did not complete' }
           $candidateChannel=Get-Content work/app/UPDATE-CHANNEL.json -Raw | ConvertFrom-Json
           $candidateBuildId=(Get-Content work/app/RELEASE-BUILD-ID.txt -Raw).Trim()
-          if ($candidateChannel.installedSequence -ne 162 -or $candidateBuildId -cne 'V20.6-R15.12-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-16' -or $candidateChannel.channel -cne 'stable' -or $candidateChannel.publicKeyHex -cne '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb' -or $candidateChannel.endpoint -cne 'https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json') { throw 'Production candidate embedded channel or identity differs' }
+          if ($candidateChannel.installedSequence -ne 163 -or $candidateBuildId -cne 'V20.6-R15.13-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-17' -or $candidateChannel.channel -cne 'stable' -or $candidateChannel.publicKeyHex -cne '28e0124c33f42704483d1aac89af829c44a00ef5dbc2e93dff630befddd495eb' -or $candidateChannel.endpoint -cne 'https://github.com/sanozhukov3737-oss/klipper-farm-updates/releases/latest/download/update-v20.json') { throw 'Production candidate embedded channel or identity differs' }
           $components=Get-Content work/app/.update-components/component-build-report.json -Raw | ConvertFrom-Json
           $modelInfo=@{fileName='model.gguf';bytes=$modelPin.bytes;sha256=$modelPin.sha256;producer=$pins.model.producer;quantizedRepository=$pins.model.repository;quantizedRevision=$pins.model.revision;sourceRepository=$pins.model.baseRepository;sourceRevision=$pins.model.baseRevision;license=$pins.model.license}
           @{preview=$true;stablePublished=$false;runtimePublished=$false;buildRunId=$env:GITHUB_RUN_ID;buildHeadSha=$env:GITHUB_SHA;productionCandidate=$true;buildId=$candidateBuildId;installedSequence=$candidateChannel.installedSequence;voice='Silero Kseniya';distribution='small-installer-with-verified-components';standaloneInstaller=$true;requiredComponentsFetchedWhenMissing=$true;model=$modelInfo;runtime=@{name=$components.name;url=$components.url;bytes=$components.bytes;sha256=$components.sha256};cleanInstallVerified=$true;updateReuseVerified=$true;actualInstalledWebView=$true;actualInstalledSemanticBridge=$true;understandingCleanupVerified=$true;physicalPrintersTested=$false;hardwareMicrophoneTested=$false;installer=@{fileName='Klipper-Farm-Update-Delivery-setup.exe';bytes=(Get-Item $setup).Length;sha256=(Get-FileHash $setup).Hash.ToLowerInvariant()}} | ConvertTo-Json -Depth 8 | Set-Content candidate/update-provenance.json -Encoding utf8NoBOM
           $candidateProof=Get-Content candidate/update-provenance.json -Raw | ConvertFrom-Json
-          if ($candidateProof.installedSequence -ne 162 -or $candidateProof.installedSequence -ne $candidateChannel.installedSequence -or $candidateProof.buildId -cne $candidateBuildId) { throw 'Production candidate provenance sequence or identity differs' }
+          if ($candidateProof.installedSequence -ne 163 -or $candidateProof.installedSequence -ne $candidateChannel.installedSequence -or $candidateProof.buildId -cne $candidateBuildId) { throw 'Production candidate provenance sequence or identity differs' }
           Copy-Item candidate/update-provenance.json runtime-publish/update-provenance.json
           if (@(Get-ChildItem candidate -File).Count -ne 2 -or @(Get-ChildItem candidate -File | Where-Object { $_.Extension -in @('.zip','.gguf') }).Count -ne 0) { throw 'User installer artifact unexpectedly contains a heavy component' }
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
