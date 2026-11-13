@@ -53,19 +53,37 @@ export async function speakNeuralOffline(text:string,voiceId:NeuralVoice='kseniy
 // «печать завершена» пропадало молча. Очередь короткая: пять событий подряд
 // разумно услышать, полсотни — уже нет.
 const ANNOUNCEMENT_QUEUE_LIMIT = 5;
-const announcementQueue: { text: string; stillCurrent: () => boolean }[] = [];
+const ANNOUNCEMENT_PLAY_LIMIT_MS = 30_000;
+type AnnouncementItem = {
+  text: string;
+  stillCurrent: () => boolean;
+  settle: (played: boolean) => void;
+};
+const announcementQueue: AnnouncementItem[] = [];
 let announcementDraining = false;
 
+// Очередь сообщает не «поставлено», а «действительно проиграно». Вызывающий код
+// помечает событие произнесённым, и отмечать его до звука нельзя: объявление,
+// вытесненное из очереди или пропущенное на паузе, так и осталось бы неслышанным,
+// но записанным как озвученное.
 async function drainAnnouncements(): Promise<void> {
   if (announcementDraining) return;
   announcementDraining = true;
   try {
     while (announcementQueue.length) {
       const next = announcementQueue.shift()!;
-      if (announcementHolds.size) continue; // пауза объявлений: пропускаем, не копим
-      if (!next.stillCurrent()) continue;
-      try { await playNeuralSpeech(next.text, 'kseniya', undefined, next.stillCurrent); }
-      catch { /* одна неудача не должна останавливать остальные */ }
+      if (announcementHolds.size || !next.stillCurrent()) { next.settle(false); continue; }
+      let played = false;
+      try {
+        // Предел на одно объявление: если воспроизведение не завершится, очередь
+        // не должна встать навсегда. Дальше просто идём к следующему.
+        played = await Promise.race([
+          playNeuralSpeech(next.text, 'kseniya', undefined, next.stillCurrent),
+          new Promise<boolean>(resolve => window.setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
+        ]);
+      }
+      catch { played = false; /* одна неудача не должна останавливать остальные */ }
+      next.settle(played);
     }
   } finally {
     announcementDraining = false;
@@ -76,13 +94,24 @@ export async function trySpeakNeuralAnnouncement(text:string,stillCurrent:()=>bo
   const normalized = text.trim();
   if (!normalized) return false;
   if (announcementHolds.size || window.speechSynthesis?.speaking || window.speechSynthesis?.pending) return false;
-  // Тот же текст, ещё не проигранный, второй раз не ставим: два одинаковых
-  // сообщения подряд на слух сливаются в одно.
-  if (announcementQueue.some(item => item.text === normalized)) return true;
-  announcementQueue.push({ text: normalized, stillCurrent });
-  while (announcementQueue.length > ANNOUNCEMENT_QUEUE_LIMIT) announcementQueue.shift();
-  void drainAnnouncements();
-  return true;
+  return new Promise<boolean>(resolve => {
+    // Тот же текст, ещё не проигранный, второй раз не ставим: два одинаковых
+    // сообщения подряд на слух сливаются в одно. Ждём того же результата.
+    const pending = announcementQueue.find(item => item.text === normalized);
+    if (pending) {
+      const settle = pending.settle;
+      pending.settle = played => { settle(played); resolve(played); };
+      return;
+    }
+    const item: AnnouncementItem = { text: normalized, stillCurrent, settle: resolve };
+    announcementQueue.push(item);
+    while (announcementQueue.length > ANNOUNCEMENT_QUEUE_LIMIT) {
+      const dropped = announcementQueue.shift()!;
+      if (dropped === item) { resolve(false); return; }
+      dropped.settle(false);
+    }
+    void drainAnnouncements();
+  });
 }
 
 async function playNeuralSpeech(text:string,voiceId:NeuralVoice,state?:((state:SpeechPlaybackState)=>void),stillCurrent:()=>boolean=()=>true,timing?:(timing:VoiceTiming)=>void):Promise<boolean>{
