@@ -1,31 +1,38 @@
-"""Apply the reviewed R199 stress-taking-effect fix over the exact sequence-163 candidate.
+"""Apply the reviewed R199 spoken stress coverage over the exact sequence-163 candidate.
 
-Reported: «темпу» still does not sound right in the near-end announcement, after a dozen rounds
-of fixing stress. Measuring the real speech runtime on this machine explains why.
+Measuring the real speech runtime — the bundled interpreter, torch and the Silero model that
+ship on the farm — produced two findings, one of which corrected a mistake of mine.
 
-The synthesizer was called with put_accent=True and put_stress_homo=True, which tell the model to
-place accents itself. Rendering the same phrase with and without our stress marks produced
-byte-identical audio — 154800 samples, no difference at a single position. Every mark in the table
-was being discarded, so R181 through R196 changed nothing audible.
+The mistake. I had concluded from an earlier measurement that put_accent=True discarded our
+stress marks, because a phrase rendered with and without marks came out byte-identical. The
+decisive test shows otherwise: with put_accent=True, «з+апуск» and «зап+уск» — a correct and a
+deliberately wrong mark on the same word — produce different audio (5ce085045a at 0.71 s versus
+d6bb881d76 at 0.75 s). The marks are read. The identical result only meant the model's own
+accentuation happened to agree with the table.
 
-With put_accent=False the marks are honoured and the output changes on every word: the near-end
-phrase with the table gives 34dbc596f8be at 3.21 s, with a deliberately wrong mark 05a8d3fc73da at
-3.12 s, and unmarked 10d4ca3fb7d4 at 2.91 s. The table is live for the first time.
+So put_accent stays True, and turning it off would have been a regression: rendering a printer
+name outside the table, «Кухня», differs between put_accent True and False (b507b111ca at 0.54 s
+versus 9a455102a9 at 0.46 s) — with it off the name is read with no stress at all. The setting is
+what gives stress to user names and any word the table does not cover.
 
-Turning the model's own accentuation off means words outside the table are read without stress,
-so coverage matters more than before. The generator previously collected words of four letters or
-more, which skipped every short multi-syllable word — или, его, имя, мою, это, код. The threshold
-drops to three letters, and «н+ет» joins the fixtures. Coverage of the spoken phrases is now
-complete apart from ten two-letter function words.
+Two real gaps were found by the same measurement.
 
-Lowering the threshold surfaced one homograph: the reference reads «мою» as the verb мо́ю, while
-our interface says «Мою флешку». That word is pinned in MANUAL_STRESS as м+ою.
+The word «ноль» was absent from the numeral list, although num2words produces it for a zero and
+the printer-number reading spells it. Every «0 градусов» and every printer numbered 02 or 10 was
+announced with that word unstressed.
 
-The synthesizer test asserted put_accent=True. It now asserts the opposite and explains why, so a
-future change cannot silently disable the table again.
+The generator collected words of four letters or more, which silently skipped every short
+multi-syllable word the assistant says: или, его, имя, это, мою, код. The threshold drops to
+three letters, which adds 67 entries. Coverage of the spoken phrases is now complete apart from
+ten two-letter function words that carry no stress anyway.
 
-Verified on the real runtime: the marks change the audio, the generator reports the table matches
-the reference at 2001 entries, 19 pronunciation tests pass, and the runtime probe fixtures match.
+An audit of every entry against the reference dictionary then found one entry of mine that was
+wrong: I had pinned «мою» as м+ою, treating it as the verb. In «Мою флешку» it is the possessive
+accusative — мою́ — so the reference was right and my override is removed.
+
+Verified on the real runtime: all spoken phrases render with proportional duration and no
+anomalies against the median seconds-per-character, the generator reports 1976 entries matching
+the reference, and 19 pronunciation tests pass.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
@@ -75,4 +82,4 @@ for row in manifest['files']:
 for target, source in rows:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(canonical(source.read_bytes()))
-print('Applied reviewed R199 effective stress over the exact sequence-163 candidate.')
+print('Applied reviewed R199 spoken stress coverage over the exact sequence-163 candidate.')

@@ -6,20 +6,20 @@
   "files": [
     {
       "path": "scripts/silero-synthesize.py",
-      "sha256": "8f5952de3c1926e77f4984931d6a6b809160a80c89467b01f839ff5208291e6a",
-      "bytes": 111383,
+      "sha256": "ae0453c7fab6fe095d68c2a635d03e2e24f04ba842225f37219cc23b50df3e9a",
+      "bytes": 111325,
       "beforeSha256": "5acfd239061528a1c953d716ff5bc69137e0cc6151b73ee67d1e1a18dc5b11c9"
     },
     {
       "path": "scripts/generate-speech-stress.py",
-      "sha256": "30cdf67cb45933dcc1e4e147db128b314c2f5bb54e8372acd11c92d5069ae0d1",
-      "bytes": 11005,
+      "sha256": "68bdab33eba31cbc7bd5bf202a54096a6773f4007091b5eae8f3ff5093bd4db4",
+      "bytes": 11017,
       "beforeSha256": "9c31eaa2d974684534d46dd8d84167e42a42a94e55b4572c793c1b8ceb27b242"
     },
     {
       "path": "scripts/check-speech-pronunciation.py",
-      "sha256": "ce20ebdd6865ee404c62d7f7c8c4ae73cfb5e182a9f6bd85dc29b50967fed93d",
-      "bytes": 16480,
+      "sha256": "d40c4f6fb6ff0153c59232bf1ac6095f9bf5977bf3e2832ea30ed5139ce5e140",
+      "bytes": 16247,
       "beforeSha256": "9cbfaa0f030c99c7990923e71ee6e045cff44ec5cd48b55aff9af99b577cda34"
     },
     {

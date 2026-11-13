@@ -63,7 +63,7 @@ class PronunciationTests(unittest.TestCase):
 
     def test_action_and_navigation_vocabulary_has_explicit_stress(self):
         self.assertEqual(speech.pronunciation_text('Открыла Мою флешку. Печать завершена. Ошибка принтера.'),
-                         'Откр+ыла М+ою фл+ешку. Печ+ать завершен+а. Ош+ибка пр+интера.')
+                         'Откр+ыла Мо+ю фл+ешку. Печ+ать завершен+а. Ош+ибка пр+интера.')
         self.assertEqual(speech.pronunciation_text('Подсветка включена. Печать продолжена. Остаток пластика.'),
                          'Подсв+етка включен+а. Печ+ать прод+олжена. Ост+аток пл+астика.')
         self.assertEqual(speech.pronunciation_text('Покажи камеру. Закончился филамент. Файл, модель, деталь, библиотека.'),
@@ -118,9 +118,9 @@ class PronunciationTests(unittest.TestCase):
         # как «два» — коротко, слитно с предыдущим словом и на слух терялся.
         # Номер принтера читается по цифрам: ноль два, один два.
         cases = {
-            'Ender-3 V3 KE 02': 'Э+ндер тр+и в+и тр+и к+ей ноль дв+а',
+            'Ender-3 V3 KE 02': 'Э+ндер тр+и в+и тр+и к+ей н+оль дв+а',
             'Ender-3 V3 KE 12': 'Э+ндер тр+и в+и тр+и к+ей од+ин дв+а',
-            'Ender-3 V3 KE 10': 'Э+ндер тр+и в+и тр+и к+ей од+ин ноль',
+            'Ender-3 V3 KE 10': 'Э+ндер тр+и в+и тр+и к+ей од+ин н+оль',
         }
         for original, expected in cases.items():
             with self.subTest(name=original):
@@ -210,14 +210,11 @@ class PronunciationTests(unittest.TestCase):
         self.assertEqual(calls[0]['text'], 'Своб+одных пр+интеров сейч+ас н+ет. Ф+айл «печать.gcode».')
         self.assertEqual(calls[0]['speaker'], 'kseniya')
         self.assertEqual(calls[0]['sample_rate'], 48000)
-        # Собственная расстановка ударений должна быть выключена: с включённой
-        # модель выбрасывала наши метки, и таблица ударений не влияла на звук.
-        # Проверено на реальном рантайме: текст с метками и без давал побайтово
-        # одинаковое аудио. Буква ё остаётся включённой у обеих опций.
-        self.assertIs(calls[0]['put_accent'], False)
-        self.assertIs(calls[0]['put_stress_homo'], False)
-        self.assertIs(calls[0]['put_yo'], True)
-        self.assertIs(calls[0]['put_yo_homo'], True)
+        # put_accent обязан быть включён: он даёт ударение словам вне таблицы —
+        # именам принтеров и пользовательским названиям. Наши метки при этом
+        # работают: замерено, «з+апуск» и «зап+уск» дают разные файлы.
+        for flag in ['put_accent', 'put_stress_homo', 'put_yo', 'put_yo_homo']:
+            self.assertIs(calls[0][flag], True)
         self.assertEqual(original, 'Свободных принтеров сейчас нет. Файл «печать.gcode».')
 
 
