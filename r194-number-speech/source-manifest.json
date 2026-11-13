@@ -6,14 +6,14 @@
   "files": [
     {
       "path": "scripts/silero-synthesize.py",
-      "sha256": "ac0958779040fe62e13981e48f38701c840e73d538b1fabf5426e77a7c53a42b",
-      "bytes": 105835,
+      "sha256": "163c175c42d19ccbec438a26e55bb6f40739bafdba9e686d709fe1f5b14ac385",
+      "bytes": 106745,
       "beforeSha256": "0eba0953a022cb257133c42d9ae1dab770d3e63a9e24792b2fe3fa09f0f55ea9"
     },
     {
       "path": "scripts/check-speech-pronunciation.py",
-      "sha256": "faeb96e49cba566825701dc7d2430427cd4632a22d66a1dfa3d7e409ebf3863d",
-      "bytes": 12240,
+      "sha256": "71e8049c98640415cd9be4ea08e319af5e802285352a7255087c838738ab026a",
+      "bytes": 13902,
       "beforeSha256": "384ef6df9c5fb44cb5647f9de4c868bedd687ee21a3290fe7c8097768a38ae9f"
     }
   ]

@@ -1,20 +1,30 @@
-"""Apply the reviewed R194 printer number pronunciation over the exact sequence-162 candidate.
+"""Apply the reviewed R194 speech fixes over the exact sequence-162 candidate.
 
-Reported: in the runout announcement the printer number is not heard. «Ender-3 V3 KE 02»
-came out as «… кей дв+а» — the short «два» ran into the previous word and disappeared.
+Two defects, both found by reading the spoken output rather than the code.
 
-The number was being converted as a quantity: num2words turned "02" into «два». A printer
-number is a designation, not a quantity, so it is read digit by digit — «ноль два».
+The printer number was not heard. «Ender-3 V3 KE 02» came out as «… кей дв+а»: the number went
+through the quantity path, where num2words turns "02" into «два», and the short word ran into
+its neighbour. A printer number is a designation, not a quantity, so it is now read digit by
+digit — «ноль два». The rule sits immediately before the general number pass and matches only a
+two-digit number directly after a model marker, which a test guards: «осталось 23 минуты» stays
+«дв+адцать тр+и».
 
-The rule sits immediately before the general number pass and matches only a two-digit number
-directly after a model marker («кей», «ви»). Quantities keep their normal reading, which the
-tests assert explicitly: «осталось 23 минуты» stays «дв+адцать тр+и», not «два три».
+Quoted speech was silent about stress. The quote protection exists for file names and paths, but
+it also covered ordinary Russian the operator hears: «Нажмите «Добавить»», «Скажите «Проверь
+запуск»». Those words now get their stress inside quotes. The protection is kept for anything
+path-like — a dot, slash, latin letter or digit — so «печать.gcode» is untouched, and words
+outside the table stay untouched too, which keeps arbitrary printer names and omographs such as
+замок safe.
 
-The same overlay separates a model suffix letter from its digit, so «Adventurer 5M» is «пять
-эм» instead of «пятьM» with the letter glued to the number.
+A model suffix letter is separated from its digit, so «Adventurer 5M» is «пять эм» instead of
+«пятьM» with the letter glued to the number.
 
-Three tests were added: the number in every common form, a guard that quantities are untouched,
-and the model suffix.
+Investigated and deliberately not changed: units such as мм/с, ГБ, № and °C that would fail today
+do not occur in any spoken phrase, and dates never reach speech. Fixing them would add untested
+paths for no audible gain.
+
+The quoted-speech fixture asserted the old behaviour and is rewritten to assert the new one,
+including that file tokens, unknown names and omographs remain unstressed.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
@@ -35,7 +45,7 @@ if channel != expected_channel:
     raise SystemExit('Expected exact unchanged trust channel at this sequence-162 candidate')
 identity = (root / 'RELEASE-BUILD-ID.txt').read_text(encoding='utf-8-sig').strip()
 if identity != manifest['buildId']:
-    raise SystemExit('Expected the accepted sequence-162 candidate before R194 printer number')
+    raise SystemExit('Expected the accepted sequence-162 candidate before R194 speech fixes')
 
 
 def canonical(data):
@@ -64,4 +74,4 @@ for row in manifest['files']:
 for target, source in rows:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(canonical(source.read_bytes()))
-print('Applied reviewed R194 printer number pronunciation over the exact sequence-162 candidate.')
+print('Applied reviewed R194 speech fixes over the exact sequence-162 candidate.')

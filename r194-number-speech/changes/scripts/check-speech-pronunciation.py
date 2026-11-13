@@ -20,12 +20,33 @@ class PronunciationTests(unittest.TestCase):
         self.assertEqual(speech.pronunciation_text('ПРИНТЕР свободен. На катушке осталось немного пластика. Печатает.'),
                          'ПР+ИНТЕР своб+оден. На кат+ушке ост+алось немн+ого пл+астика. Печ+атает.')
 
-    def test_quoted_custom_names_and_incomplete_quotes_are_left_to_model(self):
-        for value in ['«Принтер Свободный»', '“Принтер Свободный”', '"Принтер Свободный"',
-                      "'Принтер Свободный'", '«Принтер Свободный', '"Принтер Свободный']:
+    def test_quoted_speech_is_stressed_but_file_tokens_are_not(self):
+        # Кавычки защищают имена файлов и пути. Но в них бывает и обычная речь,
+        # которую оператор слышит: «Нажмите "Добавить"», «Скажите "Проверь запуск"».
+        # Такие слова получают ударение, а всё похожее на файл остаётся как есть.
+        for opening, closing in [('«', '»'), ('“', '”'), ('"', '"'), ("'", "'")]:
+            with self.subTest(quotes=opening + closing):
+                self.assertEqual(
+                    speech.pronunciation_text('Скажите ' + opening + 'Проверь запуск' + closing + '.'),
+                    'Скаж+ите ' + opening + 'Пров+ерь з+апуск' + closing + '.')
+
+        # Незакрытая кавычка тоже не мешает ударению.
+        self.assertEqual(speech.pronunciation_text('Скажите «Проверь запуск'),
+                         'Скаж+ите «Пров+ерь з+апуск')
+
+        # Имя файла и путь внутри кавычек не трогаем ни при каких условиях.
+        for value in ['«печать.gcode»', '«folder/печать.gcode»', '«C:\печать.gcode»', '«file.stl»']:
             with self.subTest(value=value):
-                self.assertEqual(speech.pronunciation_text('Свободен ' + value), 'Своб+оден ' + value)
-        self.assertEqual(speech.spoken_text('Печать «принтер печать.gcode».'), 'Печ+ать «принтер печать.gcode».')
+                self.assertEqual(speech.pronunciation_text('Файл ' + value + ' готов.'),
+                                 'Ф+айл ' + value + ' г+отов.')
+
+        # Слово, которого нет в таблице, остаётся нетронутым: имя принтера может
+        # быть любым, и угадывать его ударение нельзя.
+        self.assertEqual(speech.pronunciation_text('Принтер «Кухня» готов.'),
+                         'Пр+интер «Кухня» г+отов.')
+        # Омограф тоже не закрепляется: «замОк» и «зАмок» — разные слова.
+        self.assertEqual(speech.pronunciation_text('Модель «Замок» недоступна.'),
+                         'Мод+ель «Замок» недост+упна.')
 
     def test_paths_urls_and_file_tokens_are_not_used_as_narration(self):
         values = ['принтер.gcode', 'печать.STL', 'folder/печать.gcode', '/катушка/печать',

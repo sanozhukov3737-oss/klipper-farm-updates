@@ -2027,9 +2027,23 @@ def pronunciation_text(text):
             return word[:index] + '+' + word[index:]
         return re.sub(r'(?<![\w+])[а-яё\u0301+]+(?![\w+])', token, part, flags=re.IGNORECASE)
 
+    # Кавычки защищают имена файлов и пути, но в них бывает и обычная речь:
+    # «Нажмите «Добавить»», «Скажите «Проверь запуск»». Эти слова оператор слышит,
+    # поэтому ударение нужно и внутри кавычек. Защита сохраняется для всего, что
+    # похоже на путь или имя файла: точка, слэш, латиница или цифра.
+    PATH_LIKE = re.compile(r'[./\]|[A-Za-z]|\d')
+
+    def quoted(part):
+        if PATH_LIKE.search(part):
+            return part
+        head, tail = part[0], part[-1:]
+        closed = len(part) > 2 and tail in '»”’' + chr(34) + chr(39)
+        inner = part[1:-1] if closed else part[1:]
+        return head + narration(inner) + (tail if closed else '')
+
     parts, start = [], 0
     for match in PROTECTED_SPEECH.finditer(text):
-        parts.extend((narration(text[start:match.start()]), match.group()))
+        parts.extend((narration(text[start:match.start()]), quoted(match.group())))
         start = match.end()
     parts.append(narration(text[start:]))
     return ''.join(parts)
