@@ -1,0 +1,14 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.13-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-17",
+  "buildId": "V20.6-R15.13-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-17",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/lib/neuralSpeech.ts",
+      "sha256": "89fb4c02dc872d7dac28e6aac60fed68232993520fb7b8294b6669b53a2904c4",
+      "bytes": 20861,
+      "beforeSha256": "6fa613d3028131d1a18d694404fb94a342a7d25c22ddcc2bfd262a97b468e571"
+    }
+  ]
+}
