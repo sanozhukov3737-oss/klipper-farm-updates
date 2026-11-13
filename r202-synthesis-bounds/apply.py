@@ -1,20 +1,26 @@
 """Apply the reviewed R202 synthesis bounds over the exact sequence-163 candidate.
 
-Two ways speech could hang, both silent.
+Third attempt, and the first built from the right point in the chain.
 
-voice_synthesize had no deadline on the caller side. The native command serialises synthesis with
-try_lock and the worker has its own request timeout, but the promise in the browser waited forever
-if that answer never came. A stalled worker therefore kept speechBusy true, and every later
-announcement returned false — the assistant simply went quiet with nothing in the log. The call now
-has a 60 second ceiling, which is generous for one phrase and finite.
+The first version was generated with before and after hashes taken from the changes directory, so
+they were equal and truncated to sixteen characters — it could never apply. The second used a base
+that already contained the later overlays: it expected neuralSpeech.ts at 89fb4c02, which is the
+state after R201 and R202, while R198 runs before them. CI rejected it at the first file.
 
-Speech text was truncated at 1200 characters with slice. Assistant phrases never reach that —
-the longest is 171 characters after expansion — but user text of any size does, and cutting mid-word
-turns the last word into nonsense that the model then pronounces. The cut now falls on a word
-boundary.
+This version takes both hashes from the chain at the position where R198 actually runs: after R197
+and before R199.
 
-Verified: tsc clean, the frontend builds, check-ui-files and 19 pronunciation tests pass, and the
-overlay applies to the sequence-163 candidate.
+The change itself is one defect. Recognition keeps a global mutex for the whole transcription,
+budgeted in the code at 120 seconds for CPU-only runners, and voice_prepare waited on that same
+mutex. Pressing the microphone while a previous command was still being transcribed blocked
+silently for as long as it took. Preparation now takes the mutex with try_lock and answers «Идёт
+распознавание предыдущей команды. Подождите пару секунд и повторите.». Actual recognition still
+queues normally, because a spoken command must not be dropped.
+
+The interface already reported the loading state and began the microphone-setup timing in the base;
+my earlier patch duplicated both and that duplication is gone. What remains is four deadlines on
+preparation steps — 5 s status, 20 s module, 15 s microphone, 10 s worklet — so a stalled step
+produces a readable error instead of an indefinite wait.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
@@ -35,7 +41,7 @@ if channel != expected_channel:
     raise SystemExit('Expected exact unchanged trust channel at this sequence-163 candidate')
 identity = (root / 'RELEASE-BUILD-ID.txt').read_text(encoding='utf-8-sig').strip()
 if identity != manifest['baseBuildId']:
-    raise SystemExit('Expected the accepted sequence-163 candidate before R198 microphone preparation')
+    raise SystemExit('Expected the accepted sequence-163 candidate before R202 synthesis bounds')
 
 
 def canonical(data):

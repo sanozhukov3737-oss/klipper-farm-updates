@@ -44,6 +44,25 @@ export function stopNeuralSpeech(){
   speechBusy=false;
   playbackState?.('idle');playbackState=undefined;
 }
+// Пределы ожидания подготовки. Живая машина укладывается в них с запасом;
+// превышение означает занятый микрофон или зависший модуль, и об этом надо
+// сказать словами, а не молча держать интерфейс.
+const PREPARE_STATUS_TIMEOUT_MS = 5_000;
+const PREPARE_MODULE_TIMEOUT_MS = 20_000;
+const MICROPHONE_TIMEOUT_MS = 15_000;
+const CAPTURE_MODULE_TIMEOUT_MS = 10_000;
+
+async function withTimeout<T>(task: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      task,
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms) }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
 export async function speakNeuralOffline(text:string,voiceId:NeuralVoice='kseniya',state?:(state:SpeechPlaybackState)=>void,timing?:(timing:VoiceTiming)=>void){
   return playNeuralSpeech(text,voiceId,state,()=>true,timing);
 }
@@ -62,10 +81,8 @@ type AnnouncementItem = {
 const announcementQueue: AnnouncementItem[] = [];
 let announcementDraining = false;
 
-// Очередь сообщает не «поставлено», а «действительно проиграно». Вызывающий код
-// помечает событие произнесённым, и отмечать его до звука нельзя: объявление,
-// вытесненное из очереди или пропущенное на паузе, так и осталось бы неслышанным,
-// но записанным как озвученное.
+// Очередь сообщает не «поставлено», а «действительно проиграно»: вызывающий код
+// помечает событие произнесённым, и до звука это делать нельзя.
 async function drainAnnouncements(): Promise<void> {
   if (announcementDraining) return;
   announcementDraining = true;
@@ -75,14 +92,11 @@ async function drainAnnouncements(): Promise<void> {
       if (announcementHolds.size || !next.stillCurrent()) { next.settle(false); continue; }
       let played = false;
       try {
-        // Предел на одно объявление: если воспроизведение не завершится, очередь
-        // не должна встать навсегда. Дальше просто идём к следующему.
         played = await Promise.race([
           playNeuralSpeech(next.text, 'kseniya', undefined, next.stillCurrent),
           new Promise<boolean>(resolve => window.setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
         ]);
-      }
-      catch { played = false; /* одна неудача не должна останавливать остальные */ }
+      } catch { played = false; }
       next.settle(played);
     }
   } finally {
@@ -95,8 +109,6 @@ export async function trySpeakNeuralAnnouncement(text:string,stillCurrent:()=>bo
   if (!normalized) return false;
   if (announcementHolds.size || window.speechSynthesis?.speaking || window.speechSynthesis?.pending) return false;
   return new Promise<boolean>(resolve => {
-    // Тот же текст, ещё не проигранный, второй раз не ставим: два одинаковых
-    // сообщения подряд на слух сливаются в одно. Ждём того же результата.
     const pending = announcementQueue.find(item => item.text === normalized);
     if (pending) {
       const settle = pending.settle;
@@ -113,7 +125,6 @@ export async function trySpeakNeuralAnnouncement(text:string,stillCurrent:()=>bo
     void drainAnnouncements();
   });
 }
-
 // Синтез одной фразы — это работа модели, а не сети; живая машина укладывается
 // в несколько секунд. Раньше ожидание было бесконечным: зависший рабочий
 // процесс держал озвучку навсегда, и приложение выглядело занятым.
@@ -130,8 +141,7 @@ function withSpeechTimeout<T>(task: Promise<T>, ms: number, message: string): Pr
 }
 
 // Обрезка по границе слова: раньше текст рубился на 1200 символах вслепую,
-// и последнее слово могло остаться половиной. Для реплик ассистента это не
-// достигается никогда, но пользовательский текст любого размера — да.
+// и последнее слово могло остаться половиной.
 function speechBoundary(text: string, limit = 1200): string {
   const collapsed = text.replace(/\s+/g, ' ');
   if (collapsed.length <= limit) return collapsed;
@@ -213,17 +223,17 @@ export class NeuralSpeechInput{
   async start(){
     if(this.active||this.processing||this.disposed)return;this.active=true;this.utteranceHints=[...this.contextHints];this.announcementHold=holdNeuralSpeechAnnouncements();const epoch=++this.epoch;stopNeuralSpeech();window.speechSynthesis?.cancel();this.beginTiming('microphone-setup');this.callbacks.state('loading');this.callbacks.partial('');
     try{
-      const status=await secureInvoke<{recognition:boolean}>('voice_tools_status');
+      const status=await withTimeout(secureInvoke<{recognition:boolean}>('voice_tools_status'),PREPARE_STATUS_TIMEOUT_MS,'Проверка речевых модулей не ответила');
       if(epoch!==this.epoch)return;
       if(!status.recognition)throw new Error('Не установлен новый модуль распознавания Whisper. Установите сборку с речевыми моделями.');
-      await secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId});
+      await withTimeout(secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId}),PREPARE_MODULE_TIMEOUT_MS,'Модуль распознавания занят или не подготовился');
       if(epoch!==this.epoch)return;
       if(!navigator.mediaDevices?.getUserMedia||!window.AudioWorkletNode)throw new Error('Микрофон недоступен в этой среде');
       const audio=new AudioContext();this.audio=audio;await audio.resume();
       if(epoch!==this.epoch)return;
-      const stream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
+      const stream=await withTimeout(navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}}),MICROPHONE_TIMEOUT_MS,'Микрофон не отвечает. Возможно, его занимает другая программа');
       if(epoch!==this.epoch){stream.getTracks().forEach(track=>track.stop());return}this.stream=stream;
-      await audio.audioWorklet.addModule(new URL('/voice/capture.js',location.href).href);
+      await withTimeout(audio.audioWorklet.addModule(new URL('/voice/capture.js',location.href).href),CAPTURE_MODULE_TIMEOUT_MS,'Не удалось подготовить запись звука');
       if(epoch!==this.epoch)return;
       this.elapsed=0;this.lastSpeech=0;this.firstSpeech=-1;this.voiced=0;this.noise=0.002;this.chunks=[];this.levelAt=-1;
       this.source=audio.createMediaStreamSource(stream);this.capture=new AudioWorkletNode(audio,'farm-voice-capture');

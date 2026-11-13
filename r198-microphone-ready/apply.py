@@ -1,26 +1,26 @@
 """Apply the reviewed R198 microphone preparation over the exact sequence-163 candidate.
 
-Reported: pressing the microphone looks like a freeze. Rebuilding this overlay corrected two
-mistakes of mine in the original.
+Third attempt, and the first built from the right point in the chain.
 
-The first was factual. I wrote that the interface never reported preparation; reading the base
-shows start() already set the loading state and began the microphone-setup timing, so my patch
-duplicated both statements. They are gone from this version and only the real defect remains.
+The first version was generated with before and after hashes taken from the changes directory, so
+they were equal and truncated to sixteen characters — it could never apply. The second used a base
+that already contained the later overlays: it expected neuralSpeech.ts at 89fb4c02, which is the
+state after R201 and R202, while R198 runs before them. CI rejected it at the first file.
 
-The second was mechanical. The original manifest was generated with before and after hashes equal,
-taken from the changes directory instead of the chain, so the overlay could never apply — CI would
-have rejected it at the first file. This version computes both from the chain.
+This version takes both hashes from the chain at the position where R198 actually runs: after R197
+and before R199.
 
-The defect that is real: the native side blocked. Recognition keeps a global mutex for the whole
-transcription, budgeted in the code at 120 seconds for CPU-only runners, and voice_prepare waited
-on that same mutex. Pressing the microphone while a previous command was still being transcribed
-blocked silently for as long as it took. Preparation now takes the mutex with try_lock and answers
-«Идёт распознавание предыдущей команды. Подождите пару секунд и повторите.». Actual recognition
-still queues normally, because a spoken command must not be dropped.
+The change itself is one defect. Recognition keeps a global mutex for the whole transcription,
+budgeted in the code at 120 seconds for CPU-only runners, and voice_prepare waited on that same
+mutex. Pressing the microphone while a previous command was still being transcribed blocked
+silently for as long as it took. Preparation now takes the mutex with try_lock and answers «Идёт
+распознавание предыдущей команды. Подождите пару секунд и повторите.». Actual recognition still
+queues normally, because a spoken command must not be dropped.
 
-Each preparation step also gets a deadline — 5 s for the status call, 20 s for module preparation,
-15 s for the microphone, 10 s for the worklet — so a stalled step produces a readable error instead
-of an indefinite wait.
+The interface already reported the loading state and began the microphone-setup timing in the base;
+my earlier patch duplicated both and that duplication is gone. What remains is four deadlines on
+preparation steps — 5 s status, 20 s module, 15 s microphone, 10 s worklet — so a stalled step
+produces a readable error instead of an indefinite wait.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
@@ -70,4 +70,4 @@ for row in manifest['files']:
 for target, source in rows:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(canonical(source.read_bytes()))
-print('Applied reviewed R198 microphone preparation over the exact sequence-163 candidate.')
+print('Applied reviewed R202 synthesis bounds over the exact sequence-163 candidate.')

@@ -67,95 +67,9 @@ export async function speakNeuralOffline(text:string,voiceId:NeuralVoice='kseniy
   return playNeuralSpeech(text,voiceId,state,()=>true,timing);
 }
 /** Background notices yield to conversation and are checked again after model preparation. */
-// Объявления ставятся в очередь, а не отбрасываются. Раньше при занятой
-// озвучке вызов сразу возвращал false, и на ферме из нескольких принтеров второе
-// «печать завершена» пропадало молча. Очередь короткая: пять событий подряд
-// разумно услышать, полсотни — уже нет.
-const ANNOUNCEMENT_QUEUE_LIMIT = 5;
-const ANNOUNCEMENT_PLAY_LIMIT_MS = 30_000;
-type AnnouncementItem = {
-  text: string;
-  stillCurrent: () => boolean;
-  settle: (played: boolean) => void;
-};
-const announcementQueue: AnnouncementItem[] = [];
-let announcementDraining = false;
-
-// Очередь сообщает не «поставлено», а «действительно проиграно». Вызывающий код
-// помечает событие произнесённым, и отмечать его до звука нельзя: объявление,
-// вытесненное из очереди или пропущенное на паузе, так и осталось бы неслышанным,
-// но записанным как озвученное.
-async function drainAnnouncements(): Promise<void> {
-  if (announcementDraining) return;
-  announcementDraining = true;
-  try {
-    while (announcementQueue.length) {
-      const next = announcementQueue.shift()!;
-      if (announcementHolds.size || !next.stillCurrent()) { next.settle(false); continue; }
-      let played = false;
-      try {
-        // Предел на одно объявление: если воспроизведение не завершится, очередь
-        // не должна встать навсегда. Дальше просто идём к следующему.
-        played = await Promise.race([
-          playNeuralSpeech(next.text, 'kseniya', undefined, next.stillCurrent),
-          new Promise<boolean>(resolve => window.setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
-        ]);
-      }
-      catch { played = false; /* одна неудача не должна останавливать остальные */ }
-      next.settle(played);
-    }
-  } finally {
-    announcementDraining = false;
-  }
-}
-
 export async function trySpeakNeuralAnnouncement(text:string,stillCurrent:()=>boolean=()=>true):Promise<boolean>{
-  const normalized = text.trim();
-  if (!normalized) return false;
-  if (announcementHolds.size || window.speechSynthesis?.speaking || window.speechSynthesis?.pending) return false;
-  return new Promise<boolean>(resolve => {
-    // Тот же текст, ещё не проигранный, второй раз не ставим: два одинаковых
-    // сообщения подряд на слух сливаются в одно. Ждём того же результата.
-    const pending = announcementQueue.find(item => item.text === normalized);
-    if (pending) {
-      const settle = pending.settle;
-      pending.settle = played => { settle(played); resolve(played); };
-      return;
-    }
-    const item: AnnouncementItem = { text: normalized, stillCurrent, settle: resolve };
-    announcementQueue.push(item);
-    while (announcementQueue.length > ANNOUNCEMENT_QUEUE_LIMIT) {
-      const dropped = announcementQueue.shift()!;
-      if (dropped === item) { resolve(false); return; }
-      dropped.settle(false);
-    }
-    void drainAnnouncements();
-  });
-}
-
-// Синтез одной фразы — это работа модели, а не сети; живая машина укладывается
-// в несколько секунд. Раньше ожидание было бесконечным: зависший рабочий
-// процесс держал озвучку навсегда, и приложение выглядело занятым.
-const SPEECH_SYNTHESIS_LIMIT_MS = 60_000;
-
-function withSpeechTimeout<T>(task: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(message)), ms);
-    task.then(
-      value => { window.clearTimeout(timer); resolve(value); },
-      error => { window.clearTimeout(timer); reject(error); },
-    );
-  });
-}
-
-// Обрезка по границе слова: раньше текст рубился на 1200 символах вслепую,
-// и последнее слово могло остаться половиной. Для реплик ассистента это не
-// достигается никогда, но пользовательский текст любого размера — да.
-function speechBoundary(text: string, limit = 1200): string {
-  const collapsed = text.replace(/\s+/g, ' ');
-  if (collapsed.length <= limit) return collapsed;
-  const cut = collapsed.lastIndexOf(' ', limit);
-  return (cut > 0 ? collapsed.slice(0, cut) : collapsed.slice(0, limit)).trim();
+  if(speechBusy||announcementHolds.size||window.speechSynthesis?.speaking||window.speechSynthesis?.pending)return false;
+  return playNeuralSpeech(text,'kseniya',undefined,stillCurrent);
 }
 async function playNeuralSpeech(text:string,voiceId:NeuralVoice,state?:((state:SpeechPlaybackState)=>void),stillCurrent:()=>boolean=()=>true,timing?:(timing:VoiceTiming)=>void):Promise<boolean>{
   const allowed=()=>{try{return stillCurrent()}catch{return false}};
@@ -170,7 +84,7 @@ async function playNeuralSpeech(text:string,voiceId:NeuralVoice,state?:((state:S
   const task=synthesisQueue.then(async()=>{
     end('synthesis-wait','completed');if(generation!==speechGeneration||!allowed())return;
     begin('synthesis');
-    try{const result=await withSpeechTimeout(secureInvoke<{pcm:number[];sampleRate:number}>('voice_synthesize',{text:speechBoundary(text),voiceId}),SPEECH_SYNTHESIS_LIMIT_MS,'Озвучивание не ответило вовремя');end('synthesis','completed');return result}
+    try{const result=await secureInvoke<{pcm:number[];sampleRate:number}>('voice_synthesize',{text:text.replace(/\s+/g,' ').slice(0,1200),voiceId});end('synthesis','completed');return result}
     catch(error){end('synthesis','error');throw error}
   });
   synthesisQueue=task.catch(()=>{});
@@ -235,8 +149,6 @@ export class NeuralSpeechInput{
       const status=await withTimeout(secureInvoke<{recognition:boolean}>('voice_tools_status'),PREPARE_STATUS_TIMEOUT_MS,'Проверка речевых модулей не ответила');
       if(epoch!==this.epoch)return;
       if(!status.recognition)throw new Error('Не установлен новый модуль распознавания Whisper. Установите сборку с речевыми моделями.');
-      // Модуль мог быть занят прошлой командой: тогда приходит понятный отказ,
-      // а не бесконечное ожидание мьютекса в нативном слое.
       await withTimeout(secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId}),PREPARE_MODULE_TIMEOUT_MS,'Модуль распознавания занят или не подготовился');
       if(epoch!==this.epoch)return;
       if(!navigator.mediaDevices?.getUserMedia||!window.AudioWorkletNode)throw new Error('Микрофон недоступен в этой среде');

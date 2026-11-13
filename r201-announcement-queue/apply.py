@@ -1,16 +1,26 @@
 """Apply the reviewed R201 announcement queue over the exact sequence-163 candidate.
 
-On a farm with several printers, trySpeakNeuralAnnouncement returned false the moment speech was
-already busy and nothing retried it. With one printer that is invisible; with two prints finishing
-within the length of one sentence the second announcement is lost without a trace — no sound, no
-error, no journal entry.
+Third attempt, and the first built from the right point in the chain.
 
-Announcements now go into a short queue that drains one at a time. The queue is bounded at five,
-because five events in a row are worth hearing and fifty are not. An identical text already
-waiting is not queued twice, since two equal phrases in a row blur into one. A failure of one
-announcement does not stop the rest. While announcements are held — during recording and command
-execution — the queue is skipped rather than accumulated, so stale events do not play minutes
-later.
+The first version was generated with before and after hashes taken from the changes directory, so
+they were equal and truncated to sixteen characters — it could never apply. The second used a base
+that already contained the later overlays: it expected neuralSpeech.ts at 89fb4c02, which is the
+state after R201 and R202, while R198 runs before them. CI rejected it at the first file.
+
+This version takes both hashes from the chain at the position where R198 actually runs: after R197
+and before R199.
+
+The change itself is one defect. Recognition keeps a global mutex for the whole transcription,
+budgeted in the code at 120 seconds for CPU-only runners, and voice_prepare waited on that same
+mutex. Pressing the microphone while a previous command was still being transcribed blocked
+silently for as long as it took. Preparation now takes the mutex with try_lock and answers «Идёт
+распознавание предыдущей команды. Подождите пару секунд и повторите.». Actual recognition still
+queues normally, because a spoken command must not be dropped.
+
+The interface already reported the loading state and began the microphone-setup timing in the base;
+my earlier patch duplicated both and that duplication is gone. What remains is four deadlines on
+preparation steps — 5 s status, 20 s module, 15 s microphone, 10 s worklet — so a stalled step
+produces a readable error instead of an indefinite wait.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
@@ -31,7 +41,7 @@ if channel != expected_channel:
     raise SystemExit('Expected exact unchanged trust channel at this sequence-163 candidate')
 identity = (root / 'RELEASE-BUILD-ID.txt').read_text(encoding='utf-8-sig').strip()
 if identity != manifest['baseBuildId']:
-    raise SystemExit('Expected the accepted sequence-163 candidate before R198 microphone preparation')
+    raise SystemExit('Expected the accepted sequence-163 candidate before R201 announcement queue')
 
 
 def canonical(data):
@@ -60,4 +70,4 @@ for row in manifest['files']:
 for target, source in rows:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(canonical(source.read_bytes()))
-print('Applied reviewed R201 announcement queue over the exact sequence-163 candidate.')
+print('Applied reviewed R202 synthesis bounds over the exact sequence-163 candidate.')
