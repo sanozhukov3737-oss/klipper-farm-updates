@@ -46,9 +46,10 @@ export function stopNeuralSpeech(){
 }
 // Пределы ожидания подготовки. Живая машина укладывается в них с запасом;
 // превышение означает занятый микрофон или зависший модуль, и об этом надо
-// сказать словами, а не молча держать интерфейс.
+// сказать словами, а не молча держать интерфейс. Это единственное место, где
+// заморозка видна оператору: сам нативный вызов ждёт подготовки молча.
 const PREPARE_STATUS_TIMEOUT_MS = 5_000;
-const PREPARE_MODULE_TIMEOUT_MS = 20_000;
+const PREPARE_MODULE_TIMEOUT_MS = 90_000;
 const MICROPHONE_TIMEOUT_MS = 15_000;
 const CAPTURE_MODULE_TIMEOUT_MS = 10_000;
 
@@ -149,7 +150,11 @@ export class NeuralSpeechInput{
       const status=await withTimeout(secureInvoke<{recognition:boolean}>('voice_tools_status'),PREPARE_STATUS_TIMEOUT_MS,'Проверка речевых модулей не ответила');
       if(epoch!==this.epoch)return;
       if(!status.recognition)throw new Error('Не установлен новый модуль распознавания Whisper. Установите сборку с речевыми моделями.');
-      await withTimeout(secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId}),PREPARE_MODULE_TIMEOUT_MS,'Модуль распознавания занят или не подготовился');
+      // Первая загрузка модели занимает десятки секунд, и подготовку зовут
+// параллельно: прогрев панели при открытии и при смене модели, затем старт
+// записи. Поэтому запас большой — иначе законный параллельный вызов получал бы
+// отказ вместо короткого ожидания.
+await withTimeout(secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId}),PREPARE_MODULE_TIMEOUT_MS,'Модуль распознавания не подготовился');
       if(epoch!==this.epoch)return;
       if(!navigator.mediaDevices?.getUserMedia||!window.AudioWorkletNode)throw new Error('Микрофон недоступен в этой среде');
       const audio=new AudioContext();this.audio=audio;await audio.resume();

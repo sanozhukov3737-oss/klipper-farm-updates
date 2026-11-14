@@ -6,15 +6,9 @@
   "files": [
     {
       "path": "src/lib/neuralSpeech.ts",
-      "sha256": "0c5d0460cc8ec33ecd2e3b84a7b06ee44d8627549775b5eeba9e88abc871f0d8",
-      "bytes": 17446,
+      "sha256": "9a41991a01147049faea5c2cca6eda2b5155c4e25f76e2483c5072f62cf91afd",
+      "bytes": 18082,
       "beforeSha256": "a4d04592d8b19e24a07e578dd99e6d57b4a38b289583f23ecfabf839913edf8b"
-    },
-    {
-      "path": "src-tauri/src/offline_voice.rs",
-      "sha256": "4844b4b3aef805dfdb29567c0b1211697d490b4ebb35f672f6937d16c254ffd3",
-      "bytes": 30613,
-      "beforeSha256": "9fffc700811608b320f7ba1c3ff1b37dd80d386042c593b9604df7d5b4d660d1"
     }
   ]
 }

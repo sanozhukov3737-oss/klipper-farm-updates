@@ -1,22 +1,19 @@
-"""Apply the reviewed R198 microphone preparation over the exact sequence-163 candidate.
+"""Apply the reviewed R198 microphone deadlines over the exact sequence-163 candidate.
 
-Built from the chain at the position where R198 runs: after R197, before R199.
+The reported symptom was a freeze: pressing the microphone did nothing visible while the module
+prepared. The native side is not the culprit and is left untouched here.
 
-The native side blocked. Recognition keeps a global mutex for the whole transcription, budgeted at
-120 seconds for CPU-only runners, and voice_prepare waited on that mutex without a bound. Pressing
-the microphone while a previous command was still being transcribed blocked silently, which the
-operator saw as a freeze. A first attempt used try_lock and refused immediately — that broke the
-installed-speech check, because the interface prepares recognition and synthesis in parallel with
-Promise.all, and an instant refusal rejects a legitimate call.
+Preparation legitimately takes tens of seconds the first time a model loads, and callers prepare
+in parallel: the assistant panel runs Promise.all over recognition and synthesis when it opens and
+again whenever the recognition model changes, while the recording start prepares recognition once
+more. Serialising or refusing those calls breaks a valid use case — an earlier attempt at this
+overlay used try_lock with a two second window and the installed-speech check failed on exactly
+that, because the panel's own warm-up was still loading the model.
 
-Preparation now waits for the mutex for up to two seconds and only then answers «Идёт распознавание
-предыдущей команды. Подождите пару секунд и повторите.». A parallel second call is served within
-that window; a genuinely busy transcription still produces a readable message instead of a freeze.
-Recognition itself keeps the unbounded wait, because a spoken command must not be dropped.
-
-The interface already reported the loading state and began the microphone-setup timing in the base —
-an earlier version of this overlay duplicated both and that duplication is gone. What remains is
-four deadlines on preparation steps: 5 s status, 20 s module, 15 s microphone, 10 s worklet.
+What was missing was a bound on the waiting side, not on the work. Each preparation step now has a
+deadline and reports it in words: 5 s for the status call, 90 s for module preparation — a first
+model load, not a hang — 15 s for the microphone and 10 s for the worklet. Without them a stalled
+step held the interface silently forever.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
@@ -37,7 +34,7 @@ if channel != expected_channel:
     raise SystemExit('Expected exact unchanged trust channel at this sequence-163 candidate')
 identity = (root / 'RELEASE-BUILD-ID.txt').read_text(encoding='utf-8-sig').strip()
 if identity != manifest['baseBuildId']:
-    raise SystemExit('Expected the accepted sequence-163 candidate before R198 microphone preparation')
+    raise SystemExit('Expected the accepted sequence-163 candidate before R202 synthesis bounds')
 
 
 def canonical(data):
@@ -66,4 +63,4 @@ for row in manifest['files']:
 for target, source in rows:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(canonical(source.read_bytes()))
-print('Applied reviewed R198 microphone preparation over the exact sequence-163 candidate.')
+print('Applied reviewed R198 microphone deadlines over the exact sequence-163 candidate.')
