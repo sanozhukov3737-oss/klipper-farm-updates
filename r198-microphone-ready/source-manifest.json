@@ -12,8 +12,8 @@
     },
     {
       "path": "src-tauri/src/offline_voice.rs",
-      "sha256": "bfa163e54bd4a84e657cf5b9343adde5933039c34652c50ec5bfc33e825803e1",
-      "bytes": 28986,
+      "sha256": "4844b4b3aef805dfdb29567c0b1211697d490b4ebb35f672f6937d16c254ffd3",
+      "bytes": 30613,
       "beforeSha256": "9fffc700811608b320f7ba1c3ff1b37dd80d386042c593b9604df7d5b4d660d1"
     }
   ]

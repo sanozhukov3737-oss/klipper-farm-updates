@@ -1,26 +1,22 @@
 """Apply the reviewed R198 microphone preparation over the exact sequence-163 candidate.
 
-Third attempt, and the first built from the right point in the chain.
+Built from the chain at the position where R198 runs: after R197, before R199.
 
-The first version was generated with before and after hashes taken from the changes directory, so
-they were equal and truncated to sixteen characters — it could never apply. The second used a base
-that already contained the later overlays: it expected neuralSpeech.ts at 89fb4c02, which is the
-state after R201 and R202, while R198 runs before them. CI rejected it at the first file.
+The native side blocked. Recognition keeps a global mutex for the whole transcription, budgeted at
+120 seconds for CPU-only runners, and voice_prepare waited on that mutex without a bound. Pressing
+the microphone while a previous command was still being transcribed blocked silently, which the
+operator saw as a freeze. A first attempt used try_lock and refused immediately — that broke the
+installed-speech check, because the interface prepares recognition and synthesis in parallel with
+Promise.all, and an instant refusal rejects a legitimate call.
 
-This version takes both hashes from the chain at the position where R198 actually runs: after R197
-and before R199.
+Preparation now waits for the mutex for up to two seconds and only then answers «Идёт распознавание
+предыдущей команды. Подождите пару секунд и повторите.». A parallel second call is served within
+that window; a genuinely busy transcription still produces a readable message instead of a freeze.
+Recognition itself keeps the unbounded wait, because a spoken command must not be dropped.
 
-The change itself is one defect. Recognition keeps a global mutex for the whole transcription,
-budgeted in the code at 120 seconds for CPU-only runners, and voice_prepare waited on that same
-mutex. Pressing the microphone while a previous command was still being transcribed blocked
-silently for as long as it took. Preparation now takes the mutex with try_lock and answers «Идёт
-распознавание предыдущей команды. Подождите пару секунд и повторите.». Actual recognition still
-queues normally, because a spoken command must not be dropped.
-
-The interface already reported the loading state and began the microphone-setup timing in the base;
-my earlier patch duplicated both and that duplication is gone. What remains is four deadlines on
-preparation steps — 5 s status, 20 s module, 15 s microphone, 10 s worklet — so a stalled step
-produces a readable error instead of an indefinite wait.
+The interface already reported the loading state and began the microphone-setup timing in the base —
+an earlier version of this overlay duplicated both and that duplication is gone. What remains is
+four deadlines on preparation steps: 5 s status, 20 s module, 15 s microphone, 10 s worklet.
 """
 from pathlib import Path, PurePosixPath
 import hashlib
@@ -70,4 +66,4 @@ for row in manifest['files']:
 for target, source in rows:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_bytes(canonical(source.read_bytes()))
-print('Applied reviewed R202 synthesis bounds over the exact sequence-163 candidate.')
+print('Applied reviewed R198 microphone preparation over the exact sequence-163 candidate.')

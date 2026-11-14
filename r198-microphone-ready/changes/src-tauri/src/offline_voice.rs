@@ -225,15 +225,44 @@ impl Drop for SpeechWorker {
     }
 }
 
+
+/// Ждёт мьютекс не дольше указанного срока. Нужен там, где бесконечное
+/// ожидание превращается в зависший интерфейс, а мгновенный отказ отвергает
+/// законный параллельный вызов.
+fn try_lock_for<'a, T>(
+    mutex: &'a Mutex<T>,
+    timeout: Duration,
+) -> Result<std::sync::MutexGuard<'a, T>, ()> {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match mutex.try_lock() {
+            Ok(guard) => return Ok(guard),
+            Err(std::sync::TryLockError::Poisoned(_)) => return Err(()),
+            Err(std::sync::TryLockError::WouldBlock) => {
+                if std::time::Instant::now() >= deadline {
+                    return Err(());
+                }
+                std::thread::sleep(Duration::from_millis(25));
+            }
+        }
+    }
+}
 fn with_worker(root: &Path, synthesis: bool, model: RecognitionModel, input: Option<Vec<u8>>) -> Result<Vec<u8>, String> {
     let slot = if synthesis { &SYNTHESIZER } else { &RECOGNIZER };
     // Подготовка не должна ждать мьютекс: распознавание предыдущей команды держит
     // его до двух минут, и нажатие на микрофон в это время выглядело как
     // зависание приложения. Возвращаем понятный отказ вместо ожидания.
     // Само распознавание по-прежнему ждёт своей очереди.
+    // Подготовка не должна ждать мьютекс бесконечно: распознавание предыдущей
+    // команды держит его до двух минут, и нажатие на микрофон выглядело как
+    // зависание. Но и мгновенный отказ неверен: подготовку двух движков зовут
+    // параллельно (recognition и synthesis), и это законный случай.
+    // Поэтому пробуем коротко подождать, и только потом отвечаем отказом.
     let preparing = input.is_none();
     let mut slot = if preparing {
-        slot.try_lock().map_err(|_| "Идёт распознавание предыдущей команды. Подождите пару секунд и повторите.")?
+        try_lock_for(&slot, Duration::from_secs(2)).map_err(|_| {
+            "Идёт распознавание предыдущей команды. Подождите пару секунд и повторите."
+        })?
     } else {
         slot.lock().map_err(|_| "Речевой модуль недоступен")?
     };
