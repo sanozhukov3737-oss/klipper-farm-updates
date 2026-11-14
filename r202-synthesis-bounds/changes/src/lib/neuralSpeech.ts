@@ -67,63 +67,9 @@ export async function speakNeuralOffline(text:string,voiceId:NeuralVoice='kseniy
   return playNeuralSpeech(text,voiceId,state,()=>true,timing);
 }
 /** Background notices yield to conversation and are checked again after model preparation. */
-// Объявления ставятся в очередь, а не отбрасываются. Раньше при занятой
-// озвучке вызов сразу возвращал false, и на ферме из нескольких принтеров второе
-// «печать завершена» пропадало молча. Очередь короткая: пять событий подряд
-// разумно услышать, полсотни — уже нет.
-const ANNOUNCEMENT_QUEUE_LIMIT = 5;
-const ANNOUNCEMENT_PLAY_LIMIT_MS = 30_000;
-type AnnouncementItem = {
-  text: string;
-  stillCurrent: () => boolean;
-  settle: (played: boolean) => void;
-};
-const announcementQueue: AnnouncementItem[] = [];
-let announcementDraining = false;
-
-// Очередь сообщает не «поставлено», а «действительно проиграно»: вызывающий код
-// помечает событие произнесённым, и до звука это делать нельзя.
-async function drainAnnouncements(): Promise<void> {
-  if (announcementDraining) return;
-  announcementDraining = true;
-  try {
-    while (announcementQueue.length) {
-      const next = announcementQueue.shift()!;
-      if (announcementHolds.size || !next.stillCurrent()) { next.settle(false); continue; }
-      let played = false;
-      try {
-        played = await Promise.race([
-          playNeuralSpeech(next.text, 'kseniya', undefined, next.stillCurrent),
-          new Promise<boolean>(resolve => setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
-        ]);
-      } catch { played = false; }
-      next.settle(played);
-    }
-  } finally {
-    announcementDraining = false;
-  }
-}
-
 export async function trySpeakNeuralAnnouncement(text:string,stillCurrent:()=>boolean=()=>true):Promise<boolean>{
-  const normalized = text.trim();
-  if (!normalized) return false;
-  if (announcementHolds.size || window.speechSynthesis?.speaking || window.speechSynthesis?.pending) return false;
-  return new Promise<boolean>(resolve => {
-    const pending = announcementQueue.find(item => item.text === normalized);
-    if (pending) {
-      const settle = pending.settle;
-      pending.settle = played => { settle(played); resolve(played); };
-      return;
-    }
-    const item: AnnouncementItem = { text: normalized, stillCurrent, settle: resolve };
-    announcementQueue.push(item);
-    while (announcementQueue.length > ANNOUNCEMENT_QUEUE_LIMIT) {
-      const dropped = announcementQueue.shift()!;
-      if (dropped === item) { resolve(false); return; }
-      dropped.settle(false);
-    }
-    void drainAnnouncements();
-  });
+  if(speechBusy||announcementHolds.size||window.speechSynthesis?.speaking||window.speechSynthesis?.pending)return false;
+  return playNeuralSpeech(text,'kseniya',undefined,stillCurrent);
 }
 // Синтез одной фразы — это работа модели, а не сети; живая машина укладывается
 // в несколько секунд. Раньше ожидание было бесконечным: зависший рабочий

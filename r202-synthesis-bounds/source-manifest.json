@@ -6,9 +6,9 @@
   "files": [
     {
       "path": "src/lib/neuralSpeech.ts",
-      "sha256": "91e216d473a172418dc4d0ecbc5c9a3dd573b60b7655aa113088db064542baa3",
-      "bytes": 21193,
-      "beforeSha256": "9be3f8fb7c8bb11974357d260ebd89f09be656bee7ac6410ad4124855ce5b94d"
+      "sha256": "74b2542fa3694ead6fa00ac0db683c1a84587bdf6ee70ab3716e966c82561973",
+      "bytes": 18836,
+      "beforeSha256": "0c5d0460cc8ec33ecd2e3b84a7b06ee44d8627549775b5eeba9e88abc871f0d8"
     }
   ]
 }
