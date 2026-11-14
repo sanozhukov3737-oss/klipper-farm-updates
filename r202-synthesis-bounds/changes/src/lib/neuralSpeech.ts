@@ -94,7 +94,7 @@ async function drainAnnouncements(): Promise<void> {
       try {
         played = await Promise.race([
           playNeuralSpeech(next.text, 'kseniya', undefined, next.stillCurrent),
-          new Promise<boolean>(resolve => window.setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
+          new Promise<boolean>(resolve => setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
         ]);
       } catch { played = false; }
       next.settle(played);
@@ -132,10 +132,10 @@ const SPEECH_SYNTHESIS_LIMIT_MS = 60_000;
 
 function withSpeechTimeout<T>(task: Promise<T>, ms: number, message: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    const timer = setTimeout(() => reject(new Error(message)), ms);
     task.then(
-      value => { window.clearTimeout(timer); resolve(value); },
-      error => { window.clearTimeout(timer); reject(error); },
+      value => { clearTimeout(timer); resolve(value); },
+      error => { clearTimeout(timer); reject(error); },
     );
   });
 }

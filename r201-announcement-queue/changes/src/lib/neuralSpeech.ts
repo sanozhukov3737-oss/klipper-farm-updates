@@ -94,7 +94,7 @@ async function drainAnnouncements(): Promise<void> {
       try {
         played = await Promise.race([
           playNeuralSpeech(next.text, 'kseniya', undefined, next.stillCurrent),
-          new Promise<boolean>(resolve => window.setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
+          new Promise<boolean>(resolve => setTimeout(() => resolve(false), ANNOUNCEMENT_PLAY_LIMIT_MS)),
         ]);
       } catch { played = false; }
       next.settle(played);
