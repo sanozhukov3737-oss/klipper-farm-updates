@@ -44,26 +44,6 @@ export function stopNeuralSpeech(){
   speechBusy=false;
   playbackState?.('idle');playbackState=undefined;
 }
-// Пределы ожидания подготовки. Живая машина укладывается в них с запасом;
-// превышение означает занятый микрофон или зависший модуль, и об этом надо
-// сказать словами, а не молча держать интерфейс. Это единственное место, где
-// заморозка видна оператору: сам нативный вызов ждёт подготовки молча.
-const PREPARE_STATUS_TIMEOUT_MS = 5_000;
-const PREPARE_MODULE_TIMEOUT_MS = 90_000;
-const MICROPHONE_TIMEOUT_MS = 15_000;
-const CAPTURE_MODULE_TIMEOUT_MS = 10_000;
-
-async function withTimeout<T>(task: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      task,
-      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms) }),
-    ]);
-  } finally {
-    if (timer !== undefined) clearTimeout(timer);
-  }
-}
 export async function speakNeuralOffline(text:string,voiceId:NeuralVoice='kseniya',state?:(state:SpeechPlaybackState)=>void,timing?:(timing:VoiceTiming)=>void){
   return playNeuralSpeech(text,voiceId,state,()=>true,timing);
 }
@@ -170,21 +150,17 @@ export class NeuralSpeechInput{
   async start(){
     if(this.active||this.processing||this.disposed)return;this.active=true;this.utteranceHints=[...this.contextHints];this.announcementHold=holdNeuralSpeechAnnouncements();const epoch=++this.epoch;stopNeuralSpeech();window.speechSynthesis?.cancel();this.beginTiming('microphone-setup');this.callbacks.state('loading');this.callbacks.partial('');
     try{
-      const status=await withTimeout(secureInvoke<{recognition:boolean}>('voice_tools_status'),PREPARE_STATUS_TIMEOUT_MS,'Проверка речевых модулей не ответила');
+      const status=await secureInvoke<{recognition:boolean}>('voice_tools_status');
       if(epoch!==this.epoch)return;
       if(!status.recognition)throw new Error('Не установлен новый модуль распознавания Whisper. Установите сборку с речевыми моделями.');
-      // Первая загрузка модели занимает десятки секунд, и подготовку зовут
-// параллельно: прогрев панели при открытии и при смене модели, затем старт
-// записи. Поэтому запас большой — иначе законный параллельный вызов получал бы
-// отказ вместо короткого ожидания.
-await withTimeout(secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId}),PREPARE_MODULE_TIMEOUT_MS,'Модуль распознавания не подготовился');
+      await secureInvoke('voice_prepare',{engine:'recognition',modelId:this.modelId});
       if(epoch!==this.epoch)return;
       if(!navigator.mediaDevices?.getUserMedia||!window.AudioWorkletNode)throw new Error('Микрофон недоступен в этой среде');
       const audio=new AudioContext();this.audio=audio;await audio.resume();
       if(epoch!==this.epoch)return;
-      const stream=await withTimeout(navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}}),MICROPHONE_TIMEOUT_MS,'Микрофон не отвечает. Возможно, его занимает другая программа');
+      const stream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}});
       if(epoch!==this.epoch){stream.getTracks().forEach(track=>track.stop());return}this.stream=stream;
-      await withTimeout(audio.audioWorklet.addModule(new URL('/voice/capture.js',location.href).href),CAPTURE_MODULE_TIMEOUT_MS,'Не удалось подготовить запись звука');
+      await audio.audioWorklet.addModule(new URL('/voice/capture.js',location.href).href);
       if(epoch!==this.epoch)return;
       this.elapsed=0;this.lastSpeech=0;this.firstSpeech=-1;this.voiced=0;this.noise=0.002;this.chunks=[];this.levelAt=-1;
       this.source=audio.createMediaStreamSource(stream);this.capture=new AudioWorkletNode(audio,'farm-voice-capture');

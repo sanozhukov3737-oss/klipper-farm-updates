@@ -2,7 +2,7 @@ name: Build and verify small Windows app updates
 'on':
   push:
     branches: [r146-offline-voice-quality]
-    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'r154-storage-on-d/**', 'r155-release-sequence/**', 'r156-verification-identity/**', 'r157-verification-drift/**', 'r158-storage-visibility/**', 'r159-installer-diagnostics/**', 'r160-release-sequence/**', 'r161-update-progress/**', 'r162-shutdown-reason/**', 'r163-release-sequence/**', 'r164-update-resume/**', 'r165-reliability/**', 'r166-backup-compaction/**', 'r167-download-contract/**', 'r168-release-sequence/**', 'r169-backup-compression/**', 'r170-release-sequence/**', 'r171-speech-pronunciation/**', 'r172-file-name-speech/**', 'r173-release-sequence/**', 'r174-recognition-accuracy/**', 'r175-release-sequence/**', 'r176-poll-backoff/**', 'r177-print-safety/**', 'r178-release-sequence/**', 'r179-file-forecast/**', 'r180-stale-check-repair/**', 'r181-speech-stress/**', 'r182-assistant-vocabulary/**', 'r183-generated-stress/**', 'r184-release-sequence/**', 'r185-runtime-fixtures/**', 'r186-camera-fallback/**', 'r187-release-sequence/**', 'r188-number-stress/**', 'r189-camera-webrtc/**', 'r190-release-sequence/**', 'r191-printer-rename/**', 'r193-upload-queue/**', 'r194-number-speech/**', 'r195-speech-hardening/**', 'r196-fault-reasons/**', 'r197-release-sequence/**', 'r198-microphone-ready/**', 'r199-stress-effective/**', 'r200-speech-robust/**', 'r201-announcement-queue/**', 'r202-synthesis-bounds/**', 'r203-release-sequence/**', 'version-stamp/**']
+    paths: [.github/workflows/preview10-natural-understanding.yml, preview10-understanding-source.zip, preview10-installed-speech.mjs, 'r149-voice-actions/**', 'r150-voice-responsiveness/**', 'r151-partial-component-update/**', 'r152-engine-start-reliability/**', 'r153-print-completion-fix/**', 'r154-storage-on-d/**', 'r155-release-sequence/**', 'r156-verification-identity/**', 'r157-verification-drift/**', 'r158-storage-visibility/**', 'r159-installer-diagnostics/**', 'r160-release-sequence/**', 'r161-update-progress/**', 'r162-shutdown-reason/**', 'r163-release-sequence/**', 'r164-update-resume/**', 'r165-reliability/**', 'r166-backup-compaction/**', 'r167-download-contract/**', 'r168-release-sequence/**', 'r169-backup-compression/**', 'r170-release-sequence/**', 'r171-speech-pronunciation/**', 'r172-file-name-speech/**', 'r173-release-sequence/**', 'r174-recognition-accuracy/**', 'r175-release-sequence/**', 'r176-poll-backoff/**', 'r177-print-safety/**', 'r178-release-sequence/**', 'r179-file-forecast/**', 'r180-stale-check-repair/**', 'r181-speech-stress/**', 'r182-assistant-vocabulary/**', 'r183-generated-stress/**', 'r184-release-sequence/**', 'r185-runtime-fixtures/**', 'r186-camera-fallback/**', 'r187-release-sequence/**', 'r188-number-stress/**', 'r189-camera-webrtc/**', 'r190-release-sequence/**', 'r191-printer-rename/**', 'r193-upload-queue/**', 'r194-number-speech/**', 'r195-speech-hardening/**', 'r196-fault-reasons/**', 'r197-release-sequence/**', 'r199-stress-effective/**', 'r200-speech-robust/**', 'r201-announcement-queue/**', 'r202-synthesis-bounds/**', 'r203-release-sequence/**', 'version-stamp/**']
   workflow_dispatch: {}
 permissions:
   contents: read
@@ -74,7 +74,6 @@ jobs:
             /r195-speech-hardening/
             /r196-fault-reasons/
             /r197-release-sequence/
-            /r198-microphone-ready/
             /r199-stress-effective/
             /r200-speech-robust/
             /r201-announcement-queue/
@@ -212,8 +211,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R196 fault-reasons overlay did not match the exact sequence-162 candidate' }
           python r197-release-sequence/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R197 release-sequence overlay did not match the exact sequence-162 candidate' }
-          python r198-microphone-ready/apply.py work/app
-          if ($LASTEXITCODE -ne 0) { throw 'Reviewed R198 microphone-ready overlay did not match the exact sequence-163 candidate' }
           python r199-stress-effective/apply.py work/app
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed R199 stress-effective overlay did not match the exact sequence-163 candidate' }
           python r200-speech-robust/apply.py work/app
