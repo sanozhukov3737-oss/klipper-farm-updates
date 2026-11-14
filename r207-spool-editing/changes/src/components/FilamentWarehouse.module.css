@@ -1,0 +1,79 @@
+.warehouse{min-width:0;background:transparent;color:var(--ui-text)}
+.filters{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.search{display:flex;align-items:center;gap:8px;flex:1;min-width:180px;padding:0 10px;background:var(--ui-surface);border:1px solid var(--ui-border);border-radius:9px}
+.search>svg{color:var(--ui-muted);width:15px!important}
+.search:focus-within{outline:2px solid var(--ui-accent);outline-offset:2px}
+:global(:root[data-theme]) .warehouse .search input{width:100%;min-width:0;height:34px!important;padding:0!important;margin:0!important;background:transparent!important;border:0!important;box-shadow:none!important;outline:none!important;color:var(--ui-text)!important;font-size:12px!important;clip-path:none!important}
+.search input::placeholder{color:var(--ui-muted)!important;opacity:1}
+.warehouse .search>button{padding:3px!important;min-height:24px!important;background:transparent!important}
+:global(:root[data-theme]) .warehouse .filters>select{width:auto;max-width:100%;min-width:140px;height:36px!important;margin:0!important;padding:6px 27px 6px 9px!important;border:1px solid var(--ui-border)!important;border-radius:9px!important;box-shadow:none!important;background:var(--ui-surface)!important;color:var(--ui-text)!important;font:inherit;font-size:11px}
+.resultCount{font-size:10px;color:var(--ui-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* The spool sits directly on the page; controls keep their readable surfaces. */
+.selectedCard{position:relative;display:grid;grid-template-columns:minmax(270px,.85fr) minmax(0,1.15fr);align-items:center;gap:22px;min-width:0;padding:16px 18px;border:1px solid transparent;background:transparent}
+.selectedDetails{display:flex;flex-direction:column;gap:9px;min-width:0}
+.selectedHeading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.selectedHeading>span{display:flex;align-items:center;gap:6px;min-width:0;font-size:10px;color:var(--ui-muted);overflow-wrap:anywhere}
+.selectedHeading>span:before{content:"";width:6px;height:6px;flex:none;border-radius:50%;background:var(--filament-color);box-shadow:0 0 0 3px color-mix(in srgb,var(--filament-color) 10%,transparent)}
+:global(:root[data-theme]) .warehouse .selectedHeading>button{display:flex;align-items:center;gap:5px;flex:none;font:inherit;font-size:10px!important;border:1px solid var(--ui-border)!important;background:var(--ui-surface-2)!important;color:var(--ui-text)!important;padding:5px 8px!important;border-radius:8px;min-height:29px}
+.selectedHeading svg{width:12px!important;height:12px!important}
+.identity{display:flex;align-items:baseline;gap:12px;min-width:0}
+.selectedDetails h4{margin:0!important;font-size:25px!important;font-weight:750!important;letter-spacing:-.6px;line-height:1.25!important;flex:none}
+.selectedDetails h4>span{color:var(--ui-muted);font-size:14px;font-weight:400;letter-spacing:0}
+.selectedDetails p{margin:0!important;font-size:12px;color:var(--ui-muted);overflow-wrap:anywhere}
+.selectedDetails small{color:var(--ui-muted);font-size:10px}
+.spoolChoice{display:flex;flex-direction:column;gap:4px;color:var(--ui-muted);font-size:10px!important;min-width:0}
+:global(:root[data-theme]) .warehouse .spoolChoice>select{width:100%;min-width:0;border:1px solid var(--ui-border)!important;border-radius:8px!important;background:var(--ui-surface-2)!important;color:var(--ui-text)!important;font:inherit;font-size:11px!important;padding:7px 8px!important;margin:0!important;min-height:33px!important;height:auto!important;text-overflow:ellipsis;box-shadow:none!important}
+.appearance{display:grid;grid-template-columns:minmax(220px,1.15fr) minmax(145px,1fr);align-items:end;gap:12px;border:0;margin:0;padding:0;min-width:0}
+.colorControls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 8px;align-items:center;min-width:0}
+.colorLabel{grid-column:1/-1;display:flex;align-items:baseline;justify-content:space-between;gap:6px;font-size:10px;color:var(--ui-muted)}
+.colorLabel small{font-size:9px;font-variant-numeric:tabular-nums}
+.palette{display:flex;align-items:center;justify-content:space-between;gap:5px;min-height:30px;padding:3px}
+:global(:root[data-theme]) .warehouse .palette>button{position:relative;flex:none;width:21px;height:21px;min-height:21px!important;padding:0!important;border:0!important;border-radius:50%!important;background:var(--swatch)!important;box-shadow:inset 0 0 0 1px #80808035!important}
+.palette>button[aria-pressed=true]:after{position:absolute;content:"";inset:-3px;border:1.5px solid var(--ui-text);border-radius:50%}
+.customColor{display:flex;align-items:center;justify-content:center}
+.customColor>input{width:29px!important;height:29px!important;padding:2px!important;border:1px solid var(--ui-border)!important;border-radius:7px;background:var(--ui-surface-2)!important;margin:0!important;cursor:pointer}
+.weightBlock{padding:9px 11px 10px;background:var(--ui-surface-2);border-radius:9px}
+.selectedWeight{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;color:var(--ui-muted)}
+.selectedWeight>span{display:flex;flex-direction:column;gap:3px}
+.selectedWeight b{font-size:12px;font-weight:650;color:var(--ui-text);font-variant-numeric:tabular-nums}
+.selectedWeight>div{font-size:13px;color:var(--ui-text);font-variant-numeric:tabular-nums;white-space:nowrap}
+.selectedWeight output{font-size:28px;line-height:1.2;font-weight:750;letter-spacing:-.7px}
+.selectedWeight small{margin-left:3px;font-size:10px}
+.inspectorMeter{display:block;height:5px;border-radius:5px;overflow:hidden;background:var(--ui-border);margin-top:7px}
+.inspectorMeter>span{display:block;height:100%;border-radius:inherit;background:var(--filament-color);box-shadow:inset 0 0 0 1px #80808030}
+.selectedActions{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.warehouse .selectedActions>button{font-size:10px!important;min-height:29px;padding:5px 8px!important;background:var(--ui-surface-2)!important}
+.selectedActions>button:first-child{margin-right:auto!important}
+.selectedActions svg{width:12px!important;height:12px!important}
+.warehouse .deleteButton{color:var(--ui-danger)!important}
+.emptyWarning{color:var(--ui-warning);font-size:12px!important}
+.price{color:var(--ui-muted)}
+.qr{display:flex;flex-direction:column;align-items:center;gap:8px}
+.qr img{width:150px;height:150px;max-width:100%}
+.srOnly{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.selectedCard:has([data-inspect=true]){grid-template-columns:minmax(0,1fr);gap:0}
+.selectedCard:has([data-inspect=true]) .selectedDetails{display:none}
+.noResults{display:flex;align-items:center;flex-direction:column;gap:10px;text-align:center;padding:40px 15px;color:var(--ui-muted)}
+.noResults>svg{width:30px!important;height:30px!important}
+.noResults>b{font-size:15px;color:var(--ui-text)}
+.noResults>p{font-size:12px}
+@media(max-width:1000px){.selectedCard{grid-template-columns:minmax(240px,.8fr) minmax(0,1.2fr);gap:14px;padding:14px}.appearance{grid-template-columns:minmax(0,1fr)}.colorControls{grid-template-columns:auto minmax(0,1fr) auto;gap:8px}.colorLabel{grid-column:1;white-space:nowrap}.colorLabel small{display:none}.palette{grid-column:2;gap:8px}.customColor{grid-column:3}.identity{flex-wrap:wrap;gap:0 10px}}
+@media(max-width:680px){.selectedCard{grid-template-columns:minmax(0,1fr);gap:12px;padding:12px}.selectedDetails{border-top:1px solid var(--ui-border);padding-top:12px}.search{flex-basis:100%;min-width:0}.warehouse .filters>select{flex:1;min-width:0}.resultCount{flex-basis:100%}.appearance{grid-template-columns:minmax(0,1fr)}.selectedHeading{flex-wrap:wrap}.selectedWeight output{font-size:26px}}
+@media(pointer:coarse){.warehouse .palette>button{width:26px;height:26px;min-height:26px!important}.palette{gap:6px}.customColor>input{min-height:36px}.warehouse .spoolChoice>select{font-size:16px!important}}
+
+/* The existing transparent border becomes visible; all layout stays unchanged. */
+.selectedCard{border-color:var(--ui-border-strong);border-radius:20px}
+@media(max-width:680px){.colorControls{grid-template-columns:minmax(0,1fr) auto;gap:7px 8px}.colorLabel{grid-column:1/-1}.palette{grid-column:1;flex-wrap:wrap;justify-content:flex-start;gap:4px}.customColor{grid-column:2}}
+
+/* Быстрая правка остатка: компактное поле рядом с кнопкой формы. */
+.quickRemaining{display:inline-flex;align-items:center;gap:4px;font-size:11px}
+.quickRemaining input{width:70px;min-height:29px;padding:4px 6px;font-size:11px;text-align:right}
+/* Блок мелких остатков: то, что оператор иначе сливал бы вручную. */
+.remnantBlock{margin:8px 0;padding:8px 10px;border:1px solid var(--ui-border);border-radius:8px;background:var(--ui-surface-2)}
+.remnantHead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.remnantHead span{font-size:11px;opacity:.75}
+.remnantRow{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;font-size:11px}
+.remnantRow span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.remnantRow button{display:inline-flex;align-items:center;gap:4px;font-size:10px;min-height:26px;padding:4px 8px;background:var(--ui-surface)!important}
+.remnantRow svg{width:12px;height:12px}

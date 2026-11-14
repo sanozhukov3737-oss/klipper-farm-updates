@@ -1,0 +1,38 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.14-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-18",
+  "buildId": "V20.6-R15.14-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-18",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/lib/filamentInventory.ts",
+      "sha256": "4313a95d1505f14373fd4276237b2d8e083d4e020253899d7161ab0d41bab36c",
+      "bytes": 40266,
+      "beforeSha256": "021ae0fe42b7127758e47967113d957c1b2f2ec45b3a862c2e2f009578c6b7de"
+    },
+    {
+      "path": "src/components/FilamentWarehouse.tsx",
+      "sha256": "630242476c8fd7a18ddb1ac4e0212caccbc06927b580b07c76f87cd56c07aed7",
+      "bytes": 13339,
+      "beforeSha256": "59f9437a5484faebdf233b452747c0b2c0e93d158d01084e2ed7e6dd8917804a"
+    },
+    {
+      "path": "src/components/FilamentWarehouse.module.css",
+      "sha256": "6e5165a73cf5d5fdbe1eba7d2c6b7542dc30cc537bdd395223d655f66660fa15",
+      "bytes": 9405,
+      "beforeSha256": "610b202a77c9c15a71c9bc4085719e89a89597538143029647d22ad053702d46"
+    },
+    {
+      "path": "src/components/FilamentInventoryPanel.tsx",
+      "sha256": "a4b2c923c02127426b4a78690268892daa418cc781238a642701286d204ba37c",
+      "bytes": 31370,
+      "beforeSha256": "5f83b092213ccb9d5fc523b6fe138542079895877332a4eecd6b72d1ef84a9e8"
+    },
+    {
+      "path": "scripts/check-spool-remnants.mjs",
+      "sha256": "c6da946d689907d04112a6e9c10ca54e9c1bfa16200c9a86dc38bb1359d17803",
+      "bytes": 2625,
+      "beforeSha256": null
+    }
+  ]
+}
