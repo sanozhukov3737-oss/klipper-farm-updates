@@ -1,0 +1,38 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.16-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-20",
+  "buildId": "V20.6-R15.16-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-20",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/components/TvDashboard.tsx",
+      "sha256": "db1abb80d8e5a061b771cae726b2914c442b65ccf1d68f7a8da7818a29632bee",
+      "bytes": 28365
+    },
+    {
+      "path": "src/lib/storageJanitor.ts",
+      "sha256": "a988e03fd8b3a62a2b6a84966ff78f17f1113fe4c3edaba3fcae849de9e22f72",
+      "bytes": 7130
+    },
+    {
+      "path": "src/lib/db.ts",
+      "sha256": "af95b974d795b6ea8be2cb85b8014c9ec68a0f3b4c7bcad6b2c94612db619bc0",
+      "bytes": 2764
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "8a6b33b1d36d2655119a7ed9a89af9519943f2e504d1559e8266a73594109c76",
+      "bytes": 87101
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "54e512f5e61a6701ce128a015f451c2562f4efd55da69184c5c6846835b38230",
+      "bytes": 177467
+    },
+    {
+      "path": "scripts/check-storage-janitor.mjs",
+      "sha256": "7e4754935d7c099d83a00f3cb1e98e7e7e01d6df4288881985def2a775b25cd3",
+      "bytes": 4789
+    }
+  ]
+}

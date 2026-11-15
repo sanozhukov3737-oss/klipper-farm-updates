@@ -1,0 +1,32 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.16-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-20",
+  "buildId": "V20.6-R15.17-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-21",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "UPDATE-CHANNEL.json",
+      "sha256": "354521e32a00703364b270fddc62fa8c88514198a6ac24c8749cdf98aa2eab03",
+      "bytes": 257,
+      "beforeSha256": "92aaaabb9c2db0761b92160ed409da0ad4b86475b66e54b007f67f54f8389626"
+    },
+    {
+      "path": "RELEASE-BUILD-ID.txt",
+      "sha256": "3ecb0cfff875efe752c434a15877f918a79e33f7e43e1068d223230a36dc139b",
+      "bytes": 61,
+      "beforeSha256": "c7e37a9960395fa2975f365508d3378e3498c6c6bbb1677e99ef29975a655476"
+    },
+    {
+      "path": "scripts/check-release-portability.mjs",
+      "sha256": "67eb93bdd60bc3fca2341a2e6f03dc7da2e847c916f35a9b47314e3df64e063f",
+      "bytes": 21974,
+      "beforeSha256": "7cac42a28d45611b00f4d3b59ebb7ac9c6d5f22c3e0ca2a46807129d64197bef"
+    },
+    {
+      "path": "scripts/check-r9-clean-installer.mjs",
+      "sha256": "9d99e76e74a57ca446047a23e56e96db364b43517b0ee4fb7546d6256d175acb",
+      "bytes": 3322,
+      "beforeSha256": "a61bfce933c134a6353c99cfd12956cf249a6fde766001acfdcc9fb1916db920"
+    }
+  ]
+}
