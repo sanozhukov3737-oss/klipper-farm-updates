@@ -1,0 +1,38 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.16-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-20",
+  "buildId": "V20.6-R15.16-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-20",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "1b7439964161ee7716405f7bed1660cc880fbe5b61510afad6e5037c0f28a69a",
+      "bytes": 2431,
+      "beforeSha256": "1a9e88110c3fcf2d0ccac020576754ecee545e0494ea61df1085ad903c82b616"
+    },
+    {
+      "path": "src/main.tsx",
+      "sha256": "2061d007070efe4c98521d7e74e7cd5f876bf1fd5f82a0d3c4ca4cbf1a65368c",
+      "bytes": 2185,
+      "beforeSha256": "96ee5192c401107d57bcf182e1f2f67fa2fe36614496730a2902f17c13a003fa"
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "a2b316b8078533cac2cd91419b2954dc63217e48dca294e598afe50c96fc4760",
+      "bytes": 85766,
+      "beforeSha256": "58a61d51279b53021a60bb3b25ab954b0769b1e73ca7a19e3130ea0606437b28"
+    },
+    {
+      "path": "scripts/check-boot-splash.mjs",
+      "sha256": "fbc4f677428a335cc771ae68b9e4a6601fd278781cf6c0c90549f58cb51c51c8",
+      "bytes": 4730,
+      "beforeSha256": null
+    },
+    {
+      "path": "package.json",
+      "sha256": "b1639c5e0c326aa890e2bbf1ff8713c6f3537e6205b9da57261ff21520049cf1",
+      "bytes": 6749,
+      "beforeSha256": "81c212480d78e7d573b68aed8acc0c2f78e03a58caffb963d497f38c08f7e089"
+    }
+  ]
+}
