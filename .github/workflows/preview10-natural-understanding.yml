@@ -11,7 +11,7 @@ jobs:
   windows:
     if: github.ref == 'refs/heads/r146-offline-voice-quality'
     runs-on: windows-2022
-    timeout-minutes: 120
+    timeout-minutes: 180
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       PYTHONUTF8: '1'
