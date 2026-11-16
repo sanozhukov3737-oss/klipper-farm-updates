@@ -1,0 +1,28 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.17-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-21",
+  "buildId": "V20.6-R15.17-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-21",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/lib/updateWatcher.ts",
+      "sha256": "d0be3fd69ee4bba30e3918d6cd88ce60545c76fe57a6618cafe80ba08215e55b",
+      "bytes": 3780
+    },
+    {
+      "path": "src/components/UpdateWatchHost.tsx",
+      "sha256": "b1aaaf693e5e1526a0c95479b0336be082f290af8bc71c6126e49ba1fe647230",
+      "bytes": 3480
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "131081d40a8f1e25eece847b45846e12ae3c4769f680824ebc29e5543e1789f2",
+      "bytes": 87393
+    },
+    {
+      "path": "scripts/check-update-watch.mjs",
+      "sha256": "84b904cd1104c78bb98cffad2c9f0d506402ab0ee85a5ac268b61c7ab87a7f2b",
+      "bytes": 4106
+    }
+  ]
+}
