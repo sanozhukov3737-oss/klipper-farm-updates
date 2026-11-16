@@ -1,0 +1,98 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.18-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-22",
+  "buildId": "V20.6-R15.18-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-22",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-boot-splash.mjs",
+      "sha256": "3b74c1659ca4ecbdbfe1baa4ccf691f2bfe87e903a26328829bff5980f736732",
+      "bytes": 5956
+    },
+    {
+      "path": "scripts/check-farm-upgrades.mjs",
+      "sha256": "a021850f134c9398a88651a611aaccd6a683195cdb93ce106de245ce6888df00",
+      "bytes": 14692
+    },
+    {
+      "path": "scripts/check-v20-core.mjs",
+      "sha256": "d62f2421caf275d316badc95739a311c2ded84c8df8f49dd2ebdc9d689b156e2",
+      "bytes": 13489
+    },
+    {
+      "path": "scripts/check-release-published.mjs",
+      "sha256": "ee8c5bc48f6c3f8002556621edc96b0d5675786988cd28c717ac074a8400a81e",
+      "bytes": 5093
+    },
+    {
+      "path": "scripts/check-release-portability.mjs",
+      "sha256": "c5bab35cc5b7b5dd9525b53f109941674e4ee28814ddf680f727845a99b882e4",
+      "bytes": 23224
+    },
+    {
+      "path": "scripts/check-v20-6-hardening.mjs",
+      "sha256": "36cbab0a077957d87b372bb139c3b4b811b7305789c5cea07bed9f272e980591",
+      "bytes": 14296
+    },
+    {
+      "path": "scripts/check-v20-6-discovery-display.mjs",
+      "sha256": "0b7a992a074426f7bee33d63573e86e96a6aa32ce8f3a1e8b68483520742d84f",
+      "bytes": 11656
+    },
+    {
+      "path": "scripts/check-printer-identity-r125.mjs",
+      "sha256": "1b1568dbb51f041d9c891d3de14b405b961b883332b619bc072d74a6f483c93d",
+      "bytes": 11545
+    },
+    {
+      "path": "scripts/check-camera-guard.mjs",
+      "sha256": "5be06071aeb3dd2eb8d2da33b99e20ae0e4abe1b8a95c88d642bdeed2104418c",
+      "bytes": 15716
+    },
+    {
+      "path": "scripts/check-runtime-stability.mjs",
+      "sha256": "77fcc6db88eef499c7e49164a52b910a2cca91ab019bcf4ef5abb143e6dd85a4",
+      "bytes": 7218
+    },
+    {
+      "path": "src/lib/printerCatalogSelection.ts",
+      "sha256": "b65d378249bb978ac5118d8007b5b78f61e757f4a20f3edfb16808987297f47e",
+      "bytes": 3744
+    },
+    {
+      "path": "src/lib/modelSelection.ts",
+      "sha256": "5b8591c9ecd7e2c1a9270f7354d7ca61d963f82ea6a8b77ec5e633535ba66775",
+      "bytes": 3162
+    },
+    {
+      "path": "src/components/PrinterSettings.tsx",
+      "sha256": "175e888f98f3853188922b6f382a3292daefdc553ef50501673f4667b11d4069",
+      "bytes": 25454
+    },
+    {
+      "path": "src/components/SetupWizard.tsx",
+      "sha256": "5e33bfd46e44ae54dadf847f4e537a9eaa6a4006baa091c8eb1eb7f7b8f835e4",
+      "bytes": 11827
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "98a995dd656fb103149e023171948465a493a404435fea60505c7d8fcf441aae",
+      "bytes": 87330
+    },
+    {
+      "path": "src-tauri/src/transactional_core/backup.rs",
+      "sha256": "fd761961221f48ed6064cae8606cf0f5bda520d5d005e93b33be0af96978688d",
+      "bytes": 51792
+    },
+    {
+      "path": "MANIFEST-SHA256.txt",
+      "sha256": "e92e73f8c1aacbf6de56636071ec79630c443be962d66f66bbbd3c9d67a4ebe6",
+      "bytes": 229992
+    },
+    {
+      "path": "OFFLINE-PAYLOAD-SHA256.txt",
+      "sha256": "948337d585b0d4769604591e3fe308c7448c381448a1a08ce3cdb7397831d307",
+      "bytes": 67588
+    }
+  ]
+}
