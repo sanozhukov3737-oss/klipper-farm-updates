@@ -1,0 +1,63 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.20-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-24",
+  "buildId": "V20.6-R15.20-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-24",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/App.tsx",
+      "sha256": "127b18223edd421cdfd55cd6dfff670039686fb5d7443ddcb57aa359467bc2e3",
+      "bytes": 88703
+    },
+    {
+      "path": "src/components/AnalyticsPanel.tsx",
+      "sha256": "4c6295f845684bfa17e56008ca3e06e765393507ecc6cfd8e43a17d25fac04b1",
+      "bytes": 7608
+    },
+    {
+      "path": "src/components/AutoDispatchPanel.tsx",
+      "sha256": "0f577240f1c670f438529d600b53cdc82787c3a95368d7cf9c2fa81f541a81f4",
+      "bytes": 12440
+    },
+    {
+      "path": "src/components/DiscoveryPanel.tsx",
+      "sha256": "becba34418f34665147cb1186228c255557a78d00be1defc6bc4252141be3fac",
+      "bytes": 66507
+    },
+    {
+      "path": "src/components/FleetDashboard.tsx",
+      "sha256": "a1afa5f8dbb46c0281314540457b226a3b677b76adb6380c44c4d9c14d27bf0d",
+      "bytes": 14726
+    },
+    {
+      "path": "src/components/PrinterCamera.tsx",
+      "sha256": "237f7de24357799a7c9c8abc591a529bd0cfefaff5b2c914cf271abc0a866d7c",
+      "bytes": 12153
+    },
+    {
+      "path": "src/components/PrinterFilesPanel.tsx",
+      "sha256": "b48af32eebc94d71eef636bf762286f1a152e9def9e1ab080d7419f5be708a6c",
+      "bytes": 54352
+    },
+    {
+      "path": "src/components/ProductionPanel.tsx",
+      "sha256": "3172d18c80cc5c4445c21035d57a844d9aec48ab9a5da2cae1f15d8dc76e9501",
+      "bytes": 24098
+    },
+    {
+      "path": "src/components/QrScanner.tsx",
+      "sha256": "dfd5ac5967c51fcdee71e07bf27c569a4bce7213c67c58420b952c0faa8b6c93",
+      "bytes": 2455
+    },
+    {
+      "path": "src/components/QueuePanel.tsx",
+      "sha256": "da01a62231b0b7055dfcf2cd8198dd97533eb1e6b3e8101ce7296804c0cae2c0",
+      "bytes": 17225
+    },
+    {
+      "path": "src/components/SystemPanel.tsx",
+      "sha256": "4451b08c1a836783f2239b4b9366c6a1d023984a7b8c9037f5b85ad55b0f721b",
+      "bytes": 23811
+    }
+  ]
+}
