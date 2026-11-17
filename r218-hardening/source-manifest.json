@@ -1,0 +1,128 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.19-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-23",
+  "buildId": "V20.6-R15.19-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-23",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "MANIFEST-SHA256.txt",
+      "sha256": "0334077486b58403679319069e7665f6d77671c2e115af80fc805b93047891f4",
+      "bytes": 230076
+    },
+    {
+      "path": "OFFLINE-PAYLOAD-SHA256.txt",
+      "sha256": "1c0d28b3cec353b945123cfd700e8eddfedf7982123739a02f805eea72eefadb",
+      "bytes": 67588
+    },
+    {
+      "path": "SBOM-V20.cdx.json",
+      "sha256": "c4c2c26c77102569d64553d758bcb871f85af3b06478f68766c58195d675ef31",
+      "bytes": 407117
+    },
+    {
+      "path": "eslint.config.mjs",
+      "sha256": "7616aac5c50cfcb74a9c6deea4ce63329125d49e3b9defeb2d1737baefc9c607",
+      "bytes": 3047
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "940b8ee2e2f6852a2fcbd0d9510f59edea593e64ab4832e01bed7a6a7e85c027",
+      "bytes": 138176
+    },
+    {
+      "path": "package.json",
+      "sha256": "e58791db15b687fc1f60c862fd3e4dad0efd402729caebe0367e4d8d690c50f8",
+      "bytes": 6889
+    },
+    {
+      "path": "scripts/check-update-watch.mjs",
+      "sha256": "93ef98c51a0c4706caadbcf833fee0f39357a1249080af4e05d5307f30857452",
+      "bytes": 6493
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "34753a703c7de41f8bee383e3a86ea46abd8f6a5f87f329cc8267b74dfe7f223",
+      "bytes": 177515
+    },
+    {
+      "path": "src-tauri/src/online_updates.rs",
+      "sha256": "9a6f3c3395419d9dfcb89646b595b8221a6879a52e41fe6c9fbfb7fdf0fbb400",
+      "bytes": 31715
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "55bed11cbedfdd48b3698e4ed062788d90118e9e824214b146ca4fe0a6a77733",
+      "bytes": 87863
+    },
+    {
+      "path": "src/components/AutoDispatchPanel.tsx",
+      "sha256": "096c0a867b2138ce53e39e6d3939d37273301ff1653866c97364184333007387",
+      "bytes": 12314
+    },
+    {
+      "path": "src/components/CameraGuardHost.tsx",
+      "sha256": "d4990d64ba2a2138ccf35717c3b61eaf7e4c807689c9c6abbeb050e46d7c4046",
+      "bytes": 8124
+    },
+    {
+      "path": "src/components/CameraModal.tsx",
+      "sha256": "7d225ae838a8461b76dabda3a708986581a27e1feb5595c1ad37d1fb5787bddc",
+      "bytes": 1595
+    },
+    {
+      "path": "src/components/TvDashboard.tsx",
+      "sha256": "46b82416308d9df718a0cdaf381c2ba2f237fb396fefea9c25ab1113c73f4762",
+      "bytes": 28346
+    },
+    {
+      "path": "src/components/UpdateWatchHost.tsx",
+      "sha256": "b4cc62c9741f1d285788f1b6f14934d3f00356e3389a11e0842e0bccc8736914",
+      "bytes": 3955
+    },
+    {
+      "path": "src/lib/auth.ts",
+      "sha256": "c92edd9002fc1aa48ed3ae88aabca6fb3a2e5824a18d2e13f9763fd3fa9b7e75",
+      "bytes": 3218
+    },
+    {
+      "path": "src/lib/cameraGuardRuntime.ts",
+      "sha256": "3d76d88d6938af9a4853297839b6aec2fef5049fa7397f038aff0e187eb85c76",
+      "bytes": 12826
+    },
+    {
+      "path": "src/lib/db.ts",
+      "sha256": "418fd5f17f5999868fc111a6f192b45d31e05127c64ce9e2616df5daf1c4a018",
+      "bytes": 3106
+    },
+    {
+      "path": "src/lib/moonraker.ts",
+      "sha256": "5cacf4f152ee34c616e918204b9c8aa840b4676e02f2f0f74c8644670ea99275",
+      "bytes": 137919
+    },
+    {
+      "path": "src/lib/native.ts",
+      "sha256": "13c67fa713c49872dae3914a380e9733fce84e89ac0164e8f299d4d918c257ca",
+      "bytes": 6436
+    },
+    {
+      "path": "src/lib/printerActorBridge.ts",
+      "sha256": "a144259418fe733c036d4d778bde570af4d1abc2d22e31053bbe8620de841f0e",
+      "bytes": 4282
+    },
+    {
+      "path": "src/lib/spool-viewer.mjs",
+      "sha256": "f05cfbcb441892d88a2d06e5d40929578b421d1f8381e81432a3c52ff0850646",
+      "bytes": 50533
+    },
+    {
+      "path": "src/lib/storageJanitor.ts",
+      "sha256": "e7a76930ebc2e7a58bd559bf309b4bfeb40f30888e724887508a81dce409771b",
+      "bytes": 7076
+    },
+    {
+      "path": "src/lib/voiceAssistant.ts",
+      "sha256": "3db3e2084b9a50314395cdcc5923eb11b4626be12a6bdc8f5b3c544038bdf6a9",
+      "bytes": 72004
+    }
+  ]
+}
