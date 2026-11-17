@@ -31,7 +31,7 @@ import { DiscoveryPanel, type IdentifiedDiscoveredPrinter } from './components/D
 import { telegramSend, telegramSettings } from './lib/telegram';
 import brandMark from './assets/brand-mark-v1144.svg';
 import { normalizePrinterModelDisplayName, uniquePrinterName } from './lib/printerName';
-import { profileForPreset } from './lib/printerProfile';
+import { iconForPreset, profileForPreset } from './lib/printerProfile';
 import { FLASHFORGE_5M_DISPLAY_NAME, PRINTER_DETECTION_ENGINE_VERSION, printerDetectionFactsFromMoonraker } from './lib/printerDetection';
 import { printerAddressKey, printerHostDisplay, samePrinterEndpoint } from './lib/printerEndpoint';
 import { hasStrongPrinterIdentity, planPrinterAddressRecovery, printerAddressConfigurationKey, strongPrinterIdentityMatch, type PrinterAddressObservation } from './lib/printerAddressRecovery';
@@ -161,7 +161,7 @@ const discoveredConfig=(row:IdentifiedDiscoveredPrinter,usedNames:string[],confi
   const base:PrinterConfig=existing
     ?{...normalizeCatalogIdentity(existing),host:row.host,deviceIdentity:refreshDeviceIdentityEvidence(existing.deviceIdentity,row.deviceIdentity??row.detection?.deviceIdentity)}
     :{
-      id:crypto.randomUUID(),name,nameSource:'automatic',host:row.host,catalogModelId:catalog?.id,profile:profileForPreset('custom'),
+      id:crypto.randomUUID(),name,nameSource:'automatic',host:row.host,catalogModelId:catalog?.id,icon:iconForPreset('custom'),profile:profileForPreset('custom'),
       deviceIdentity:row.deviceIdentity??row.detection?.deviceIdentity,
       modelSelection:{mode:'automatic',selectedPreset:'custom',source:'automatic',updatedAt:Date.now()},
     };
@@ -171,7 +171,7 @@ const discoveredConfig=(row:IdentifiedDiscoveredPrinter,usedNames:string[],confi
   // Rediscovery updates the endpoint/evidence without replacing an explicit
   // operator-selected management profile.
   const configured=existing?.modelSelection?.mode==='manual'
-    ?{...detectedConfig,profile:existing.profile,modelSelection:{...existing.modelSelection,lastDetection:detectedConfig.modelSelection?.lastDetection??existing.modelSelection.lastDetection}}
+    ?{...detectedConfig,icon:existing.icon,profile:existing.profile,modelSelection:{...existing.modelSelection,lastDetection:detectedConfig.modelSelection?.lastDetection??existing.modelSelection.lastDetection}}
     :detectedConfig;
   const discoveredChannel={connectionProtocol:row.working_protocol,connectionPort:row.working_port};
   const endpointChanged=!!existing&&!samePrinterEndpoint(existing.host,row.host);

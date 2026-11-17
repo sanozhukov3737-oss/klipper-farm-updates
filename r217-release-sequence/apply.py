@@ -3,10 +3,10 @@
 Sequence 168 is published, so the audit fixes from R216 would reach nobody. This raises the packaged
 channel to 169 and the identity to R15.19, the released application version 1.15.19.
 
-It carries one overlay: backup publication now keeps the Windows retry bound it had lost when
-compression was added, and a dead icon field that was written five times and read never is no longer
-written. The structural checks that had drifted from the code they describe now check behaviour
-instead of exact strings, so a future failure means something broke rather than that the code moved.
+It carries one overlay: backup publication keeps the Windows retry bound it lost when compression was
+added, the model icon that was written and never shown now appears when a bundled photo cannot be
+loaded, and the structural checks that had drifted from the code they describe now verify behaviour
+rather than exact strings, so a future failure means something broke instead of that the code moved.
 
 The workflow's three sequence-bound expectations move with this and R217 joins the chain.
 """

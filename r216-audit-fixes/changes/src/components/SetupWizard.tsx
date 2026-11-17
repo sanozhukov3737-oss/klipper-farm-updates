@@ -4,7 +4,7 @@ import type { PrinterConfig } from '../types';
 import { LanguageSelect, useI18n } from '../i18n';
 import appIcon from '../assets/app-icon-v1144.png';
 import { MoonrakerClient, type PrinterDetection } from '../lib/moonraker';
-import { profileForPreset } from '../lib/printerProfile';
+import { iconForPreset, profileForPreset } from '../lib/printerProfile';
 import { applyModelDetection } from '../lib/modelSelection';
 import { applyCatalogModel } from '../lib/printerCatalogSelection';
 import { appConfirm } from '../lib/appDialogs';
@@ -60,7 +60,7 @@ export function SetupWizard({onFinish,onAdd}:{onFinish:()=>void;onAdd:(cfg:Print
    let confirmProbable=false;
    if(detected.decision==='probable'&&detected.model!=='custom')confirmProbable=await appConfirm(`Программа предполагает модель «${detected.name}», но уверенность средняя. Применить этот профиль? Без подтверждения будет сохранён безопасный универсальный профиль.`,{title:'Подтверждение модели',confirmLabel:'Да, применить профиль'});
    if(generation!==requestGeneration.current)return;
-   const base:PrinterConfig={id:crypto.randomUUID(),name:name.trim()||(catalog?catalogModelName(catalog):detected.name),nameSource:!name.trim()||name===automaticName?'automatic':'custom',host:normalizeHost(host),catalogModelId:catalog?.id,apiKey:apiKey.trim()||undefined,profile:profileForPreset('custom'),modelSelection:{mode:'automatic',selectedPreset:'custom',source:'automatic'}};
+   const base:PrinterConfig={id:crypto.randomUUID(),name:name.trim()||(catalog?catalogModelName(catalog):detected.name),nameSource:!name.trim()||name===automaticName?'automatic':'custom',host:normalizeHost(host),catalogModelId:catalog?.id,apiKey:apiKey.trim()||undefined,profile:profileForPreset('custom'),icon:iconForPreset('custom'),modelSelection:{mode:'automatic',selectedPreset:'custom',source:'automatic'}};
    const configured=applyModelDetection(base,detected,confirmProbable);
    await onAdd(catalog?applyCatalogModel(configured,catalog):configured);if(generation===requestGeneration.current)setStep(2);
   }catch(e){if(generation===requestGeneration.current)setError(String(e instanceof Error?e.message:e))}finally{if(generation===requestGeneration.current)setAdding(false)}

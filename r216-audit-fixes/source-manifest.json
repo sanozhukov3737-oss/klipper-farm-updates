@@ -55,29 +55,44 @@
       "bytes": 7218
     },
     {
+      "path": "scripts/check-printer-catalog.mjs",
+      "sha256": "9967ac8c3584f4436996ee827210911131fa3e49311626851f36cd1920627372",
+      "bytes": 18401
+    },
+    {
       "path": "src/lib/printerCatalogSelection.ts",
-      "sha256": "b65d378249bb978ac5118d8007b5b78f61e757f4a20f3edfb16808987297f47e",
-      "bytes": 3744
+      "sha256": "a21507c672cb7ac9f00f0981cfa4cc1743c5cf95c0fbe27e2c21d3c2cca6627f",
+      "bytes": 3821
     },
     {
       "path": "src/lib/modelSelection.ts",
-      "sha256": "5b8591c9ecd7e2c1a9270f7354d7ca61d963f82ea6a8b77ec5e633535ba66775",
-      "bytes": 3162
+      "sha256": "8fff8dcfc54ce0d6becaca1be1c4115a3eadcf4ed00d44c60e2a047711b2929f",
+      "bytes": 3252
     },
     {
       "path": "src/components/PrinterSettings.tsx",
-      "sha256": "175e888f98f3853188922b6f382a3292daefdc553ef50501673f4667b11d4069",
-      "bytes": 25454
+      "sha256": "81be819cdf59f68346d04e61f639ca256731b811c1c4ed19a002ed7b0d6a3876",
+      "bytes": 25522
     },
     {
       "path": "src/components/SetupWizard.tsx",
-      "sha256": "5e33bfd46e44ae54dadf847f4e537a9eaa6a4006baa091c8eb1eb7f7b8f835e4",
-      "bytes": 11827
+      "sha256": "213dd44697bf9523352e7693e436a9bd5daa5796e7a2d444bb5cc99867e2bd57",
+      "bytes": 11871
+    },
+    {
+      "path": "src/components/FleetPrinterCard.tsx",
+      "sha256": "5ccf84486dd31da566d8218fe3a3fc0d6ac847552fb8cc17507af1fbfd07c0b9",
+      "bytes": 9929
+    },
+    {
+      "path": "src/styles.css",
+      "sha256": "cb54832277e31348b8f4ce867fcc37486a08250f8ea12795826b72b98a051632",
+      "bytes": 504795
     },
     {
       "path": "src/App.tsx",
-      "sha256": "98a995dd656fb103149e023171948465a493a404435fea60505c7d8fcf441aae",
-      "bytes": 87330
+      "sha256": "02b97e29b7c2a3dec6793877a372f0ccbfbb64c5d2d31e8dd2f56c57a050d6b0",
+      "bytes": 87393
     },
     {
       "path": "src-tauri/src/transactional_core/backup.rs",
@@ -86,12 +101,12 @@
     },
     {
       "path": "MANIFEST-SHA256.txt",
-      "sha256": "e92e73f8c1aacbf6de56636071ec79630c443be962d66f66bbbd3c9d67a4ebe6",
+      "sha256": "e7173e80dbeee59d51b9678431ea41ca1bfbf16a24e8a4f64378c6c6d0a44c39",
       "bytes": 229992
     },
     {
       "path": "OFFLINE-PAYLOAD-SHA256.txt",
-      "sha256": "948337d585b0d4769604591e3fe308c7448c381448a1a08ce3cdb7397831d307",
+      "sha256": "b96da66d0811ce2baccf4562cd081cf04d22ba4416ba439132eea9d186cf350c",
       "bytes": 67588
     }
   ]

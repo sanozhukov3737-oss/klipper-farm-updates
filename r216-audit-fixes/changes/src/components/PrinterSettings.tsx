@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrainCircuit, Camera, Check, ImagePlus, LoaderCircle, Network, Printer, Radar, ShieldCheck, Trash2, TriangleAlert, X } from 'lucide-react';
 import type { PrinterConfig, PrinterDetectionResult, PrinterModel, PrinterProfile } from '../types';
-import { profileForPreset } from '../lib/printerProfile';
+import { iconForPreset, profileForPreset } from '../lib/printerProfile';
 import { printerArtworkByPreset } from '../lib/printerArtwork';
 import { MoonrakerClient } from '../lib/moonraker';
 import { FLASHFORGE_5M_DISPLAY_NAME } from '../lib/printerDetection';
@@ -49,7 +49,7 @@ export function PrinterSettings({printer,onSave,onDelete,onClose}:{printer:Print
  const invalidateDetection=()=>{detectionEpoch.current+=1;setDetectionFresh(false);setFormError('')};
  const patch=(x:Partial<PrinterProfile>)=>{invalidateDetection();updateDraft({...v,profile:{...p,...x}})};
  const chooseCatalog=(entry:PrinterCatalogModel|undefined)=>{invalidateDetection();updateDraft(current=>{const next=applyCatalogModel(current,entry);return {...current,...next}})};
- const choose=(value:string)=>{invalidateDetection();const selectedPreset=value as PrinterProfile['preset'];if(selectedPreset==='custom'){updateDraft({...v,profile:{...p,preset:'custom'},modelSelection:{mode:'manual',selectedPreset:'custom',source:'manual',updatedAt:Date.now(),lastDetection:v.modelSelection?.lastDetection}});return}const key=selectedPreset as KnownPreset,selected=models[key],fillName=!catalogModel&&(!v.name.trim()||isAutomaticPrinterName(v));updateDraft({...v,name:fillName?selected.name:v.name,nameSource:fillName?'automatic':v.nameSource,profile:profileForPreset(key),modelSelection:{mode:'manual',selectedPreset:key,source:'manual',updatedAt:Date.now(),lastDetection:v.modelSelection?.lastDetection}})};
+ const choose=(value:string)=>{invalidateDetection();const selectedPreset=value as PrinterProfile['preset'];if(selectedPreset==='custom'){updateDraft({...v,profile:{...p,preset:'custom'},modelSelection:{mode:'manual',selectedPreset:'custom',source:'manual',updatedAt:Date.now(),lastDetection:v.modelSelection?.lastDetection}});return}const key=selectedPreset as KnownPreset,selected=models[key],fillName=!catalogModel&&(!v.name.trim()||isAutomaticPrinterName(v));updateDraft({...v,name:fillName?selected.name:v.name,nameSource:fillName?'automatic':v.nameSource,icon:iconForPreset(key),profile:profileForPreset(key),modelSelection:{mode:'manual',selectedPreset:key,source:'manual',updatedAt:Date.now(),lastDetection:v.modelSelection?.lastDetection}})};
  const loadImage=(file?:File)=>{if(!file)return;if(file.size>800_000){setFormError('Изображение должно быть не больше 800 КБ.');return}setFormError('');const reader=new FileReader();reader.onload=()=>updateDraft(x=>({...x,imageData:String(reader.result)}));reader.readAsDataURL(file)};
  const detectModel=async()=>{if(detecting)return;const request=++detectionRequest.current,epoch=detectionEpoch.current,isCurrent=()=>mounted.current&&request===detectionRequest.current&&epoch===detectionEpoch.current;setDetecting(true);setDetectionFresh(false);setFormError('');try{const detected=await new MoonrakerClient(v).detect();if(!isCurrent())return;updateDraft(current=>({...current,...applyModelDetection(current,detected)}));setDetectionFresh(true);if(detected.decision==='probable')setFormError('Модель определена вероятно. Профиль не изменён — подтвердите предполагаемую модель в отчёте ниже.');else if(detected.probeWarnings.length)setFormError(`Модель проверена по неполному снимку: ${detected.probeWarnings.join(', ')}.`)}catch(error){if(isCurrent())setFormError(`Автоопределение не завершено: ${String(error instanceof Error?error.message:error)}`)}finally{if(mounted.current&&request===detectionRequest.current)setDetecting(false)}};
  const confirmProbable=()=>{const report=v.modelSelection?.lastDetection,snapshot=v.configSnapshot;if(!detectionFresh||!report||report.decision!=='probable'||report.model==='custom'||!snapshot)return;const complete:CompleteDetection={...report,facts:snapshot.facts,deviceIdentity:v.deviceIdentity,probeCoverage:snapshot.probeCoverage};updateDraft(current=>({...current,...applyModelDetection(current,complete,true)}));setFormError('Вероятная модель подтверждена пользователем. Профиль будет применён после сохранения настроек.')};
@@ -70,7 +70,7 @@ export function PrinterSettings({printer,onSave,onDelete,onClose}:{printer:Print
    // Пустое поле означает «имя по модели»: тогда нумерация снова ведётся
    // автоматически. Любое введённое имя становится своим и больше не меняется.
    const typedName=v.name.trim();
-   await onSave({...v,name:typedName||modelName||'Принтер',nameSource:typedName?'custom':'automatic'});
+   await onSave({...v,name:typedName||modelName||'Принтер',nameSource:typedName?'custom':'automatic',icon:iconForPreset(p.preset)});
    if(!mounted.current)return;
    if(epoch!==draftEpoch.current){setFormError('Предыдущие настройки сохранены. Сохраните новые изменения ещё раз.');return}
    close();

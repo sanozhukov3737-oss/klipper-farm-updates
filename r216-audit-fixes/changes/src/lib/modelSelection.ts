@@ -1,5 +1,5 @@
 import type { KnownPrinterPreset, PrinterConfig, PrinterConfigurationSnapshot, PrinterDetectionFacts, PrinterDetectionResult, PrinterDeviceIdentity } from '../types';
-import { profileForPreset } from './printerProfile';
+import { iconForPreset, profileForPreset } from './printerProfile';
 import { printerDetectionFirmwareSignature } from './printerDetection';
 import { refreshDeviceIdentityEvidence } from './deviceIdentity';
 
@@ -40,6 +40,7 @@ export function applyModelDetection(config:PrinterConfig,detection:CompleteDetec
       :config.profile??profileForPreset('custom');
   return{
     ...config,
+    icon:appliedPreset||unknown?iconForPreset(selectedPreset):config.icon,
     profile:nextProfile,
     // Automatic model refresh may collect more optional hardware fields than
     // the original scan. Enrich evidence, but never replace an established

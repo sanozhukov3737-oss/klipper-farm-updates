@@ -1,30 +1,34 @@
 """Apply the reviewed R216 audit fixes over the exact sequence-168 candidate.
 
 A full audit of the program ran all 134 structural checks rather than the 39 the build uses. Twenty
-eight failed. Fourteen of those were stale string matches that had outlived the code they describe,
-four encoded a wrong assumption, and the rest needed a build artifact that a static tree cannot have.
-Two real defects came out: a backup publication path that lost its Windows retry bound, and a
-dead `icon` field written in five places and read in none.
+eight failed. Fourteen were stale string matches that had outlived the code they describe, four
+encoded a wrong assumption, and the rest needed a build artifact that a static tree cannot have. Two
+real defects came out of it: a backup publication path that lost its Windows retry bound, and an icon
+setting that was written and never displayed.
 
 The backup fix matters most. Compressing backups moved publication onto plain `std::fs::rename`,
 which on Windows fails outright when a scanner briefly holds the file. The uncompressed path had used
-`durable_fs::rename_atomic`, which retries through `MoveFileExW` up to seven times precisely for
-that case. Compressed backups had silently lost that protection, and a backup is not something to
-lose to an antivirus. Publication now goes through the same retry-bounded helper.
+`durable_fs::rename_atomic`, which retries through `MoveFileExW` up to seven times precisely for that
+case. Compressed backups had silently lost that protection, and a backup is not something to lose to
+an antivirus. Publication now goes through the same retry-bounded helper.
 
-The `icon` field was written on every catalogue selection, profile choice and setup, and read
-nowhere: display goes through `printerArtwork`, which uses the uploaded image, then the catalogue
-model, then the preset. Writing it changed nothing except what the old identity test compared, so the
-writes are gone. The type stays optional because saved configurations still carry the value and
-guessing about stored data is worse than ignoring it.
+The `icon` field turned out to be a setting that was never finished rather than dead weight, and the
+first instinct to delete it was wrong. It is written on every catalogue selection and read nowhere,
+because display goes through `printerArtwork` — uploaded image, then the catalogue photo, then the
+preset — and the photos cover all five hundred models. But the six-value silhouette mapping (k1,
+k1max, ender, corexy, bedslinger, custom) exists, `ModelIcon` renders it, and nothing ever displayed
+it. So choosing a model now sets the icon, and the printer card falls back to that model's silhouette
+when the bundled photo fails to load: a damaged build or a full disk currently leaves a generic
+placeholder where the model is known. The silhouette also gained the sizing it never had, which is
+why it could never have been visible.
 
-The checks themselves were the larger problem, and the failures said something uncomfortable: five
-of them broke because the code got better. `check-v20-core` forbade `std::net::TcpStream` in the
-actor and found the test module's mock socket — it now reads production code only, and still looks at
-the full source where the test itself is the point. `check-v20-6-discovery-display` required the
-exact call `applyStatus(...,snapshot)` and the call had gained a fourth argument, `controllerLive`,
-which stops a cached snapshot from presenting itself as a live controller. `check-camera-guard`
-required the pause call without the applicability guard that now runs before the command is sent.
+The checks themselves were the larger problem, and the failures said something uncomfortable: five of
+them broke because the code got better. `check-v20-core` forbade `std::net::TcpStream` in the actor
+and found the test module's mock socket — it now reads production code only, and still looks at the
+full source where the test itself is the point. `check-v20-6-discovery-display` required the exact
+call `applyStatus(...,snapshot)` and the call had gained a fourth argument, `controllerLive`, which
+stops a cached snapshot from presenting itself as a live controller. `check-camera-guard` required the
+pause call without the applicability guard that now runs before the command is sent.
 
 The wrong assumptions were worse than the stale strings, because they would have failed just as
 happily on correct code. `check-farm-upgrades` demanded that the notification write allowlist equal
@@ -41,10 +45,10 @@ manifest comparison runs when the tree really is a release tree. The boot splash
 source, where the markup is inline, and skips only the assertion that needs the compiled bundle.
 
 `check-release-published` now finds the component manifest by default and, when it is absent, reports
-that runtime verification was skipped instead of demanding a command line argument. Nineteen
-checks required environment a reviewer does not have — playwright, prepared speech assets, baseline
-snapshots, built binaries — and those are left failing rather than pretending otherwise; a skip that
-looks like a pass is worse than an honest failure.
+that runtime verification was skipped instead of demanding a command line argument. Sixteen checks
+required environment a reviewer does not have — playwright, prepared speech assets, baseline
+snapshots, vendored crates, built binaries — and those are left failing rather than pretending
+otherwise; a skip that looks like a pass is worse than an honest failure.
 """
 from pathlib import Path, PurePosixPath
 import hashlib

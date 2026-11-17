@@ -1,6 +1,6 @@
 import type { PrinterConfig } from '../types';
 import { PRINTER_CATALOG, catalogModelName, getCatalogModel, getCatalogPreset, type PrinterCatalogModel } from './printerCatalog';
-import { profileForPreset } from './printerProfile';
+import { iconForPreset, profileForPreset } from './printerProfile';
 
 const nameKey=(name:string)=>name.normalize('NFKC').toLocaleLowerCase().replace(/ё/g,'е').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 const generatedModelNames=new Set(PRINTER_CATALOG.flatMap(entry=>[catalogModelName(entry),entry.model]).concat([
@@ -50,9 +50,9 @@ export function applyCatalogProfile(config:PrinterConfig,entry:PrinterCatalogMod
     ?profileModelFields.every(key=>config.profile?.[key]===expected[key])?config.profile
       :{...expected,...config.profile,...Object.fromEntries(profileModelFields.map(key=>[key,expected[key]]))}
     :expected;
-  // icon здесь больше не пишется: поле никто не читает, отрисовка идёт
-  // через printerArtwork() по imageData / catalogModelId / preset.
-  return {...config,
+  // Иконка следует за выбранной моделью: если фото модели недоступно,
+  // карточка покажет именно её силуэт, а не общую заглушку.
+  return {...config,icon:iconForPreset(preset),
     profile,
     modelSelection:{mode:'manual',selectedPreset:preset,source:'manual',updatedAt:Date.now(),lastDetection:config.modelSelection?.lastDetection}};
 }
