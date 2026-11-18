@@ -1,0 +1,88 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.21-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-25",
+  "buildId": "V20.6-R15.21-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-25",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "eslint.config.mjs",
+      "sha256": "4959769fb429a6f655d4c131bd9ff1a481381e073ce16a96cc40422c71571787",
+      "bytes": 3004
+    },
+    {
+      "path": "package.json",
+      "sha256": "c115c75cee069d7635c738f725331492b9b2817276a282a866c4f1c571c1ed3b",
+      "bytes": 6906
+    },
+    {
+      "path": "scripts/check-moonraker-compat.mjs",
+      "sha256": "e8a96214cbd493c165469e3eda0e6892817ae17f72b82190f183833e9664e0ae",
+      "bytes": 7722
+    },
+    {
+      "path": "scripts/check-offline-first.mjs",
+      "sha256": "36f90290874b1e13d40cf183971f00d2062db7c30b14f77c34f3d30151b8bad7",
+      "bytes": 4050
+    },
+    {
+      "path": "src/App.tsx",
+      "sha256": "305b455912b4ad9e4a01f2ac6108832ad138d7ca4ecb9800bb5e30fdfccd0487",
+      "bytes": 88941
+    },
+    {
+      "path": "src/components/ControlPanel.tsx",
+      "sha256": "d7d2c34c0e2716df686ea659ab6d1fb1e568dbe73d96112c3b82137f9b73c514",
+      "bytes": 31219
+    },
+    {
+      "path": "src/components/DeferredPanel.tsx",
+      "sha256": "e11dde63179bee3e97b7e4defd561a412425f1958648835eb9862d713aa5388e",
+      "bytes": 4270
+    },
+    {
+      "path": "src/components/QrScanner.tsx",
+      "sha256": "c399166f958b9b9bc96036bdf24e2f3a8194c64e175b2cb78291b2ee943655fc",
+      "bytes": 2714
+    },
+    {
+      "path": "src/lib/moonraker.ts",
+      "sha256": "273af9dc9fe1742e0440e6daabb3f99e9ebf04d85c4458b71e0bb031ae54c3fc",
+      "bytes": 138904
+    },
+    {
+      "path": "src/lib/moonrakerPayload.ts",
+      "sha256": "577203e32e63254524a161ae8b30c2afe834769f0714ec8472869fa0f0731c9b",
+      "bytes": 2698
+    },
+    {
+      "path": "src/lib/notificationSound.ts",
+      "sha256": "85bf9875cba9bde5ecadddb942349cc54a263b168e8fdc89620f46509b1d9491",
+      "bytes": 6359
+    },
+    {
+      "path": "src/lib/printStartConfirmation.ts",
+      "sha256": "32b546cc53a3057a0ddc8a30bb7c2efe18c089119791fedc6aaa92fe9b3a15e6",
+      "bytes": 2972
+    },
+    {
+      "path": "src/lib/printerActorBridge.ts",
+      "sha256": "b382700d213d0facdb9a5f15db7c31877a9f19215b8057cb155271df9161b471",
+      "bytes": 4324
+    },
+    {
+      "path": "src/lib/printerDetection.ts",
+      "sha256": "cdff3d7f7b21adc240e19804d2e41295e4789d51a60df65ef7cb530097c3c71c",
+      "bytes": 26258
+    },
+    {
+      "path": "src/lib/printerLight.ts",
+      "sha256": "795b61768b14e2f880928b5f1c80d890b5e8f2720c0f5df8d6e8bebe6159f76d",
+      "bytes": 3018
+    },
+    {
+      "path": "src/lib/voiceAssistant.ts",
+      "sha256": "b39dba5af9a2c3dbc6e577c49ee0e242c061930c4a5262d7208bbd4662795374",
+      "bytes": 72007
+    }
+  ]
+}
