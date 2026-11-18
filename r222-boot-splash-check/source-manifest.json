@@ -1,0 +1,13 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.21-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-25",
+  "buildId": "V20.6-R15.21-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-25",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-boot-splash.mjs",
+      "sha256": "46b3b2a4fc147e2cb2d46042584ee396bebd4b37eae6f7edc7bff489dc48e592",
+      "bytes": 6889
+    }
+  ]
+}
