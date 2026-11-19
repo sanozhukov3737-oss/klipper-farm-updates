@@ -340,15 +340,20 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $env:KF_TEST_PYTHON=(Get-Command python).Source
-          $env:KF_VOICE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-unit.json'
-          $env:KF_VOICE_CONVERSATION_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-conversation.json'
-          $env:KF_VOICE_LANGUAGE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-language.json'
-          $env:KF_VOICE_LEARNING_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-learning.json'
-          $env:KF_VOICE_DISPATCH_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-dispatch.json'
-          $env:KF_VOICE_DIAGNOSTICS_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-diagnostics.json'
-          $env:KF_VOICE_TASK_EVIDENCE_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-task-evidence.json'
-          $env:KF_VOICE_SEMANTIC_PROOF=Join-Path $env:GITHUB_WORKSPACE 'proof/voice-semantic.json'
           Set-Location work/app
+          # Пути к доказательствам строятся от фактического каталога, а не от
+          # переменной окружения: однажды GITHUB_WORKSPACE дал относительные
+          # пути, файлы ушли внутрь work/app, и проверка упала далеко от причины.
+          $proofRoot=(Resolve-Path '../../proof').Path
+          $env:KF_VOICE_PROOF=Join-Path $proofRoot 'voice-unit.json'
+          $env:KF_VOICE_CONVERSATION_PROOF=Join-Path $proofRoot 'voice-conversation.json'
+          $env:KF_VOICE_LANGUAGE_PROOF=Join-Path $proofRoot 'voice-language.json'
+          $env:KF_VOICE_LEARNING_PROOF=Join-Path $proofRoot 'voice-learning.json'
+          $env:KF_VOICE_DISPATCH_PROOF=Join-Path $proofRoot 'voice-dispatch.json'
+          $env:KF_VOICE_DIAGNOSTICS_PROOF=Join-Path $proofRoot 'voice-diagnostics.json'
+          $env:KF_VOICE_TASK_EVIDENCE_PROOF=Join-Path $proofRoot 'voice-task-evidence.json'
+          $env:KF_VOICE_SEMANTIC_PROOF=Join-Path $proofRoot 'voice-semantic.json'
+          $env:KF_VOICE_BROWSER_PROOF=Join-Path $proofRoot 'voice-browser.json'
           python scripts/check-voice-understanding-preparation.py 2>&1 | Tee-Object ../../proof/understanding-preparation.log
           if ($LASTEXITCODE -ne 0) { throw 'Offline understanding preparation checks failed' }
           npm ci --no-audit --no-fund
@@ -365,6 +370,13 @@ jobs:
             $regressionResults+=@{script=$script;passed=$true}
           }
           $regressionResults | ConvertTo-Json -Depth 3 | Set-Content ../../proof/regressions.json -Encoding utf8NoBOM
+          # Доказательства, на которые опираются последующие шаги. Проверяем
+          # сразу здесь: иначе отсутствие файла всплывает через полчаса в
+          # чужом шаге и не говорит, кто его не создал.
+          $required=@('voice-unit.json','voice-conversation.json','voice-language.json','voice-learning.json','voice-dispatch.json','voice-diagnostics.json','voice-task-evidence.json','voice-semantic.json')
+          $missing=@($required | Where-Object { -not (Test-Path -LiteralPath (Join-Path $proofRoot $_)) })
+          if ($missing.Count -ne 0) { throw "Regression proofs missing: $($missing -join ', ') in $proofRoot" }
+          Get-ChildItem -LiteralPath $proofRoot -Filter 'voice-*.json' | ForEach-Object { Write-Host "proof: $($_.Name) $($_.Length) bytes" }
       - name: Build and bind complete offline frontend
         shell: pwsh
         run: |
