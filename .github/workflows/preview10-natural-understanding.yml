@@ -450,6 +450,26 @@ jobs:
           Copy-Item .update-components/component-build-report.json ../../runtime-publish/component-build-report.json
           $semantic=Get-Content ../../proof/voice-semantic.json -Raw | ConvertFrom-Json
           if ($semantic.passed -ne $true -or $semantic.cases -lt 21) { throw 'Understanding boundary checks did not complete' }
+      - name: Rust protocol regressions against the vendored crate set
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location work/app
+          # Эти три проверки создают изолированный Cargo-проект и собирают его
+          # офлайн. Им нужен каталог vendored-зависимостей rv/, который
+          # распаковывает сборщик на предыдущем шаге, поэтому место — здесь, а
+          # не в регрессиях до сборки, где rv/ ещё нет.
+          if (-not (Test-Path -LiteralPath '.cargo/config.toml')) { throw 'Vendored Cargo configuration is missing' }
+          if (-not (Test-Path -LiteralPath 'rv')) { throw 'Vendored crate directory rv/ was not unpacked by the native build' }
+          # Переиспользуем target нативной сборки: там уже лежат собранные
+          # зависимости, иначе три проверки пересобирают serde_json с нуля.
+          $sharedTarget='.klipper-build-cache/target'
+          if (Test-Path -LiteralPath $sharedTarget) { $env:CARGO_TARGET_DIR=(Resolve-Path $sharedTarget).Path }
+          else { Write-Host 'no shared target directory; these regressions build their own' }
+          foreach ($script in @('check-native-upload-runtime.mjs','check-native-rest-rpc-runtime.mjs','check-legacy-library-upload-runtime.mjs')) {
+            node "scripts/$script"
+            if ($LASTEXITCODE -ne 0) { throw "Rust protocol regression failed: $script" }
+          }
       - name: Verify stamped version in built artifacts
         shell: pwsh
         run: |
