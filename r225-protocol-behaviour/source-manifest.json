@@ -1,0 +1,43 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.22-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-26",
+  "buildId": "V20.6-R15.22-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-26",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "package-lock.json",
+      "sha256": "279d72c3a5c14273bcd9b04457416774914ddeeaf74f1dbbaef0f67ce3de3385",
+      "bytes": 138093
+    },
+    {
+      "path": "package.json",
+      "sha256": "333f0aee1635588b0e1861f1eb9e8c0fb19871b1df0622cbda83cd34cd8ce002",
+      "bytes": 6950
+    },
+    {
+      "path": "scripts/check-moonraker-compat.mjs",
+      "sha256": "c188cf2d6a4ccc2cc3ac6e828f65f30b2a8da31242d00edd90a322799f7adaa3",
+      "bytes": 7869
+    },
+    {
+      "path": "scripts/check-moonraker-protocol-behaviour.mjs",
+      "sha256": "b4668a837ef34839a3c987104156a9a6f3512a286f4223c7720143d9d4ba5992",
+      "bytes": 11814
+    },
+    {
+      "path": "src/lib/moonraker.ts",
+      "sha256": "9e8ddfa63beafc1426e501bd6dc11bd187688bdd6e69295d48ac41683fa393e6",
+      "bytes": 138373
+    },
+    {
+      "path": "src/lib/moonrakerLightPayload.ts",
+      "sha256": "673130d59337262d9f80eacc538a4e3cdafdb6067e47782950328be2f9c93dda",
+      "bytes": 1406
+    },
+    {
+      "path": "src/lib/moonrakerSpoolman.ts",
+      "sha256": "b6a9f11dd05e2dff13b2e047d177299fbec9679f4922d0f8036d936908167793",
+      "bytes": 1839
+    }
+  ]
+}
