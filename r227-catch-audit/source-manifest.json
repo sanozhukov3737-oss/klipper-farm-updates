@@ -1,0 +1,83 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.23-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-27",
+  "buildId": "V20.6-R15.23-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-27",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "eslint.config.mjs",
+      "sha256": "1bbec7ad1a2a1b2fc94805f6c9e52f92297cf2d6087fc0e68cc7c701d7a10997",
+      "bytes": 3440
+    },
+    {
+      "path": "src/components/AppErrorBoundary.tsx",
+      "sha256": "6664ac713105739d71a693b6fd29584e0850daabc0ecb2df392e7a73b2259c7e",
+      "bytes": 2773
+    },
+    {
+      "path": "src/components/DiscoveryPanel.tsx",
+      "sha256": "8d6bb02efb56ef9480a9fbc9bf1640dec7829f9baa23311e781a480d92ed7f25",
+      "bytes": 66812
+    },
+    {
+      "path": "src/components/PrinterFilesPanel.tsx",
+      "sha256": "0292b17d89e8f5593e2546a2142f4a4c5ac24e707e6d10b46a9b655369ea832d",
+      "bytes": 54479
+    },
+    {
+      "path": "src/components/QrScanner.tsx",
+      "sha256": "c9e05e8a27e3272568d0c19f779cd46d9ae97f5dfed77ccc528e60673e843d56",
+      "bytes": 2832
+    },
+    {
+      "path": "src/components/VoiceAssistantPanel.tsx",
+      "sha256": "2d45703a918b527633c47f2f2209a030217ca389854a64f25c195ffb82be745b",
+      "bytes": 34074
+    },
+    {
+      "path": "src/lib/moonraker.ts",
+      "sha256": "8162db0a4c27da1fdd53350fa1039a19635a182854eab3001ed8d0dd831eb282",
+      "bytes": 138451
+    },
+    {
+      "path": "src/lib/neuralSpeech.ts",
+      "sha256": "8163fe5466f19a506a8b67b6eaaa75d1db8a2b9c06bb1892a15c8cb4b8189cfc",
+      "bytes": 17521
+    },
+    {
+      "path": "src/lib/printerConfigStore.ts",
+      "sha256": "1ab3d50a34e33d67899e515a21eecce0d9777fd58ebca2eec10c2eb9327b47da",
+      "bytes": 4972
+    },
+    {
+      "path": "src/lib/printerEndpoint.ts",
+      "sha256": "ad52bb1c3374fe9b09319e6b0d343bdb7165fdce0bdce72177323976b2bc5b29",
+      "bytes": 3762
+    },
+    {
+      "path": "src/lib/tvFullscreen.ts",
+      "sha256": "1caf3e35a4801ebb1e2ae67f375b9690317993731f1ce3983a074de981464541",
+      "bytes": 6796
+    },
+    {
+      "path": "src/lib/voiceAssistant.ts",
+      "sha256": "d7674aa9e5d2db66e22a5216154d92be7be8e7bed41217a32df4c0d55254f99e",
+      "bytes": 72223
+    },
+    {
+      "path": "src/lib/voiceDiagnostics.ts",
+      "sha256": "2e4a824d092246c8fac6f82d125e0c3b81260651904832e7ecf9dac9b9df7c7f",
+      "bytes": 11947
+    },
+    {
+      "path": "src/lib/voicePronunciation.ts",
+      "sha256": "f567534c55bd8c5160496dc129d6db44dea508fd8dd428e00347928d5ff11c83",
+      "bytes": 5385
+    },
+    {
+      "path": "src/lib/voiceTaskQueue.ts",
+      "sha256": "fa6b10c14429866b018ac7158e6c79fdb8e5ccdf392dbd9596459899f77cb5b4",
+      "bytes": 19533
+    }
+  ]
+}

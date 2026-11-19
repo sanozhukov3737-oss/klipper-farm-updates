@@ -1,0 +1,12 @@
+import { useEffect, useRef, useState } from 'react';
+import { Camera, Keyboard, X } from 'lucide-react';
+import { useModalAccessibility } from '../lib/modalAccessibility';
+export function QrScanner({onClose,onCode}:{onClose:()=>void;onCode:(code:string)=>void}){
+ useModalAccessibility(onClose,'.qrScanner','Сканер QR катушки');
+ const video=useRef<HTMLVideoElement>(null),stream=useRef<MediaStream>(),[manual,setManual]=useState(''),[mode,setMode]=useState<'camera'|'manual'>('camera'),[error,setError]=useState('');
+ useEffect(()=>{let alive=true,t:number|undefined;(async()=>{if(mode!=='camera')return;try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});stream.current=s;if(video.current)video.current.srcObject=s;// BarcodeDetector отсутствует в стандартных типах TS: используем обход с
+    // явной причиной, а не молчаливое any.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const BD=(window as any).BarcodeDetector;if(!BD){setError('BarcodeDetector недоступен в этом WebView — используйте USB-сканер или ручной ввод.');return}const detector=new BD({formats:['qr_code']});const tick=async()=>{if(!alive||!video.current)return;try{const r=await detector.detect(video.current);if(r?.[0]?.rawValue){onCode(r[0].rawValue);return}}catch{/* кадр не распознан: это норма для сканирования, ждём следующий */}t=window.setTimeout(tick,350)};void tick()}catch(e){setError(`Камера недоступна: ${e}`)}})().catch(error=>setError(`Камера недоступна: ${error}`));return()=>{alive=false;if(t)clearTimeout(t);stream.current?.getTracks().forEach(x=>x.stop())}},[mode]);
+ return <div className="modalBackdrop top"><section className="panel qrScanner"><div className="panelHead"><div><h2>Сканер QR катушки</h2><p>Камера, USB-сканер или ручной ввод кода.</p></div><button className="round" onClick={onClose}><X/></button></div><div className="qrModes"><button className={mode==='camera'?'active':''} onClick={()=>setMode('camera')}><Camera/>Камера</button><button className={mode==='manual'?'active':''} onClick={()=>setMode('manual')}><Keyboard/>Сканер / ввод</button></div>{mode==='camera'?<><video ref={video} autoPlay muted playsInline/><p className="muted">{error||'Наведите камеру на QR-код klipper-spool://…'}</p></>:<form onSubmit={e=>{e.preventDefault();if(manual.trim())onCode(manual.trim())}}><input autoFocus placeholder="klipper-spool://..." value={manual} onChange={e=>setManual(e.target.value)}/><button className="primary">Применить</button></form>}</section></div>
+}
