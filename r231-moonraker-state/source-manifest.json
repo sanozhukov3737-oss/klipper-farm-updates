@@ -1,0 +1,23 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-runtime-stability.mjs",
+      "sha256": "8d9441b9ecd57dbc8e5ca5d1bec22d2c89a24073399c2cb09264b670d0aca2f1",
+      "bytes": 7853
+    },
+    {
+      "path": "src/lib/moonraker.ts",
+      "sha256": "fffaefbc9cc64338d5342747cf0f93850e6e874be9fa34c53e746385adc49f9a",
+      "bytes": 135481
+    },
+    {
+      "path": "src/lib/moonrakerState.ts",
+      "sha256": "7539fbd8b9e4a8b3f38e15d05d82399e69dbf783f1824a65a80106b50092b9c7",
+      "bytes": 5838
+    }
+  ]
+}
