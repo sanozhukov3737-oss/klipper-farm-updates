@@ -1,0 +1,23 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.24-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-28",
+  "buildId": "V20.6-R15.24-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-28",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/build-and-install-windows.mjs",
+      "sha256": "691ff827433f8371af83d9dad4e50fb6c7ffbbe241e1061f098c8e53985c0a7c",
+      "bytes": 13842
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "c1f358c691485d0299034a70037b9673b8bae63cfbbbd69958c5a028d3fd1ee6",
+      "bytes": 178340
+    },
+    {
+      "path": "src-tauri/src/local_library_commands.rs",
+      "sha256": "7d53cfe1e4cd3de5d0fa2319ed6920aa5b58752db4a8559a151136c704073913",
+      "bytes": 49471
+    }
+  ]
+}
