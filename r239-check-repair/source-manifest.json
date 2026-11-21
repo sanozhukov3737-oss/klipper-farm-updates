@@ -1,0 +1,43 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-audit-hardening.mjs",
+      "sha256": "9ceb2075ace17b00149bed414781f49140ce4b59f954fd1245fa5ff42286873a",
+      "bytes": 6753
+    },
+    {
+      "path": "scripts/check-local-library.mjs",
+      "sha256": "58c2ee5269abf23e825bf90dce6c9abdab1e2e2cd5b1453e652acd8851d66861",
+      "bytes": 13443
+    },
+    {
+      "path": "scripts/check-moonraker-compat.mjs",
+      "sha256": "bd789156fdfe444eaf1f9f76a27fdaab7710c3ef50d4dc5a866d86394283a946",
+      "bytes": 8048
+    },
+    {
+      "path": "scripts/check-printer-connection-bridge.mjs",
+      "sha256": "ef668ee178b4958c96ae46b68bb7a15268c829af5bcd7fadbf815c9f8f02e439",
+      "bytes": 5784
+    },
+    {
+      "path": "scripts/check-runtime-stability.mjs",
+      "sha256": "ae085ce9f61538157692ffc570b828ae09cd339ee1c4b7fb9d2aff3c4db685af",
+      "bytes": 7974
+    },
+    {
+      "path": "scripts/check-search-art.mjs",
+      "sha256": "f7bb9f7c663beb11e8ce3eda1e3acaeaf21e7fcb04b0124312d13790aa08e8f5",
+      "bytes": 14024
+    },
+    {
+      "path": "scripts/check-security.mjs",
+      "sha256": "03785f1196ad3d84fcc2c1d136140969449d537598d7725b216714a184773029",
+      "bytes": 7553
+    }
+  ]
+}
