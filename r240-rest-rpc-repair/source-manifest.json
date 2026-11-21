@@ -1,0 +1,13 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-native-rest-rpc-runtime.mjs",
+      "sha256": "e745a659fc17d2d3b21ee88eecf47855b2841f6180e3629dfff892e1c862ebdd",
+      "bytes": 13606
+    }
+  ]
+}
