@@ -1,0 +1,38 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-background-mode.mjs",
+      "sha256": "8ae364d588674721497a6da6cb56ea80fbae035f45c2fb6de775cde7546880b2",
+      "bytes": 5667
+    },
+    {
+      "path": "scripts/check-transactional-core.mjs",
+      "sha256": "00c33607393132b29c0920633a85c8fa56001e890021b1f8335c60d39421b85a",
+      "bytes": 17534
+    },
+    {
+      "path": "scripts/frontend-build-contract.mjs",
+      "sha256": "53bef0e692d315a2871e09f39bbdcac379ef4ef0edaf3619ed5b55d6eb46a1d2",
+      "bytes": 6164
+    },
+    {
+      "path": "src-tauri/src/app.rs",
+      "sha256": "6caeddd1344dd66b6b4d4b1b699aba376f1304a336cabb532a83813735b127a8",
+      "bytes": 8557
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "a576671573edb34631e0d5104504db78116640c5017fb56bdebc430c7971a2d5",
+      "bytes": 94115
+    },
+    {
+      "path": "src-tauri/src/transactional_core/mod.rs",
+      "sha256": "8c087a71817c8816c1e6afff5c77baf631bcf9d802127c2f479815d19c04aaaa",
+      "bytes": 65979
+    }
+  ]
+}
