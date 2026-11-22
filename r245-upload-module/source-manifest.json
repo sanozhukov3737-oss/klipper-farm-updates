@@ -1,0 +1,38 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-filament-history-policy.mjs",
+      "sha256": "592d51b3abb4519102cf1a188c08e34313ced5812e526dd708d13129272d673e",
+      "bytes": 2862
+    },
+    {
+      "path": "scripts/check-http-keepalive.mjs",
+      "sha256": "7878b4e039254101dc97e297283c58cc9e75b7ce1ac1c40221a71c11f157f0a1",
+      "bytes": 5404
+    },
+    {
+      "path": "scripts/check-local-library.mjs",
+      "sha256": "7de3594a43f2bfc0b24765f86e362bc7998c50598c08e52c50c1575d875c06c0",
+      "bytes": 13510
+    },
+    {
+      "path": "scripts/check-security.mjs",
+      "sha256": "c0eb92be539f599e04d671011c4e119eed9a79e4ddc6a69f617b912ee74475d0",
+      "bytes": 7743
+    },
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "cc2f0a08c48f608abf4d35704a619a19c503677a57ec98a0d3074f4c784059b7",
+      "bytes": 60302
+    },
+    {
+      "path": "src-tauri/src/upload_commands.rs",
+      "sha256": "fdc97dff814dde3df53580a3faa64c1382df2c9772d961200bb856ffdf1ec2d2",
+      "bytes": 29213
+    }
+  ]
+}
