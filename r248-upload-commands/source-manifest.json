@@ -1,0 +1,38 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src-tauri/src/lib.rs",
+      "sha256": "8ecb52ec1f1b01e3aadf189d8ba481d70f93a41b09a555375397fdbc42426e03",
+      "beforeSha256": "f715dc48147563cce6966d9b86768ccbfef8bcca41048f2c4c4d7b78f5dfd2ed",
+      "bytes": 39980
+    },
+    {
+      "path": "src-tauri/src/upload_commands.rs",
+      "sha256": "8657e4ba291df6b02ae526b349f7108b6750d9cc2044ef0fa8634707a568a964",
+      "beforeSha256": "fdc97dff814dde3df53580a3faa64c1382df2c9772d961200bb856ffdf1ec2d2",
+      "bytes": 33354
+    },
+    {
+      "path": "scripts/check-creality-light.mjs",
+      "sha256": "ad2dfdf79b8391583008f3b9637033cf89ea4d3224e5da18a84c4a9dc445e378",
+      "beforeSha256": "43f6ad059960f1b0f23a8de1284fc6f3e734b93b45d7ad8106aa7aba8b0d3dee",
+      "bytes": 4327
+    },
+    {
+      "path": "scripts/check-fix3-3-daemon-recovery.mjs",
+      "sha256": "b68b47b984b6244a284893d86474078703d73f449f569b991f8e5dd94be3b77e",
+      "beforeSha256": "5902197afcc2c18ecfe08da233bfeaa45ac46ee9064e6ad4dd816f4a66f805d0",
+      "bytes": 3980
+    },
+    {
+      "path": "scripts/check-security.mjs",
+      "sha256": "475990bd241cb69f03b6d30143492b66bcb84df163933b4862374f7ace453a7d",
+      "beforeSha256": "c0eb92be539f599e04d671011c4e119eed9a79e4ddc6a69f617b912ee74475d0",
+      "bytes": 7786
+    }
+  ]
+}
