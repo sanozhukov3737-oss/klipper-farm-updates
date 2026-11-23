@@ -1,0 +1,14 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/run-rust-tests.mjs",
+      "sha256": "0866cb2873425267ee7d6b9d7b562bfa7ab34710fc84ad4f70fb24125fc1045d",
+      "beforeSha256": "5018c98c75e00892d8b79fcf816c6e2ed37b8c2ae205247920ba8e21256be168",
+      "bytes": 17078
+    }
+  ]
+}
