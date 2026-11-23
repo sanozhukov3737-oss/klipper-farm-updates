@@ -163,6 +163,27 @@ def verify(overlay, report):
                 report.fail(overlay, relative, reason)
             if relative not in declared:
                 report.fail(overlay, relative, 'sits in the payload but is not declared in the manifest')
+
+    # A deletions list removes files from the applied tree instead of writing them. Its paths need the
+    # same shape and exclusion rules as the payload, and a declaration must carry a checksum, because
+    # delete-without-verification is how an overlay destroys something it was never reviewed against.
+    for row in manifest.get('deletions', []) or []:
+        if not isinstance(row, dict) or not isinstance(row.get('path'), str):
+            report.fail(overlay, MANIFEST, 'has a deletion entry without a path')
+            continue
+        raw = row['path']
+        path = safe_relative(report, overlay, raw)
+        if path is None:
+            continue
+        reason = build_output_reason(path)
+        if reason and 'build output' in reason:
+            report.fail(overlay, raw, 'is declared for deletion but was never source: ' + reason)
+        if raw in declared:
+            report.fail(overlay, raw, 'is both written and deleted by the same overlay')
+        checksum = row.get('sha256')
+        if not isinstance(checksum, str) or len(checksum) != 64:
+            report.fail(overlay, raw, 'is deleted without a sha256 guard')
+
     return len(declared)
 
 

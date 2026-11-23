@@ -28,6 +28,7 @@ python verify-overlays.py .
 нет build-выхода | ни в манифесте, ни в payload: `dist/`, `target/`, `node_modules/`, `binaries/`, `__pycache__/`, `.cache/`, `coverage/`, `BUILD-PROVENANCE.json`, `DIST-V20-LOCK.json`, `*.exe`, `*.dll`, `*.pdb`, `*.rlib`, `*.pyc`, `*.zip`, `*.log` и подобное |
 payload = манифест | payload содержит ровно объявленные файлы: ни лишних, ни пропавших |
 целостность | `sha256` совпадает после канонизации CRLF/LF; `bytes`, если указан, — длина после канонизации |
+удаления | необязательный список `deletions` в манифесте: путь и обязательный `sha256`; файл удаляется, только если байты совпали |
 
 Проверяется каждый каталог с `source-manifest.json`, поэтому новые оверлеи покрываются без правки
 скрипта.
@@ -45,17 +46,45 @@ r199-stress-effective: scripts/__pycache__/silero-synthesize.cpython-312.pyc:
 
 ## Известное нарушение
 
-`r199-stress-effective/changes/scripts/__pycache__/silero-synthesize.cpython-312.pyc` — 162 КБ
-байткода Python, закоммиченные в payload и не объявленные в манифесте. `apply.py` его не копирует
-(он берёт только объявленные пути), поэтому на сборку это не влияет, но в репозитории он лишний.
-Пока файл не удалён, `verify-overlays.py` завершается с кодом 1.
+Нет. После `c14222a` и `18894d8` в репозитории не осталось ни одного `.pyc`; `verify-overlays.py`
+завершается с кодом 0 на всех 100 оверлеях и 443 объявленных файлах.
 
-## Порядок проверки перед коммитом оверлея
+`apply.py` сверяет `sha256` удаляемых файлов **до** первой записи. Если содержимое отличается — скрипт
+останавливается и ничего не трогает. Отсутствующий файл считается уже удалённым, поэтому повторный
+запуск оверлея безвреден.
+
+## Прогон проверок: окружения разные
+
+162 скрипта в `scripts/` нельзя прогонять одной командой. CI разносит их по job'ам с разным окружением:
 
 ```
-python verify-overlays.py . --quiet     # правило
-git status --short                      # в индексе нет dist/, target/, *.exe
+system-panel-layout   npm ci --prefix ui-tests, playwright install  → браузерные проверки
+linux-gates           check-release-portability  ← здесь ui-tests/node_modules НЕТ
+windows-native        run-rust-tests
 ```
+
+Если поставить `playwright` в `ui-tests/node_modules` и прогнать всё подряд, `check-release-portability`
+упадёт: он обходит дерево и отвергает невалидный текст в файлах пакета. А `compact-theme-styles` и
+`check-background-camera-browser-r118` требуют **разных** значений `PLAYWRIGHT_MODULE_PATH`, так что
+общие настройки ломают один из двух.
+
+Для этого есть `scripts/run-regression-suite.mjs`: он группирует проверки и печатает причину каждого
+пропуска.
+
+```
+node scripts/run-regression-suite.mjs --list    # план: кто в какой группе и почему
+node scripts/run-regression-suite.mjs           # прогон; код 1 только при реальном провале
+```
+
+| группа | поведение |
+|---|---|
+`source` | запускается всегда |
+`clean-tree` | пропускается, если установлен `ui-tests/node_modules` (падает by design) |
+`ui-tests` | запускается, только если `ui-tests/node_modules` есть; `PLAYWRIGHT_MODULE_PATH` ставится лишь той проверке, которой он нужен |
+`daemon` | не запускается: это службы, а не проверки |
+`external` | пропуск с причиной: baseline-снапшот, MSVC, артефакт сборки |
+
+Замерено в обоих профилях: 138 passed / 0 failed / 19 skipped без playwright и 139 / 0 / 18 с ним.
 
 ## Вторая ошибка, которую стоит помнить
 

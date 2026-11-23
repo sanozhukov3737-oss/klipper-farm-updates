@@ -1,0 +1,41 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/run-regression-suite.mjs",
+      "sha256": "183c496b336328f7b31845983df5ef6ddaa9f9679d519221c575f3bd36190dda",
+      "bytes": 8639
+    },
+    {
+      "path": "package.json",
+      "sha256": "ef56b7a72cfc497811d9ddf4659f6c540bed08241ac9cc8b859b2db695e45cbc",
+      "bytes": 6882,
+      "beforeSha256": "333f0aee1635588b0e1861f1eb9e8c0fb19871b1df0622cbda83cd34cd8ce002"
+    }
+  ],
+  "deletions": [
+    {
+      "path": "scripts/patch-v8-production.mjs",
+      "sha256": "1fa3dedcda67996ec93eb3d8206bbce5b433cd9fffafb794520be4540ddfdffe"
+    },
+    {
+      "path": "scripts/patch-v9-production.mjs",
+      "sha256": "2682b955ab61ae881aead5a668263b8973233afd7a38e6b4f496eef58cb771a2"
+    },
+    {
+      "path": "scripts/patch-v10-production.mjs",
+      "sha256": "bf15a3818f4433d5acfd99cf680e23ecc0aceb319f6d6c57fe328d31dc12d4d4"
+    },
+    {
+      "path": "scripts/patch-v11-full-audit.mjs",
+      "sha256": "ed25d3c0965a04aea42ba18904b36b9558519ab3ed82c91f759ff6676cb2eb4e"
+    },
+    {
+      "path": "scripts/patch-v12-hardware-reliability.mjs",
+      "sha256": "fb94e087e677818416cb26cf4e05419561bdb7f7e9c0dc4a7f6524f44fc767e4"
+    }
+  ]
+}
