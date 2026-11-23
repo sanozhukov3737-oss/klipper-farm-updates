@@ -1,0 +1,14 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/audit-windows-native.mjs",
+      "sha256": "9aa7bfab559af391950fa79a59eb11993aa4d924a832bcd463e1dc3dc6e77e86",
+      "beforeSha256": "57a7a625b8ee8d9ce7ac7ebb496ddf78f83eaffcfcfa3ecf72a199859af89406",
+      "bytes": 10744
+    }
+  ]
+}
