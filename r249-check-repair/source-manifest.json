@@ -1,0 +1,32 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-full-audit.mjs",
+      "sha256": "24f10a1a228be7813f18144a7ed496a96d4825bffaa07246aba38d4bbebb42d8",
+      "beforeSha256": "c24b5ef1cbb77ab98610f0b256f9f95d4a34b011068cab0958500f98e08d4176",
+      "bytes": 7045
+    },
+    {
+      "path": "scripts/check-ui-files.mjs",
+      "sha256": "ce812d5f57dfce617b006d9840ecbeb57d7d236e9ecf428c7de8f4d05de1f9e2",
+      "beforeSha256": "3d04a8b774c4fe768ea0c9860be2fcb518675c8f6265f265cc40e343368cd46b",
+      "bytes": 18370
+    },
+    {
+      "path": "scripts/check-legacy-library-upload-runtime.mjs",
+      "sha256": "83b96579907db473a1f1091c089c4b4e78659034259d9ffb99f51feccc151544",
+      "beforeSha256": "3d6aee6d793a30820e7977de5be27abeede730494034ce37777c2574ae4e43fd",
+      "bytes": 15029
+    },
+    {
+      "path": "scripts/check-native-upload-runtime.mjs",
+      "sha256": "6d29b53e44aafa30975d25910cebff66749b8eb3d0df30a1e56f1495e7aa317f",
+      "beforeSha256": "3339bddb59abf19da5344e640ed5a480f47156db4e7f4713a752346355294ac8",
+      "bytes": 11920
+    }
+  ]
+}
