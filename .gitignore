@@ -1,0 +1,31 @@
+# Python bytecode
+#
+# The repository had no ignore list, which is why 162 KB of
+# scripts/__pycache__/silero-synthesize.cpython-312.pyc was committed inside the r199 overlay payload and
+# five more apply.cpython-313.pyc files ended up beside other overlays. Bytecode is never source: it
+# cannot be reviewed, it differs per interpreter version, and it is regenerated on the next run.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node dependencies and logs
+node_modules/
+npm-debug.log*
+
+# Build output
+#
+# dist/ is produced by `vite build` and carries BUILD-PROVENANCE.json, a hash of the src/ inputs, so a
+# committed copy goes stale on the next source edit. It must never travel with an overlay.
+dist/
+target/
+src-tauri/binaries/
+DIST-V20-LOCK.json
+
+# Build intermediates
+*.rlib
+*.pdb
+
+# Machine-local state
+.cache/
+coverage/
+*.log
