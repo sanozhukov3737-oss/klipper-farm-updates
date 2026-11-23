@@ -23,6 +23,7 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /.gitattributes
+            /.gitignore
             /r145-*
             /r146-voice-quality/
             /r147-voice-latency.patch
