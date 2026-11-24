@@ -1,0 +1,14 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/run-regression-suite.mjs",
+      "sha256": "c920fa56eb947478aa02d9a6a9ca0056b73cc59fb89fb5929aedbf6ff3492e5c",
+      "beforeSha256": "183c496b336328f7b31845983df5ef6ddaa9f9679d519221c575f3bd36190dda",
+      "bytes": 10316
+    }
+  ]
+}
