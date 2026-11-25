@@ -1,0 +1,35 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-module-refactor.mjs",
+      "sha256": "79c75a1dfbce4faa50bbb2f713d5ec9876bc43e133d2b93cf064e1539b95ac33",
+      "bytes": 4134,
+      "beforeSha256": "0b8bb94beb793c2c965cd72ac9ee76a87045523dfdab19ad5bafcec4d9686476"
+    },
+    {
+      "path": "scripts/run-regression-suite.mjs",
+      "sha256": "c7cd9986570a043c1ebc944028b0f878ff3e8221b2f06725c670d01bd9981a01",
+      "bytes": 10433,
+      "beforeSha256": "50bdda55c4eb0fb8a94e23e992cd94ddfebaed5aba08fc04c4432727cea39a58"
+    },
+    {
+      "path": "r247-module-baseline/src-tauri/src/lib.rs",
+      "sha256": "f715dc48147563cce6966d9b86768ccbfef8bcca41048f2c4c4d7b78f5dfd2ed",
+      "bytes": 44130
+    },
+    {
+      "path": "r247-module-baseline/src-tauri/src/local_library_commands.rs",
+      "sha256": "84f95cc02e60b862e6a5a2e523a696f90c86923b84d20c67b0dee68dd173327f",
+      "bytes": 62178
+    },
+    {
+      "path": "r247-module-baseline/src/lib/printerActorBridge.ts",
+      "sha256": "b382700d213d0facdb9a5f15db7c31877a9f19215b8057cb155271df9161b471",
+      "bytes": 4324
+    }
+  ]
+}
