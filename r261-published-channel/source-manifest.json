@@ -1,0 +1,20 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "scripts/check-release-published.mjs",
+      "sha256": "e6a4a448d8516813fef5dd4264ee474edad5a13dcf59f83ccabcac0b7c65ae3c",
+      "bytes": 7245,
+      "beforeSha256": "ee8c5bc48f6c3f8002556621edc96b0d5675786988cd28c717ac074a8400a81e"
+    },
+    {
+      "path": "scripts/run-regression-suite.mjs",
+      "sha256": "3ab64a3e97d35da21630d9205f245d804d24ef646ab4e9749f5a637a3c9e92a4",
+      "bytes": 11293,
+      "beforeSha256": "5820413bb63acea6f27eb6ee8140a0516f23169c6fbc6b1a30f6105906d431f8"
+    }
+  ]
+}
