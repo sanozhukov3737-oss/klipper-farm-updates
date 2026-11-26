@@ -165,7 +165,13 @@ try{
   assert.equal(rejected,true,'semantic endpoint accepted an unauthenticated call: '+command);
   unauthenticatedCommands.push(command);
  }
- assert.equal((await semanticInvoke('voice_semantic_status')).available,true,'installed sidecar model or static runtime missing');
+ const semanticStatus=await semanticInvoke('voice_semantic_status');
+ assert.equal(semanticStatus.available,true,'installed sidecar model or static runtime missing');
+ // Record which of the two shipped builds this machine actually uses. The choice depends on CPU
+ // features and on which files the installer placed, and without it a report cannot distinguish a
+ // hardware-specific failure from a missing file.
+ const semanticRuntime=String(semanticStatus.runtime||'');
+ assert.ok(/^llama-server(-avx2)?(\.exe)?$/.test(semanticRuntime),'unexpected understanding runtime: '+semanticRuntime);
  const semanticPrepareStarted=Date.now();await semanticInvoke('voice_semantic_prepare');
  const semanticPrepareMilliseconds=Date.now()-semanticPrepareStarted;
  const semanticFixtures=[
@@ -230,7 +236,7 @@ try{
  assert.equal(recovered.kind,'printers');assert.equal(recovered.filter,'free');
  const recoveredWorkers=ownedSemanticProcesses();assert.equal(recoveredWorkers.length,1);
  report.semanticUnderstanding={passed:true,actualInstalledNativeBridge:true,authenticationRequired:unauthenticatedCommands,
-  modelSidecarAvailable:true,prepareCallMilliseconds:semanticPrepareMilliseconds,nativeTimings:await cdp.evaluate('window.__speechSmoke.semanticTimings'),cases:semanticCases,
+  modelSidecarAvailable:semanticStatus.modelPresent===true,selectedRuntime:semanticRuntime,prepareCallMilliseconds:semanticPrepareMilliseconds,nativeTimings:await cdp.evaluate('window.__speechSmoke.semanticTimings'),cases:semanticCases,
   ordinaryRequestsReuseOneProcess:true,cancelBeforeRegistration:true,cancelDuringInference:true,cancelledHelperReaped:true,recoveredAfterCancellation:true,
   interpretationOnly:true,physicalPrintersTested:false,hardwareMicrophoneTested:false,cleanExitCleanupVerified:false};
  const dialogueScreenshot=await cdp.send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(proof,'installed-conversation.png'),Buffer.from(dialogueScreenshot.data,'base64'));
