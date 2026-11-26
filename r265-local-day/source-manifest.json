@@ -1,0 +1,20 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/components/FleetDashboard.tsx",
+      "sha256": "3e134fe888b0585b2eb689a489ef670f4c548db37b4d8a5e4c7febb1eb6ada20",
+      "bytes": 15225,
+      "beforeSha256": "a1afa5f8dbb46c0281314540457b226a3b677b76adb6380c44c4d9c14d27bf0d"
+    },
+    {
+      "path": "scripts/check-print-forecast.mjs",
+      "sha256": "025ca8dcd4688dad3fc6a6583dd9243fc8b860008668668846e5a0fb4aea411a",
+      "bytes": 5899,
+      "beforeSha256": "60d662c3204608c80e2380ea8d451bad6e48eb471ee4b8757123cfc6035660fa"
+    }
+  ]
+}
