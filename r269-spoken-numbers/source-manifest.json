@@ -1,0 +1,20 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/lib/voiceCommands.ts",
+      "sha256": "6dcdf7bec4899fcebace1d19b2946cbb52ee875d709affc0146e09ba98be0c1c",
+      "bytes": 38871,
+      "beforeSha256": "dcf529ea6d76ad94bf323669cfed8953caab173524d4ab46003b6a1e868826fb"
+    },
+    {
+      "path": "scripts/check-voice-normalization.mjs",
+      "sha256": "b01dae4c08e122e79732403b9daa945ae31147e0a2fee3210dc7b5cf9626404f",
+      "bytes": 7728,
+      "beforeSha256": "f5c8cca4b9305429620b96348c264bf7237b4d3b9b3bc90b30e54c8a08e3244b"
+    }
+  ]
+}
