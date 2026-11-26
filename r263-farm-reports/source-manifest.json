@@ -1,0 +1,19 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/lib/farmReports.ts",
+      "sha256": "752dfa440c33216cb5402390b363e72e00385862ed96c6ca991c9b89ffe76063",
+      "bytes": 6369,
+      "beforeSha256": "8b0c75cafa22d018cdb315750229ef584808869cae3d376d1a40da7a316a2aad"
+    },
+    {
+      "path": "scripts/check-farm-report-stats.mjs",
+      "sha256": "028846d6b7dec7cb901fc9d820f2f3e848bd32b04ee031871deddefbee1fbc4b",
+      "bytes": 5573
+    }
+  ]
+}
