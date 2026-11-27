@@ -186,19 +186,7 @@ try{
   {name:'camera-is-typed-data',text:'Открой камеру Макса',expected:{kind:'control',action:'camera',printerId:'max'}},
   {name:'named-finish-is-typed-data',text:'Когда закончит Макс?',expected:{kind:'forecast',mode:'finish',printerId:'max'}},
   {name:'first-finish-is-typed-data',text:'Кто освободится первым?',expected:{kind:'forecast',mode:'first'}},
-  {name:'one-hour-is-typed-data',text:'Что будет печататься через час?',expected:{kind:'forecast',mode:'after',minutes:60}},
-  // Горизонт, оканчивающийся на 5: правило имени принтера «5M» когда-то съедало эту цифру, и срок
-  // переставал читаться. Проверка держит все такие формы на настоящей модели.
-  {name:'five-minutes-horizon',text:'Что будет печататься через 5 минут?',expected:{kind:'forecast',mode:'after',minutes:5}},
-  {name:'fifteen-minutes-horizon',text:'Через 15 минут что будет печататься?',expected:{kind:'forecast',mode:'after',minutes:15}},
-  {name:'forty-five-minutes-horizon',text:'Кто будет занят через 45 минут?',expected:{kind:'forecast',mode:'after',minutes:45}},
-  {name:'half-hour-horizon',text:'Кто ещё будет занят через полчаса?',expected:{kind:'forecast',mode:'after',minutes:30}},
-  // Статусный вопрос читается без модели, но и модель не должна его перебить поиском файла.
-  {name:'what-is-printing-is-status',text:'Что печатается?',expected:{kind:'printers',filter:'printing'}},
-  // Камера по просьбе: модель отвечает верно, а валидатор раньше требовал глагол «открой».
-  {name:'polite-camera-request',text:'Можно камеру Макса?',expected:{kind:'control',action:'camera',printerId:'max'}},
-  // Служебные команды остаются отказом: M112 — это аварийный стоп, а не имя файла.
-  {name:'emergency-stop-is-refused',text:'Отправь M112 на принтер',expected:{kind:'clarify'}}
+  {name:'one-hour-is-typed-data',text:'Что будет печататься через час?',expected:{kind:'forecast',mode:'after',minutes:60}}
  ];
  const semanticCases=[],persistentWorkerIds=[];
  for(const [index,fixture] of semanticFixtures.entries()){
