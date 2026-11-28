@@ -1,0 +1,25 @@
+{
+  "schema": "klipper-farm-source-overlay@1",
+  "baseBuildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "buildId": "V20.6-R15.25-UPDATE-DELIVERY-PRODUCTION-CANDIDATE-2026-11-29",
+  "canonicalLineEndings": true,
+  "files": [
+    {
+      "path": "src/lib/modelSelection.ts",
+      "sha256": "d4ad240438eb6663c51f2a17e919051ad30884eb59341166c3457b62261fd4a0",
+      "bytes": 3536,
+      "beforeSha256": "8fff8dcfc54ce0d6becaca1be1c4115a3eadcf4ed00d44c60e2a047711b2929f"
+    },
+    {
+      "path": "scripts/check-printer-library-scope.mjs",
+      "sha256": "ba3cc932e8caa282ad1898ef278099184e5e5dfe927d3974bce449433acccb92",
+      "bytes": 5254
+    },
+    {
+      "path": "scripts/check-hardware-reliability.mjs",
+      "sha256": "42ca7e09e1e4828ad8c10ace935548a84f160c2f1c225aa8c45bda127e60fbc3",
+      "bytes": 8864,
+      "beforeSha256": "80ebab9c7bc9b076cced9fc3c4bc87e9dfe3c275a19e1da8a76ea1bdb9b1b7a0"
+    }
+  ]
+}
