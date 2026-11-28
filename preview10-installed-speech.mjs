@@ -235,6 +235,42 @@ try{
  const recovered=await semanticInvoke('voice_semantic_interpret',{requestId:'installed-semantic-recovered',request:{text:semanticFixtures[0].text,context:semanticContext}});
  assert.equal(recovered.kind,'printers');assert.equal(recovered.filter,'free');
  const recoveredWorkers=ownedSemanticProcesses();assert.equal(recoveredWorkers.length,1);
+ // Второй слой: те же фразы через поле ввода, то есть модель и валидатор вместе. Блок выше проверяет
+ // сырой ответ моста и потому не может проверить правила из voiceSemantic.ts — на этой машине модель
+ // отвечает find на «что печатается» и print на «отправь M112», и исправляет их именно валидатор.
+ // Главное утверждение здесь — отсутствие предложения печати там, где оно было бы опасным.
+ const validatorCases=[];
+ const assistantText=()=>cdp.evaluate('Array.from(document.querySelectorAll(".kfVoiceMessage.assistant")).at(-1)?.textContent??""');
+ const askValidator=async(name,text,verify)=>{
+  const beforeReply=await assistantText();
+  const beforeProposals=await cdp.evaluate('document.querySelectorAll(".kfVoiceProposal").length');
+  await submitText(text);
+  const reply=await waitFor(assistantText,value=>typeof value==='string'&&value!==''&&value!==beforeReply,'validator reply: '+name,40000);
+  const afterProposals=await cdp.evaluate('document.querySelectorAll(".kfVoiceProposal").length');
+  await verify(reply,beforeProposals,afterProposals);
+  validatorCases.push({name,text,reply:String(reply).slice(0,200),passed:true});
+ };
+ // Служебная команда не должна создать предложение печати: до валидатора модель отвечает print с
+ // query=M112, и без правила это стало бы печатью файла с именем команды.
+ await askValidator('service-command-is-refused','Отправь M112 на принтер',(reply,before,after)=>{
+  assert.equal(after,before,'service command created a print proposal');
+  assert.doesNotMatch(String(reply),/Для запуска скажите/u,'service command offered to start a print');
+ });
+ // Нагрев и движение — тоже отказ, не печать.
+ await askValidator('motion-is-refused','Подними стол на 10 миллиметров',(reply,before,after)=>{
+  assert.equal(after,before,'motion request created a print proposal');
+ });
+ // Вопрос о состоянии — ответ про принтеры, а не про поиск файла.
+ await askValidator('status-question-is-not-a-file-search','Что печатается?',(reply)=>{
+  assert.doesNotMatch(String(reply),/Какой файл/u,'status question asked for a file');
+ });
+ // Срок в просьбе даёт прогноз, а не предложение печати.
+ await askValidator('stated-horizon-forecast','Кто ещё будет занят через полчаса?',(reply,before,after)=>{
+  assert.equal(after,before,'forecast created a print proposal');
+  assert.doesNotMatch(String(reply),/Какой файл/u,'forecast asked for a file');
+ });
+ report.semanticValidation={passed:true,cases:validatorCases.length,results:validatorCases,
+  note:'full path through the field: model answer, then voiceSemantic validation, then the panel'};
  report.semanticUnderstanding={passed:true,actualInstalledNativeBridge:true,authenticationRequired:unauthenticatedCommands,
   modelSidecarAvailable:semanticStatus.modelPresent===true,selectedRuntime:semanticRuntime,prepareCallMilliseconds:semanticPrepareMilliseconds,nativeTimings:await cdp.evaluate('window.__speechSmoke.semanticTimings'),cases:semanticCases,
   ordinaryRequestsReuseOneProcess:true,cancelBeforeRegistration:true,cancelDuringInference:true,cancelledHelperReaped:true,recoveredAfterCancellation:true,

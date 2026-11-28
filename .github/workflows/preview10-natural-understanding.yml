@@ -657,7 +657,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Synthetic microphone fixture preparation failed' }
           python -c "from pathlib import Path;p=Path('preview10-installed-speech.mjs');p.write_bytes(p.read_bytes().replace(b'\r\n',b'\n'))"
           if ($LASTEXITCODE -ne 0) { throw 'Installed speech test normalization failed' }
-          if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'bb561615f17505e905a4c4cbb98aa4f32a1852194ed2fa9a52cbd7eb55dd0e0f') { throw 'Reviewed installed speech and understanding test differs' }
+          if ((Get-FileHash preview10-installed-speech.mjs).Hash.ToLowerInvariant() -ne 'b736ed186e9b6f1bf1d4b07c568120ec6ae027ebb19b89276e392f6d8e4b6bfa') { throw 'Reviewed installed speech and understanding test differs' }
           # The expected identity is read from the reviewed overlay that was
           # supposed to be applied, not from a second copy of the same string.
           # A copy can go stale and then certify a build that never got it.
